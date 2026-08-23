@@ -207,6 +207,16 @@ const CFG_KEY = "game:config";
 const teamKey = (n) => `game:team:${n}`;
 const card = (id) => SOLUTIONS.find(c=>c.id===id) || MODIFIERS.find(c=>c.id===id);
 
+/* The claim code is stored as a SHA-256 hash so reading the shared database
+   does not reveal it. The database rules are what actually enforce the role;
+   this only keeps the code itself out of plain sight. */
+async function hashCode(code){
+  try{
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`st1:${code}`));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+  }catch{ return `plain:${code}`; }
+}
+
 const blankTeam = (n) => ({
   n, name:`Team ${n}`, members:"", joined:false,
   threat:{method:"",impact:"",resource:"",motive:""},
@@ -346,7 +356,17 @@ const btn = (kind="ghost") => ({
 /* ---------------- root ---------------- */
 
 export default function SolutionsTable(){
-  const [clientId] = useState(()=>Math.random().toString(36).slice(2,10));
+  const [localId] = useState(()=>Math.random().toString(36).slice(2,10));
+  const [authUid,setAuthUid] = useState(null);
+  /* With Firebase the identity is the authenticated uid, which the database
+     rules check. Inside a Claude artifact there is no auth, so we fall back to
+     a random per-tab id and the role is a convention rather than a rule. */
+  const clientId = authUid || localId;
+  useEffect(()=>{
+    let live = true;
+    if (BACKEND.ready) BACKEND.ready.then(u=>{ if(live) setAuthUid(u); }).catch(()=>{});
+    return ()=>{ live=false; };
+  },[]);
   const [role,setRole] = useState(null);      // "fac" | "player"
   const [teamN,setTeamN] = useState(null);
   const [cfg,setCfg] = useState(null);
@@ -382,6 +402,14 @@ export default function SolutionsTable(){
     }
   },[]);
 
+  /* A facilitator who is reading rather than clicking would otherwise look
+     absent, and the rules would release the role to whoever asked next. */
+  useEffect(()=>{
+    if (role!=="fac" || cfg?.facilitatorId!==clientId) return;
+    const beat = setInterval(()=>{ sSet(CFG_KEY,{...cfg, heldAt:stamp()}); }, 45000);
+    return ()=>clearInterval(beat);
+  },[role,cfg,clientId]);
+
   const teamCount = (cfg?.teamCount ?? DEFAULT_TEAMS);
   useEffect(()=>{
     refresh();
@@ -399,9 +427,11 @@ export default function SolutionsTable(){
     else if (h.includes("facilitator")) setRole("fac-gate");
   },[]);
 
+  const stamp = ()=> (BACKEND.serverTime ? BACKEND.serverTime() : Date.now());
   const saveCfg = async (patch)=>{
     setBusy(true);
-    const next = {...(cfg||{}), ...patch, updatedAt:Date.now()};
+    // heldAt must be server-set on every config write or the rules reject it
+    const next = {...(cfg||{}), ...patch, heldAt:stamp(), updatedAt:Date.now()};
     setCfg(next);
     const ok = await sSet(CFG_KEY,next);
     setStatus(ok?"Saved":`Could not save — ${LAST_ERROR?.code||LAST_ERROR?.message||"see the browser console"}`);
@@ -452,10 +482,18 @@ export default function SolutionsTable(){
   if (role==="fac-gate") return shell(
     <FacGate cfg={cfg} clientId={clientId} onClaim={async(code)=>{
       const c = await sGet(CFG_KEY);
-      if (c?.facilitatorId && c.facilitatorId!==clientId && c.claimCode!==code) return "That code does not match the facilitator for this session.";
+      const STALE_MS = 120000;              // matches the grace period in the rules
+      const live = c?.heldAt && (Date.now() - c.heldAt) < STALE_MS;
+      if (c?.facilitatorId && c.facilitatorId!==clientId && live) {
+        const h = await hashCode(code);
+        const ok = c.claimHash ? c.claimHash===h : c.claimCode ? c.claimCode===code : false;
+        if (!ok) return "Someone is currently running this session. Ask them for the code, "
+          + "or wait about two minutes after they stop and the role frees itself.";
+      }
       const s1 = scenarioById(1);
       const fresh = !c?.org && !c?.scenario;   // nothing set up yet
-      await saveCfg({...(c||{}), facilitatorId:clientId, claimCode:code,
+      const claimHash = await hashCode(code);
+      await saveCfg({...(c||{}), facilitatorId:clientId, claimHash, claimCode:null,
         phase:c?.phase||"setup", dims:c?.dims||DEFAULT_DIMS,
         teamCount:c?.teamCount??DEFAULT_TEAMS,
         scenarioId:c?.scenarioId ?? (fresh ? s1.id : undefined),
@@ -535,6 +573,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
   const [org,setOrg] = useState(cfg?.org||"");
   const [scenario,setScenario] = useState(cfg?.scenario||"");
   const [pick,setPick] = useState(1);
+  const [roleMsg,setStatusLocal] = useState("");
   const loaded = scenarioById(cfg?.scenarioId);
 
   const loadScenario = async (id)=>{
@@ -603,6 +642,37 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
     const url = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
     const a=document.createElement("a"); a.href=url; a.download="solutions-session.csv"; a.click();
     URL.revokeObjectURL(url);
+  };
+
+  /* If another device claimed the role, stop issuing commands. Two facilitators
+     fighting over the phase is worse than one being locked out. */
+  const displaced = cfg?.facilitatorId && cfg.facilitatorId !== clientId;
+  if (displaced) {
+    return (
+      <div style={{maxWidth:460}}>
+        <Section title="You no longer hold this role">
+          <p style={{color:C.muted,fontSize:13,lineHeight:1.6,marginTop:0}}>
+            Another device claimed the facilitator role for this session. To avoid two
+            people changing the phase at once, this window has stopped.
+          </p>
+          <div style={{display:"flex",gap:8}}>
+            <button style={btn("primary")} onClick={onReclaim}>Take it back</button>
+            <button style={btn()} onClick={onExit}>Leave</button>
+          </div>
+        </Section>
+      </div>
+    );
+  }
+
+  const releaseRole = async ()=>{
+    await saveCfg({facilitatorId:null, claimHash:null, claimCode:null});
+    onExit();
+  };
+  const changeCode = async ()=>{
+    const next = window.prompt("New facilitator code. Share it only with co-facilitators.");
+    if(!next || !next.trim()) return;
+    await saveCfg({claimHash: await hashCode(next.trim()), claimCode:null});
+    setStatusLocal("Code changed. The old one no longer works.");
   };
 
   return (
@@ -733,6 +803,24 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
             </ol>
           </Section>
         )}
+
+        <Section title="Facilitator role">
+          <p style={{fontFamily:MONO,fontSize:10.5,color:C.muted,lineHeight:1.6,margin:"0 0 9px"}}>
+            You hold this role. Only someone with the code can take it, and only you can
+            release it from here.
+          </p>
+          {roleMsg && <div style={{fontFamily:MONO,fontSize:10.5,color:C.brass,marginBottom:8}}>{roleMsg}</div>}
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+            <button style={btn()} disabled={busy} onClick={changeCode}>Change the code</button>
+            <button style={btn("danger")} disabled={busy}
+              onClick={()=>{ if(window.confirm(
+                "Release the facilitator role?\n\nThe session, teams and board are untouched. "+
+                "The next person to open the facilitator page can claim it with any code they choose.\n\n"+
+                "Do this at the end of class, or to hand over to a colleague.")) releaseRole(); }}>
+              Release the role
+            </button>
+          </div>
+        </Section>
 
         <Section title="Adjudication" right={<span style={{fontFamily:MONO,fontSize:11,color:pending.length?C.brass:C.muted}}>{pending.length} waiting</span>}>
           {pending.length===0

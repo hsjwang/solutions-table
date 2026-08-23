@@ -32,8 +32,11 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getDatabase, ref, get, set, onValue,
+  getDatabase, ref, get, set, onValue, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 /* ============================================================
    PASTE YOUR VALUES HERE
@@ -88,6 +91,35 @@ const SESSION =
 
 const app = initializeApp(FIREBASE_CONFIG);
 const db = getDatabase(app);
+const auth = getAuth(app);
+
+/* Every browser signs in anonymously and gets a stable uid. The database
+   rules use it to enforce who may write the session config, which is what
+   stops a student becoming facilitator by clicking the wrong link.
+   The uid survives a reload; it does not survive a different browser,
+   incognito, or cleared storage. That is what the stale-role grace period
+   in the rules is for. */
+let resolveReady;
+const ready = new Promise((r) => { resolveReady = r; });
+
+signInAnonymously(auth).catch((err) => {
+  const msg = err?.code === "auth/operation-not-allowed"
+    ? "Solutions Table: Anonymous sign-in is not enabled. Firebase console -> " +
+      "Build -> Authentication -> Sign-in method -> Anonymous -> Enable. " +
+      "Nothing will save until this is on."
+    : `Solutions Table: sign-in failed (${err?.code || err}).`;
+  console.error(msg);
+  document.addEventListener("DOMContentLoaded", () => {
+    const bar = document.createElement("div");
+    bar.textContent = msg;
+    bar.style.cssText =
+      "position:fixed;inset:0 0 auto 0;z-index:9999;background:#C0453B;color:#fff;" +
+      "font:13px/1.5 ui-monospace,Menlo,monospace;padding:10px 14px";
+    document.body.appendChild(bar);
+  });
+});
+
+onAuthStateChanged(auth, (user) => { if (user) resolveReady(user.uid); });
 
 /* Firebase paths cannot contain "." "#" "$" "[" "]" or "/",
    and this app's keys look like "game:team:3". Colons are fine. */
@@ -95,16 +127,35 @@ const path = (key) => `sessions/${SESSION}/${key.replace(/[.#$[\]]/g, "_")}`;
 
 /* Realtime Database throws on any `undefined` anywhere in the payload.
    A JSON round-trip drops undefined keys and leaves nulls intact. */
-const clean = (v) => JSON.parse(JSON.stringify(v ?? null));
+const SENTINEL = serverTimestamp();
+const clean = (v) => {
+  if (v === undefined || v === null) return null;
+  if (Array.isArray(v)) return v.map(clean);
+  if (typeof v === "object") {
+    // serverTimestamp() is an object the SDK must receive intact
+    if (v[".sv"]) return v;
+    const out = {};
+    for (const [k, val] of Object.entries(v)) {
+      if (val !== undefined) out[k] = clean(val);
+    }
+    return out;
+  }
+  return v;
+};
 
 /* Explain the common failures instead of letting them surface as a
    generic "could not save". */
 function explain(err, key) {
   const code = err?.code || "";
   if (code.includes("PERMISSION_DENIED") || /permission/i.test(err?.message || "")) {
-    return `Firebase refused the write to "${key}". Open Realtime Database -> Rules ` +
-           `and confirm ".read" and ".write" are true. Test-mode rules also expire ` +
-           `after 30 days.`;
+    if (key === "game:config") {
+      return `Firebase refused the config write. Someone else currently holds the ` +
+             `facilitator role for this session. The rules release it about two ` +
+             `minutes after their last action — wait, then claim again, or start a ` +
+             `separate session with ?session=<name> in the URL.`;
+    }
+    return `Firebase refused the write to "${key}". Check Realtime Database -> Rules, ` +
+           `and confirm Anonymous sign-in is enabled under Authentication.`;
   }
   if (/undefined/i.test(err?.message || "")) {
     return `Payload for "${key}" contained undefined. This is a bug in the app, ` +
@@ -119,8 +170,14 @@ function explain(err, key) {
 }
 
 window.SOLUTIONS_BACKEND = {
+  ready,
+  get uid() { return auth.currentUser ? auth.currentUser.uid : null; },
+  /* Written into heldAt so the rules can compare against their own clock
+     rather than trusting a classroom laptop's system time. */
+  serverTime: () => serverTimestamp(),
   async get(key) {
     try {
+      await ready;
       const snap = await get(ref(db, path(key)));
       return snap.exists() ? snap.val() : null;
     } catch (err) {
@@ -130,6 +187,7 @@ window.SOLUTIONS_BACKEND = {
   },
   async set(key, val) {
     try {
+      await ready;
       await set(ref(db, path(key)), clean(val));
       return true;
     } catch (err) {
@@ -152,21 +210,45 @@ if (!missing.length) {
 }
 
 /* ------------------------------------------------------------
-   DATABASE RULES — paste into Realtime Database -> Rules.
+   DATABASE RULES — paste into Realtime Database -> Rules, Publish.
 
-   Test mode leaves the database open to anyone who finds the URL
-   and expires after 30 days. These rules keep writes open but
-   bound the damage: session names must look sane, values are
-   size-limited, and nothing outside /sessions is reachable.
+   Requires Anonymous sign-in:
+     Build -> Authentication -> Sign-in method -> Anonymous -> Enable
+
+   What these enforce:
+     - only signed-in clients can write anything
+     - only the uid holding the facilitator role can write the session
+       config, so a student cannot take over by opening the facilitator link
+     - the role frees itself about two minutes after the holder's last
+       action, so a crashed browser or a switch of device does not strand
+       the class
+     - heldAt must equal the server's own clock, so a client cannot fake a
+       stale role to force a takeover
+     - team data stays writable by any signed-in client, because players
+       need it, with a size cap
 
 {
   "rules": {
     "sessions": {
       "$session": {
-        ".read": true,
-        ".write": true,
+        ".read": "auth != null",
         ".validate": "$session.matches(/^[a-zA-Z0-9_-]{1,40}$/)",
+
+        "game:config": {
+          ".write": "auth != null && (
+              !data.exists()
+              || !data.child('facilitatorId').exists()
+              || data.child('facilitatorId').val() === auth.uid
+              || data.child('heldAt').val() < (now - 120000)
+          )",
+          ".validate": "(
+              newData.child('facilitatorId').val() === auth.uid
+              || !newData.child('facilitatorId').exists()
+            ) && newData.child('heldAt').val() === now"
+        },
+
         "$key": {
+          ".write": "auth != null",
           ".validate": "newData.isString() ? newData.val().length < 20000 : true"
         }
       }
@@ -174,6 +256,12 @@ if (!missing.length) {
   }
 }
 
-   If sessions will ever carry student names, turn on Firebase
-   Anonymous Auth and change ".write" to "auth != null".
+   TIGHTENING FURTHER
+     To stop players clearing each other's teams, give team keys an owner
+     the same way the config has one. It costs you the ability to move a
+     student to another device mid-session, so weigh it against your class.
+
+   LOOSENING
+     Shorten 120000 (two minutes) if facilitators change often; lengthen it
+     if a stale role is being grabbed during long debriefs.
    ------------------------------------------------------------ */
