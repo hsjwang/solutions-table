@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Solutions Table</title>
+    <meta name="description" content="A shared board for the Solutions dimension of the Security Cards." />
+    <meta name="color-scheme" content="dark" />
+    <style>
+      html, body, #root { height: 100%; margin: 0; background: #161B22; }
+    </style>
+    <!-- Loads before the app so window.SOLUTIONS_BACKEND exists at import time. -->
+    <script type="module" src="/src/backend.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
