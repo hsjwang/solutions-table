@@ -88,7 +88,15 @@ const PHASES = [
   {id:"p3", label:"Phase 3 — Residual risk"},
   {id:"debrief", label:"Debrief"},
 ];
-const TEAM_IDS = [1,2,3,4,5,6];
+const MAX_TEAMS = 16;
+const ALL_TEAMS = Array.from({length:MAX_TEAMS},(_,i)=>i+1);
+const DEFAULT_TEAMS = 6;
+/* Rooms bigger than this read more storage per poll, so the interval
+   stretches to keep total request volume roughly flat. */
+const teamsOf = (cfg) => ALL_TEAMS.slice(0, Math.min(MAX_TEAMS, cfg?.teamCount ?? DEFAULT_TEAMS));
+const pollMs  = (n) => n<=8 ? 4000 : n<=12 ? 6000 : 8000;
+/* Guidance, not a hard limit: 4 is where someone stops talking. */
+const SEATS_PER_TEAM = 4;
 const CFG_KEY = "game:config";
 const teamKey = (n) => `game:team:${n}`;
 const card = (id) => SOLUTIONS.find(c=>c.id===id) || MODIFIERS.find(c=>c.id===id);
@@ -97,7 +105,7 @@ const blankTeam = (n) => ({
   n, name:`Team ${n}`, members:"", joined:false,
   threat:{method:"",impact:"",resource:"",motive:""},
   pre:null, post:null, hand:[], modHand:[], purchases:[],
-  modifiers:[], residual:"", updatedAt:0,
+  modifiers:[], residual:"", driver:null, seats:[], updatedAt:0,
 });
 
 /* Storage adapter. Inside a Claude artifact this uses window.storage.
@@ -244,15 +252,15 @@ export default function SolutionsTable(){
   // Players read only the config and their own team; only the facilitator
   // reads the whole room. Reading all six keys from every client would put a
   // class of twenty at roughly two thousand storage reads a minute.
-  const roleRef = useRef({role:null,teamN:null});
-  roleRef.current = {role,teamN};
+  const roleRef = useRef({role:null,teamN:null,ids:ALL_TEAMS.slice(0,DEFAULT_TEAMS)});
+  roleRef.current = {role,teamN,ids:teamsOf(cfg)};
 
   const refresh = useCallback(async ()=>{
     const c = await sGet(CFG_KEY);
     if (c) setCfg(c);
-    const {role:r, teamN:tn} = roleRef.current;
+    const {role:r, teamN:tn, ids} = roleRef.current;
     if (r === "fac" || r === "projector") {
-      const entries = await Promise.all(TEAM_IDS.map(async n=>[n, await sGet(teamKey(n))]));
+      const entries = await Promise.all(ids.map(async n=>[n, await sGet(teamKey(n))]));
       const next = {};
       entries.forEach(([n,t])=>{ if(t) next[n]=t; });
       setTeams(next);
@@ -261,18 +269,19 @@ export default function SolutionsTable(){
       if (t) setTeams(prev=>({...prev,[tn]:t}));
     } else if (r === "player") {
       // team picker needs to know which seats are taken; read once, not on a loop
-      const entries = await Promise.all(TEAM_IDS.map(async n=>[n, await sGet(teamKey(n))]));
+      const entries = await Promise.all(ids.map(async n=>[n, await sGet(teamKey(n))]));
       const next = {};
       entries.forEach(([n,t])=>{ if(t) next[n]=t; });
       setTeams(next);
     }
   },[]);
 
+  const teamCount = (cfg?.teamCount ?? DEFAULT_TEAMS);
   useEffect(()=>{
     refresh();
-    poll.current = setInterval(refresh, 4000);
+    poll.current = setInterval(refresh, pollMs(teamCount));
     return ()=>clearInterval(poll.current);
-  },[refresh]);
+  },[refresh,teamCount]);
 
   // Fetch immediately when the role or team changes rather than waiting a tick.
   useEffect(()=>{ refresh(); },[role,teamN,refresh]);
@@ -331,7 +340,7 @@ export default function SolutionsTable(){
     </div>
   );
 
-  if (role==="projector") return <Projector cfg={cfg} teams={teams} onExit={()=>setRole(null)}/>;
+  if (role==="projector") return <Projector cfg={cfg} teams={teams} ids={teamsOf(cfg)} onExit={()=>setRole(null)}/>;
   if (role===null) return shell(<Gate onPlayer={()=>setRole("player")} onFac={()=>setRole("fac-gate")}
     onProjector={()=>setRole("projector")} cfg={cfg}/>);
   if (role==="fac-gate") return shell(
@@ -345,12 +354,13 @@ export default function SolutionsTable(){
     }} onBack={()=>setRole(null)}/>
   );
   if (role==="fac") return shell(
-    <Facilitator cfg={cfg} teams={teams} saveCfg={saveCfg} saveTeam={saveTeam} busy={busy}
-      onExit={()=>setRole(null)}/>
+    <Facilitator cfg={cfg} teams={teams} ids={teamsOf(cfg)} saveCfg={saveCfg} saveTeam={saveTeam}
+      busy={busy} onExit={()=>setRole(null)}/>
   );
   return shell(
-    <Player cfg={cfg} teams={teams} teamN={teamN} setTeamN={setTeamN}
-      saveTeam={saveTeam} busy={busy} onExit={()=>{setRole(null);setTeamN(null);}}/>
+    <Player cfg={cfg} teams={teams} ids={teamsOf(cfg)} teamN={teamN} setTeamN={setTeamN}
+      saveTeam={saveTeam} busy={busy} clientId={clientId}
+      onExit={()=>{setRole(null);setTeamN(null);}}/>
   );
 }
 
@@ -409,14 +419,14 @@ function FacGate({onClaim,onBack,cfg,clientId}){
 
 /* ---------------- facilitator ---------------- */
 
-function Facilitator({cfg,teams,saveCfg,saveTeam,busy,onExit}){
+function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
   const [org,setOrg] = useState(cfg?.org||"");
   const [scenario,setScenario] = useState(cfg?.scenario||"");
   const phase = cfg?.phase||"setup";
   const budget = cfg?.budget??6;
 
   const dealAll = async ()=>{
-    for (const n of TEAM_IDS){
+    for (const n of ids){
       const t = teams[n]; if(!t?.joined) continue;
       const found = SOLUTIONS.filter(c=>c.tier==="F").map(c=>c.id);
       const ext = SOLUTIONS.filter(c=>c.tier==="E").map(c=>c.id);
@@ -426,13 +436,14 @@ function Facilitator({cfg,teams,saveCfg,saveTeam,busy,onExit}){
     }
   };
   const pending = [];
-  TEAM_IDS.forEach(n=>{ (teams[n]?.modifiers||[]).forEach((m,i)=>{ if(m.status==="pending") pending.push({n,i,...m}); }); });
+  ids.forEach(n=>{ (teams[n]?.modifiers||[]).forEach((m,i)=>{ if(m.status==="pending") pending.push({n,i,...m}); }); });
 
   const newRound = async ()=>{
-    for (const n of TEAM_IDS){
+    for (const n of ids){
       const t = teams[n];
       if(!t?.joined) continue;
-      await saveTeam(n,{...blankTeam(n), name:t.name, members:t.members, joined:true});
+      await saveTeam(n,{...blankTeam(n), name:t.name, members:t.members,
+        joined:true, driver:t.driver, seats:t.seats||[]});
     }
     await saveCfg({phase:"p1", timerEnd:null});
     setStatus("Board cleared. Teams are still seated — set the new scenario above.");
@@ -442,7 +453,7 @@ function Facilitator({cfg,teams,saveCfg,saveTeam,busy,onExit}){
     const label = new Date().toISOString().slice(0,16).replace(/[:T]/g,"-");
     const snapshot = {cfg, teams, archivedAt:Date.now()};
     await sSet(`archive:${label}`, snapshot);          // keep a copy first
-    for (const n of TEAM_IDS) await sSet(teamKey(n), blankTeam(n));
+    for (const n of ids) await sSet(teamKey(n), blankTeam(n));
     await saveCfg({phase:"setup", org:"", scenario:"", timerEnd:null});
     setTeams({});
     setStatus(`Board cleared. A copy was kept as archive:${label}.`);
@@ -452,7 +463,7 @@ function Facilitator({cfg,teams,saveCfg,saveTeam,busy,onExit}){
     const rows = [["team","org","threat_method","threat_impact","threat_resource","threat_motive",
       "pre_likelihood","pre_severity","post_likelihood","post_severity","spent","purchases",
       "modifiers_accepted","residual"]];
-    TEAM_IDS.forEach(n=>{
+    ids.forEach(n=>{
       const t=teams[n]; if(!t?.joined) return;
       const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
       rows.push([t.name,cfg?.org||"",t.threat.method,t.threat.impact,t.threat.resource,t.threat.motive,
@@ -478,6 +489,24 @@ function Facilitator({cfg,teams,saveCfg,saveTeam,busy,onExit}){
           <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Scenario read aloud</label>
           <textarea value={scenario} onChange={e=>setScenario(e.target.value)} onBlur={()=>saveCfg({scenario})}
             placeholder="One or two sentences the teams all start from."/>
+          <div style={{marginTop:12}}>
+            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+              Teams — allow about {SEATS_PER_TEAM} students each
+            </label>
+            <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+              {[6,8,10,12,16].map(k=>(
+                <button key={k} onClick={()=>saveCfg({teamCount:k})}
+                  style={{...btn((cfg?.teamCount??6)===k?"primary":"ghost"),fontSize:11}}>
+                  {k} · up to {k*SEATS_PER_TEAM}
+                </button>
+              ))}
+            </div>
+            <p style={{fontFamily:MONO,fontSize:10,color:C.muted,lineHeight:1.6,marginTop:6}}>
+              Reducing the count hides higher-numbered teams but does not delete them.
+              Larger rooms refresh a little more slowly to keep request volume steady.
+            </p>
+          </div>
+
           <div style={{marginTop:12}}>
             <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Budget — the organization's resource level</label>
             <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
@@ -570,7 +599,7 @@ function Facilitator({cfg,teams,saveCfg,saveTeam,busy,onExit}){
             <button style={btn()} onClick={exportData}>Export CSV</button>
           </div>}>
           <div style={{display:"grid",gap:9}}>
-            {TEAM_IDS.map(n=>{
+            {ids.map(n=>{
               const t = teams[n];
               if(!t?.joined) return (
                 <div key={n} style={{border:`1px dashed ${C.edge}`,borderRadius:4,padding:"10px 12px",
@@ -610,8 +639,8 @@ function Facilitator({cfg,teams,saveCfg,saveTeam,busy,onExit}){
 
 /* ---------------- projector ---------------- */
 
-function OverlayMatrix({teams,size=118}){
-  const at = (l,s,which)=> TEAM_IDS.filter(n=>{
+function OverlayMatrix({teams,ids,size=118}){
+  const at = (l,s,which)=> ids.filter(n=>{
     const p = teams[n]?.[which]; return p && p.l===l && p.s===s;
   });
   return (
@@ -666,10 +695,10 @@ function Countdown({end}){
   );
 }
 
-function Projector({cfg,teams,onExit}){
+function Projector({cfg,teams,ids,onExit}){
   const budget = cfg?.budget??6;
   const phase = PHASES.find(p=>p.id===(cfg?.phase||"setup"));
-  const active = TEAM_IDS.filter(n=>teams[n]?.joined);
+  const active = ids.filter(n=>teams[n]?.joined);
   const pending = active.reduce((a,n)=>a+(teams[n]?.modifiers||[]).filter(m=>m.status==="pending").length,0);
 
   return (
@@ -709,7 +738,7 @@ function Projector({cfg,teams,onExit}){
         <div>
           <div style={{fontFamily:MONO,fontSize:12,letterSpacing:".1em",textTransform:"uppercase",
             color:C.muted,marginBottom:12}}>The room, on one grid</div>
-          <OverlayMatrix teams={teams}/>
+          <OverlayMatrix teams={teams} ids={ids}/>
           <div style={{display:"flex",gap:22,marginTop:14,fontFamily:MONO,fontSize:13,color:C.muted}}>
             <span><span style={{display:"inline-block",width:14,height:14,borderRadius:"50%",
               border:`2px solid ${C.muted}`,marginRight:7,verticalAlign:"-2px"}}/>before controls</span>
@@ -774,7 +803,7 @@ function Projector({cfg,teams,onExit}){
 
 /* ---------------- player ---------------- */
 
-function Player({cfg,teams,teamN,setTeamN,saveTeam,busy,onExit}){
+function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   const phase = cfg?.phase||"setup";
   const budget = cfg?.budget??6;
   const dims = cfg?.dims||DEFAULT_DIMS;
@@ -785,14 +814,23 @@ function Player({cfg,teams,teamN,setTeamN,saveTeam,busy,onExit}){
     return (
       <Section title="Pick your team" right={<button style={btn()} onClick={onExit}>Back</button>}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:9}}>
-          {TEAM_IDS.map(n=>{
+          {ids.map(n=>{
             const taken = teams[n]?.joined;
             return (
-              <button key={n} onClick={async()=>{ setTeamN(n); if(!taken) await saveTeam(n,{...blankTeam(n),joined:true}); }}
+              <button key={n} onClick={async()=>{
+                  setTeamN(n);
+                  const t = teams[n];
+                  if(!taken) await saveTeam(n,{...blankTeam(n),joined:true,driver:clientId,seats:[clientId]});
+                  else if(!(t.seats||[]).includes(clientId))
+                    await saveTeam(n,{seats:[...(t.seats||[]),clientId], driver:t.driver||clientId});
+                }}
                 style={{...btn(taken?"ghost":"primary"),padding:"14px 10px",textAlign:"left"}}>
                 <div style={{fontSize:14,color:C.paper,fontWeight:600}}>{teams[n]?.name||`Team ${n}`}</div>
                 <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:3}}>
-                  {taken? (teams[n]?.members||"joined") : "open"}
+                  {taken
+                    ? `${(teams[n]?.seats||[]).length||1} device${((teams[n]?.seats||[]).length||1)===1?"":"s"}`
+                      + (teams[n]?.members? ` · ${teams[n].members}` : "")
+                    : "open"}
                 </div>
               </button>
             );
@@ -842,6 +880,14 @@ function Player({cfg,teams,teamN,setTeamN,saveTeam,busy,onExit}){
             <input value={t.members} placeholder="first names" onChange={e=>saveTeam(teamN,{members:e.target.value})}/>
           </div>
         </div>
+        {(t.seats||[]).length>1 && t.driver!==clientId && (
+          <div style={{marginTop:12,padding:"9px 12px",borderRadius:4,
+            border:`1px solid ${C.brass}`,background:"rgba(217,180,91,.10)",
+            fontFamily:MONO,fontSize:11,color:C.brass,lineHeight:1.6}}>
+            Another device on this team is driving. You can watch and discuss, but if you
+            both click, one set of changes overwrites the other. Decide who drives.
+          </div>
+        )}
         {cfg?.scenario && (
           <div style={{marginTop:12,padding:12,borderLeft:`3px solid ${C.brass}`,background:C.panel,
             borderRadius:"0 4px 4px 0",fontSize:13.5,lineHeight:1.6}}>{cfg.scenario}</div>
