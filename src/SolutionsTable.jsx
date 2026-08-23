@@ -107,8 +107,9 @@ const BACKEND = (typeof window !== "undefined" && window.SOLUTIONS_BACKEND) || {
   async get(key){ const r = await window.storage.get(key,true); return r ? JSON.parse(r.value) : null; },
   async set(key,val){ await window.storage.set(key,JSON.stringify(val),true); return true; },
 };
-async function sGet(key){ try{ return await BACKEND.get(key); }catch{ return null; } }
-async function sSet(key,val){ try{ return await BACKEND.set(key,val); }catch{ return false; } }
+let LAST_ERROR = null;
+async function sGet(key){ try{ return await BACKEND.get(key); }catch(e){ LAST_ERROR=e; return null; } }
+async function sSet(key,val){ try{ return await BACKEND.set(key,val); }catch(e){ LAST_ERROR=e; return false; } }
 function sample(arr,k){ const a=[...arr]; const out=[]; while(out.length<k && a.length) out.push(a.splice(Math.floor(Math.random()*a.length),1)[0]); return out; }
 
 /* ---------------- shared bits ---------------- */
@@ -288,7 +289,7 @@ export default function SolutionsTable(){
     const next = {...(cfg||{}), ...patch, updatedAt:Date.now()};
     setCfg(next);
     const ok = await sSet(CFG_KEY,next);
-    setStatus(ok?"Saved":"Could not save — check your connection and try again.");
+    setStatus(ok?"Saved":`Could not save — ${LAST_ERROR?.code||LAST_ERROR?.message||"see the browser console"}`);
     setBusy(false);
   };
   const saveTeam = async (n,patch)=>{
@@ -297,7 +298,7 @@ export default function SolutionsTable(){
     const next = {...base, ...patch, updatedAt:Date.now()};
     setTeams(t=>({...t,[n]:next}));
     const ok = await sSet(teamKey(n),next);
-    setStatus(ok?"Saved":"Could not save — your last action may not have reached the other players.");
+    setStatus(ok?"Saved":`Could not save — ${LAST_ERROR?.code||LAST_ERROR?.message||"see the browser console"}`);
     setBusy(false);
   };
 
@@ -427,6 +428,26 @@ function Facilitator({cfg,teams,saveCfg,saveTeam,busy,onExit}){
   const pending = [];
   TEAM_IDS.forEach(n=>{ (teams[n]?.modifiers||[]).forEach((m,i)=>{ if(m.status==="pending") pending.push({n,i,...m}); }); });
 
+  const newRound = async ()=>{
+    for (const n of TEAM_IDS){
+      const t = teams[n];
+      if(!t?.joined) continue;
+      await saveTeam(n,{...blankTeam(n), name:t.name, members:t.members, joined:true});
+    }
+    await saveCfg({phase:"p1", timerEnd:null});
+    setStatus("Board cleared. Teams are still seated — set the new scenario above.");
+  };
+
+  const endSession = async ()=>{
+    const label = new Date().toISOString().slice(0,16).replace(/[:T]/g,"-");
+    const snapshot = {cfg, teams, archivedAt:Date.now()};
+    await sSet(`archive:${label}`, snapshot);          // keep a copy first
+    for (const n of TEAM_IDS) await sSet(teamKey(n), blankTeam(n));
+    await saveCfg({phase:"setup", org:"", scenario:"", timerEnd:null});
+    setTeams({});
+    setStatus(`Board cleared. A copy was kept as archive:${label}.`);
+  };
+
   const exportData = ()=>{
     const rows = [["team","org","threat_method","threat_impact","threat_resource","threat_motive",
       "pre_likelihood","pre_severity","post_likelihood","post_severity","spent","purchases",
@@ -478,6 +499,28 @@ function Facilitator({cfg,teams,saveCfg,saveTeam,busy,onExit}){
           <button style={{...btn(),marginTop:10,width:"100%"}} disabled={busy} onClick={dealAll}>
             Deal 8 controls + 3 modifiers to every team
           </button>
+          <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.edge}`}}>
+            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Another scenario, same room</label>
+            <button style={{...btn(),marginTop:6,width:"100%"}} disabled={busy}
+              onClick={()=>{ if(window.confirm(
+                "Clear the board for another scenario?\n\nTeams keep their names and seats. "+
+                "Threat cards, matrix placements, hands, purchases and modifiers are cleared, "+
+                "and play returns to Phase 1.\n\nExport the CSV first if you want to keep this round.")) newRound(); }}>
+              New round — keep teams, clear the board
+            </button>
+          </div>
+
+          <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.edge}`}}>
+            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>When the class is over</label>
+            <button style={{...btn("danger"),marginTop:6,width:"100%"}} disabled={busy}
+              onClick={()=>{ if(window.confirm(
+                "Clear the board for the next class?\n\nA timestamped copy is kept first, so nothing is lost. "+
+                "Export the CSV before doing this if you have not already.\n\nIn campaign play, do NOT clear — "+
+                "the same organization returns with drift applied.")) endSession(); }}>
+              End session and clear board
+            </button>
+          </div>
+
           <div style={{marginTop:12}}>
             <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Timer on the projector</label>
             <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
@@ -862,8 +905,19 @@ function Player({cfg,teams,teamN,setTeamN,saveTeam,busy,onExit}){
                 })}
               </div>
 
-              <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginBottom:8}}>
-                Modifiers — free, {2-modsPlayed} left to play. Each needs a specific justification.
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",
+                gap:10,marginBottom:8,flexWrap:"wrap"}}>
+                <span style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+                  Modifiers — free, {2-modsPlayed} left to play. Each needs a specific justification.
+                </span>
+                {((t.purchases||[]).length>0 || modsPlayed>0) && (
+                  <button style={{...btn(),fontSize:11}} disabled={busy}
+                    onClick={()=>{ if(window.confirm(
+                      "Clear this team's purchases and modifiers?\n\nYour hand and your threat stay as they are — "+
+                      "only the picks are undone.")) saveTeam(teamN,{purchases:[],modifiers:[]}); }}>
+                    Clear our picks
+                  </button>
+                )}
               </div>
               <div style={{display:"grid",gap:8}}>
                 {(t.modHand||[]).map(id=>{
