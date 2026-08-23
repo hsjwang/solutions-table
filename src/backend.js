@@ -224,8 +224,11 @@ if (!missing.length) {
        the class
      - heldAt must equal the server's own clock, so a client cannot fake a
        stale role to force a takeover
-     - team data stays writable by any signed-in client, because players
-       need it, with a size cap
+     - a team key is writable only by the device that claimed the seat,
+       plus the facilitator, who must be able to deal cards, adjudicate
+       modifiers and reset boards
+     - a seat with no owner is free to claim; the facilitator can release
+       one from the room view when a laptop dies
 
 {
   "rules": {
@@ -248,7 +251,14 @@ if (!missing.length) {
         },
 
         "$key": {
-          ".write": "auth != null",
+          ".write": "auth != null && (
+              !$key.beginsWith('game:team:')
+              || !data.exists()
+              || !data.child('ownerUid').exists()
+              || data.child('ownerUid').val() === auth.uid
+              || root.child('sessions').child($session).child('game:config')
+                     .child('facilitatorId').val() === auth.uid
+          )",
           ".validate": "newData.isString() ? newData.val().length < 20000 : true"
         }
       }
@@ -256,10 +266,11 @@ if (!missing.length) {
   }
 }
 
-   TIGHTENING FURTHER
-     To stop players clearing each other's teams, give team keys an owner
-     the same way the config has one. It costs you the ability to move a
-     student to another device mid-session, so weigh it against your class.
+   NOTE ON SEATS
+     Seat ownership is by browser, not by person. A student who switches
+     laptops, opens incognito, or clears storage gets a new uid and loses
+     the seat. That is why the facilitator can release one — without it a
+     dead battery would cost a team its board.
 
    LOOSENING
      Shorten 120000 (two minutes) if facilitators change often; lengthen it

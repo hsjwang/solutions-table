@@ -221,7 +221,7 @@ const blankTeam = (n) => ({
   n, name:`Team ${n}`, members:"", joined:false,
   threat:{method:"",impact:"",resource:"",motive:""},
   pre:null, post:null, hand:[], modHand:[], purchases:[],
-  modifiers:[], residual:"", driver:null, seats:[], updatedAt:0,
+  modifiers:[], residual:"", ownerUid:null, updatedAt:0,
 });
 
 /* Storage adapter. Inside a Claude artifact this uses window.storage.
@@ -608,7 +608,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
       const t = teams[n];
       if(!t?.joined) continue;
       await saveTeam(n,{...blankTeam(n), name:t.name, members:t.members,
-        joined:true, driver:t.driver, seats:t.seats||[]});
+        joined:true, ownerUid:t.ownerUid});
     }
     await saveCfg({phase:"p1", timerEnd:null});
     setStatus("Board cleared. Teams are still seated — set the new scenario above.");
@@ -882,7 +882,18 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
                         : "nothing bought yet"}
                     </div>
                   </div>
-                  <Matrix pre={t.pre} post={t.post} compact/>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+                    <Matrix pre={t.pre} post={t.post} compact/>
+                    {t.ownerUid && (
+                      <button style={{...btn(),fontSize:10,padding:"4px 8px"}} disabled={busy}
+                        onClick={()=>{ if(window.confirm(
+                          `Release ${t.name}'s seat?\n\nTheir board is untouched. The next device to `+
+                          `open this team takes it over. Use this when a laptop has died or a student `+
+                          `has switched machines.`)) saveTeam(n,{ownerUid:null}); }}>
+                        Release seat
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -1066,6 +1077,9 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   const dims = cfg?.dims||DEFAULT_DIMS;
   const t = teamN ? (teams[teamN]||blankTeam(teamN)) : null;
   const [just,setJust] = useState({});
+  /* The database refuses writes from anyone but the seat holder, so the
+     interface disables them rather than letting a click fail. */
+  const isOwner = !t?.ownerUid || t.ownerUid===clientId;
 
   if(!teamN){
     return (
@@ -1077,17 +1091,14 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               <button key={n} onClick={async()=>{
                   setTeamN(n);
                   const t = teams[n];
-                  if(!taken) await saveTeam(n,{...blankTeam(n),joined:true,driver:clientId,seats:[clientId]});
-                  else if(!(t.seats||[]).includes(clientId))
-                    await saveTeam(n,{seats:[...(t.seats||[]),clientId], driver:t.driver||clientId});
+                  if(!t?.ownerUid) await saveTeam(n,{...(t||blankTeam(n)),joined:true,ownerUid:clientId});
                 }}
                 style={{...btn(taken?"ghost":"primary"),padding:"14px 10px",textAlign:"left"}}>
                 <div style={{fontSize:14,color:C.paper,fontWeight:600}}>{teams[n]?.name||`Team ${n}`}</div>
                 <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:3}}>
-                  {taken
-                    ? `${(teams[n]?.seats||[]).length||1} device${((teams[n]?.seats||[]).length||1)===1?"":"s"}`
-                      + (teams[n]?.members? ` · ${teams[n].members}` : "")
-                    : "open"}
+                  {!teams[n]?.ownerUid ? "open"
+                    : teams[n].ownerUid===clientId ? "yours"
+                    : `taken${teams[n]?.members? ` · ${teams[n].members}`:""} — watch only`}
                 </div>
               </button>
             );
@@ -1130,19 +1141,21 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:10}}>
           <div>
             <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Team name</label>
-            <input value={t.name} onChange={e=>saveTeam(teamN,{name:e.target.value})}/>
+            <input value={t.name} disabled={!isOwner}
+              onChange={e=>saveTeam(teamN,{name:e.target.value})}/>
           </div>
           <div>
             <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Who is playing</label>
-            <input value={t.members} placeholder="first names" onChange={e=>saveTeam(teamN,{members:e.target.value})}/>
+            <input value={t.members} placeholder="first names" disabled={!isOwner}
+              onChange={e=>saveTeam(teamN,{members:e.target.value})}/>
           </div>
         </div>
-        {(t.seats||[]).length>1 && t.driver!==clientId && (
+        {!isOwner && (
           <div style={{marginTop:12,padding:"9px 12px",borderRadius:4,
             border:`1px solid ${C.brass}`,background:"rgba(217,180,91,.10)",
             fontFamily:MONO,fontSize:11,color:C.brass,lineHeight:1.6}}>
-            Another device on this team is driving. You can watch and discuss, but if you
-            both click, one set of changes overwrites the other. Decide who drives.
+            Another device holds this team. You can follow along, but changes are made
+            there. If that device is gone, ask the facilitator to release the seat.
           </div>
         )}
         {cfg?.scenario && (
@@ -1153,7 +1166,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
 
       {(phase==="p1"||phase==="setup") && (
         <Section title="Phase 1 — build the threat" right={
-          <button style={btn("primary")} onClick={()=>saveTeam(teamN,{threat:{
+          <button style={btn("primary")} disabled={!isOwner} onClick={()=>saveTeam(teamN,{threat:{
             method:sample(dims.method,1)[0], impact:sample(dims.impact,1)[0],
             resource:sample(dims.resource,1)[0], motive:sample(dims.motive,1)[0]}})}>
             Roll for cards
@@ -1163,7 +1176,8 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               <div key={k} style={{border:`1px solid ${C.edge}`,borderLeft:`3px solid ${m.color}`,
                 borderRadius:4,padding:"10px 12px",background:C.panel,minHeight:62}}>
                 <div style={{fontFamily:MONO,fontSize:9.5,letterSpacing:".08em",textTransform:"uppercase",color:m.color}}>{m.label}</div>
-                <select value={t.threat[k]||""} onChange={e=>saveTeam(teamN,{threat:{...t.threat,[k]:e.target.value}})}
+                <select value={t.threat[k]||""} disabled={!isOwner}
+                  onChange={e=>saveTeam(teamN,{threat:{...t.threat,[k]:e.target.value}})}
                   style={{marginTop:6,border:"none",background:"transparent",padding:"2px 0",
                     fontFamily:SANS,fontSize:13.5,color:C.paper}}>
                   <option value="">choose…</option>
@@ -1181,7 +1195,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginBottom:7}}>
                 Place the threat. Justify severity by naming who the Human Impact card harms.
               </div>
-              <Matrix pre={t.pre} post={t.post} interactive onPick={(l,s)=>saveTeam(teamN,{pre:{l,s}})}/>
+              <Matrix pre={t.pre} post={t.post} interactive={isOwner} onPick={(l,s)=>saveTeam(teamN,{pre:{l,s}})}/>
             </div>
           </div>
         </Section>
@@ -1203,7 +1217,8 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 {(t.hand||[]).map(id=>{
                   const c=card(id); const bought=(t.purchases||[]).includes(id);
                   const unaffordable = !bought && spent + c.cost > cap;
-                  return <CardTile key={id} c={c} state={bought?"bought":""} disabled={unaffordable}
+                  return <CardTile key={id} c={c} state={bought?"bought":""}
+                    disabled={unaffordable || !isOwner}
                     onClick={()=>toggleBuy(id)} note={bought?"bought":unaffordable?"not enough left":null}/>;
                 })}
               </div>
@@ -1214,7 +1229,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                   Modifiers — free, {2-modsPlayed} left to play. Each needs a specific justification.
                 </span>
                 {((t.purchases||[]).length>0 || modsPlayed>0) && (
-                  <button style={{...btn(),fontSize:11}} disabled={busy}
+                  <button style={{...btn(),fontSize:11}} disabled={busy||!isOwner}
                     onClick={()=>{ if(window.confirm(
                       "Clear this team's purchases and modifiers?\n\nYour hand and your threat stay as they are — "+
                       "only the picks are undone.")) saveTeam(teamN,{purchases:[],modifiers:[]}); }}>
@@ -1242,9 +1257,9 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                         <>
                           <textarea value={just[id]||""} onChange={e=>setJust(j=>({...j,[id]:e.target.value}))}
                             placeholder={blocked?"Buy card 4 or 7 first.":"Name a specific person, system, or failure."}
-                            disabled={blocked||modsPlayed>=2}/>
+                            disabled={blocked||modsPlayed>=2||!isOwner}/>
                           <button style={{...btn("primary"),marginTop:7}}
-                            disabled={blocked||modsPlayed>=2||(just[id]||"").trim().length<12}
+                            disabled={blocked||modsPlayed>=2||!isOwner||(just[id]||"").trim().length<12}
                             onClick={()=>playModifier(id)}>Send to facilitator</button>
                         </>
                       )}
@@ -1264,13 +1279,14 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginBottom:7}}>
                 Same threat, re-placed with your controls in place.
               </div>
-              <Matrix pre={t.pre} post={t.post} interactive onPick={(l,s)=>saveTeam(teamN,{post:{l,s}})}/>
+              <Matrix pre={t.pre} post={t.post} interactive={isOwner} onPick={(l,s)=>saveTeam(teamN,{post:{l,s}})}/>
             </div>
             <div style={{flex:"1 1 260px",minWidth:240}}>
               <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
                 Something still gets through. What is it?
               </label>
-              <textarea value={t.residual} onChange={e=>saveTeam(teamN,{residual:e.target.value})}
+              <textarea value={t.residual} disabled={!isOwner}
+                onChange={e=>saveTeam(teamN,{residual:e.target.value})}
                 placeholder="What an attacker could still do, given what you bought."/>
               <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:10,lineHeight:1.6}}>
                 Bought: {(t.purchases||[]).map(id=>card(id)?.name).join(" · ")||"nothing"}
