@@ -1,0 +1,347 @@
+% =====================================================================
+%  scenarios.tex — Appendix C: Scenario Library
+%  \input by facilitator_manual.tex
+%
+%  Ten ready-to-run scenarios. Each is engineered so that a DIFFERENT
+%  control is the strongest answer. If every scenario rewarded the same
+%  five cards, the game would teach one lesson repeatedly and students
+%  would learn the answer rather than the reasoning.
+%
+%  All organizations are fictional. Never run a session against a real
+%  client's systems.
+% =====================================================================
+
+\section{Scenario Library}
+\label{app:scenarios}
+
+Improvised scenarios are the most common reason a session goes flat, and
+they also make cross-team comparison meaningless, since two teams arguing
+about different situations are not disagreeing about anything. The ten
+scenarios below are ready to read aloud.
+
+Each carries a \textbf{teaching target}: the specific thing it is built to
+surface. Each also carries an \textbf{expert key} naming which controls are
+strong, partial, or weak \emph{for that situation}. The key is a scoring aid,
+not an answer sheet --- a team that buys a ``partial'' card and defends it well
+has done better work than one that buys a ``strong'' card without reasoning.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}c X l c c@{}}
+\toprule
+\textbf{\#} & \textbf{Organization and teaching target} & \textbf{Budget} & \textbf{Tier} & \textbf{Care} \\
+\midrule
+1  & Food bank --- severity is consequence, not sophistication & 6 & Found. & \\
+2  & Rural health clinic --- recovery beats prevention once it has happened & 6 & Found. & \\
+3  & Domestic violence shelter --- when impact is physical safety & 6 & Found. & $\bullet$ \\
+4  & Community land trust --- the boring control is the right one & 5 & Found. & \\
+5  & School district --- you cannot buy your way out of a vendor's breach & 10 & Ext. & \\
+6  & Municipal water utility --- the correct answer costs one point & 10 & Ext. & \\
+7  & Legal aid office --- prevention fails, detection is the only lever & 10 & Ext. & $\bullet$ \\
+8  & Public library --- you cannot protect what you do not know exists & 6 & Found. & \\
+9  & Arts nonprofit --- what a grant paid for and nobody maintains & 6 & Camp. & \\
+10 & Animal rescue --- the obligation that survives the incident & 10 & Ext. & \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\vspace{0.4em}
+{\small $\bullet$ Content that may land on a participant's personal experience.
+Offer the redraw described in Section~7.4 \emph{before} reading it, addressed to
+the team rather than to any individual.}
+
+% --------- formatting macro ---------
+\newcommand{\scen}[3]{%
+  \vspace{1.0em}\noindent
+  \textbf{#1. #2}\hfill{\small\textsc{#3}}\\[0.15em]
+  \rule{\linewidth}{0.4pt}\\[0.25em]}
+\newcommand{\sfld}[1]{\textit{#1}\hspace{0.4em}}
+
+% =====================================================================
+\scen{1}{Payroll Redirection at Harborview Food Bank}{Budget 6 \quad Foundational}
+\sfld{Teaching target.} Severity is a property of who gets harmed, not of how
+clever the attack was. The strongest control here is free and procedural.\\
+\sfld{Read aloud.} Harborview Food Bank has three paid staff and about forty
+volunteers. The bookkeeper works two days a week from home. Last Tuesday she
+received an email that appeared to come from the board treasurer, in his usual
+phrasing, asking her to update the payroll provider's bank details before
+Friday's run. A follow-up voicemail in his voice confirmed it. Friday's payroll
+is eighteen thousand dollars, roughly a month of operating cash.\\
+\sfld{Suggested draw.} Method: Manipulation or Coercion $\cdot$ Impact: Financial
+Wellbeing $\cdot$ Resources: Artificial Intelligence $\cdot$ Motivation:
+Personal Gain\\
+\sfld{Expert key.} \textbf{Strong:} Social Engineering Awareness (2), Deepfake
+and AI Fraud Awareness (3), Email and Browser Protections (12). \textbf{Partial:}
+Password and Authentication (5), Incident Response Planning (13).
+\textbf{Weak here:} Encryption (14), Network Segmentation (18), Penetration
+Testing (19) --- none of them touch a human being persuaded to type a new account
+number.\\
+\sfld{Debrief.}
+\begin{itemize}
+\item The attack was technically trivial and you rated it Very Severe. What made
+it severe, and would it have been severe at a different organization?
+\item Nobody can buy a callback rule. Which of your purchases would you trade
+for one sentence in a written procedure?
+\item The voice on the phone was cloned. Does awareness training still work when
+familiarity stops being evidence?
+\end{itemize}
+
+% =====================================================================
+\scen{2}{Ransomware at Cedar Ridge Health Clinic}{Budget 6 \quad Foundational}
+\sfld{Teaching target.} Once an incident has happened, prevention cards are worth
+nothing and recovery cards are worth everything. Teams that spent all six points
+on prevention have to explain their Monday morning.\\
+\sfld{Read aloud.} Cedar Ridge is a two-provider clinic serving about nine hundred
+patients in a county with no other primary care. On Monday morning the front
+desk cannot open the scheduling system. Every file on the shared drive has a new
+extension, and a text file on the desktop asks for payment in cryptocurrency.
+The practice manager thinks there is a backup, but it is on a drive plugged into
+the same server, and nobody has ever restored from it.\\
+\sfld{Suggested draw.} Method: Technological Attack $\cdot$ Impact: Physical
+Wellbeing $\cdot$ Resources: Money $\cdot$ Motivation: Personal Gain\\
+\sfld{Expert key.} \textbf{Strong:} Backup and Recovery (6) --- specifically the
+isolated copy, since a backup on the same server is now encrypted too;
+Incident Response Planning (13); Endpoint Detection and Response (16).
+\textbf{Partial:} Software Updates (1), Email and Browser Protections (12),
+Cyber Insurance (21). \textbf{Weak here:} Penetration Testing (19) --- an annual
+report does not help on the morning it happens.\\
+\sfld{Debrief.}
+\begin{itemize}
+\item The backup existed and was useless. What is the difference between having
+a backup and having a recovery?
+\item Impact is Physical Wellbeing, not Financial. What does a clinic without
+scheduling actually do to a patient?
+\item If you bought only prevention, describe your Monday.
+\end{itemize}
+
+% =====================================================================
+\scen{3}{A Laptop Leaves the Building --- Wilder House}{Budget 6 \quad Foundational}
+\sfld{Teaching target.} When Human Impact is physical safety, ordinary controls
+carry stakes students have not previously attached to them.\\
+\sfld{Handle with care.} This scenario involves a shelter and the safety of people
+escaping violence. Offer the redraw to the team before reading it, and do not
+require anyone to narrate.\\
+\sfld{Read aloud.} Wilder House is a twelve-bed shelter. A caseworker's laptop was
+taken from her car in a grocery store parking lot on Saturday. It holds an
+offline copy of the intake spreadsheet: names, dates of birth, the schools
+children attend, and current addresses for eleven families. The laptop has a
+login password. Nothing else.\\
+\sfld{Suggested draw.} Method: Physical Attack $\cdot$ Impact: Physical Wellbeing
+$\cdot$ Resources: Entitlement $\cdot$ Motivation: Curiosity\\
+\sfld{Expert key.} \textbf{Strong:} Encryption (14) --- full-disk encryption makes
+this a hardware loss rather than a disclosure; Physical Security (8); Identity
+and Access Management (4), on why an offline copy existed at all.
+\textbf{Partial:} Asset Inventory (9), Incident Response Planning (13).
+\textbf{Weak here:} Audit Logging (15), Network Segmentation (18) --- the device
+is gone and off the network.\\
+\sfld{Debrief.}
+\begin{itemize}
+\item A login password and full-disk encryption feel similar to a non-specialist.
+What is the actual difference to whoever has the laptop now?
+\item The spreadsheet was a convenience copy. Which control stops a convenience
+copy from existing, and what does the caseworker lose when it does?
+\item Who has to be told, how quickly, and what do you say to eleven families?
+\end{itemize}
+
+% =====================================================================
+\scen{4}{The Volunteer Who Left in 2021 --- Fairmount Land Trust}{Budget 5 \quad Foundational}
+\sfld{Teaching target.} The strongest answer is the least interesting card in the
+deck. Teams reliably overlook it and buy something exciting instead.\\
+\sfld{Read aloud.} Fairmount Land Trust has two staff and a rotating pool of
+volunteers. A volunteer who managed the donation platform in 2021 moved out of
+state and stopped responding. Last month a two-hundred-dollar test transaction
+appeared, then reversed. The executive director does not know how many people
+still have logins, and the platform bills annually to a credit card nobody can
+locate the statement for.\\
+\sfld{Suggested draw.} Method: Processes $\cdot$ Impact:
+Financial Wellbeing $\cdot$ Resources: Entitlement $\cdot$ Motivation: Personal
+Gain\\
+\sfld{Expert key.} \textbf{Strong:} Account Lifecycle Management (7), Identity and
+Access Management (4). \textbf{Partial:} Asset Inventory (9), Software Inventory
+(10), Audit Logging (15). \textbf{Weak here:} Social Engineering Awareness (2)
+--- nobody was tricked; a door was left open.\\
+\sfld{Debrief.}
+\begin{itemize}
+\item Nobody attacked this organization. Is this a security incident?
+\item The right answer costs one point and takes an afternoon. Why is it the one
+nobody does?
+\item How would this organization even produce a list of who has access?
+\end{itemize}
+
+% =====================================================================
+\scen{5}{The Vendor's Breach --- Northbridge School District}{Budget 10 \quad Extended}
+\sfld{Teaching target.} Sometimes nothing you can buy internally helps, and the
+only real control was written a year earlier in a contract.\\
+\sfld{Read aloud.} Northbridge is a rural district of four schools. Their bus
+routing and student scheduling run on a hosted platform used by two hundred
+districts. On Thursday a reporter calls the superintendent for comment on a
+breach at that vendor. The district has had no notification. The vendor's
+support line has a recorded message. The data includes student names, home
+addresses, and bus stop times.\\
+\sfld{Suggested draw.} Method: Indirect Attack $\cdot$ Impact: Relationships
+$\cdot$ Resources: Technical Expertise $\cdot$ Motivation: Personal Gain\\
+\sfld{Expert key.} \textbf{Strong:} Third-Party and Contractual Controls (17),
+Incident Response Planning (13). \textbf{Partial:} Asset Inventory (9) extended
+to data location, Cyber Insurance (21). \textbf{Weak here:} nearly everything
+else --- Endpoint Detection, Segmentation, Secure Configuration and Software
+Updates all protect systems the district does not own.\\
+\sfld{Debrief.}
+\begin{itemize}
+\item Half your deck is useless here. What does that tell you about where a small
+organization's real risk lives?
+\item The superintendent learned from a reporter. What clause would have changed
+that, and when would it have had to be written?
+\item Bus stop times plus home addresses. Which Human Impact card is this really?
+\end{itemize}
+
+% =====================================================================
+\scen{6}{Debug Mode in Production --- Millbrook Water Authority}{Budget 10 \quad Extended}
+\sfld{Teaching target.} A one-point Foundational card beats every expensive option
+on the table. Teams with ten points often overspend here.\\
+\sfld{Read aloud.} Millbrook Water Authority serves eleven thousand residents.
+Their public site posts water quality reports and lets residents pay bills. A
+contractor built it four years ago and moved on. A resident emails to say that
+adding a parameter to a URL shows an administrative page listing every account
+and a button labelled ``post notice.'' The page has no login.\\
+\sfld{Suggested draw.} Method: Processes $\cdot$ Impact:
+Relationships $\cdot$ Resources: Technical Expertise $\cdot$ Motivation: Politics\\
+\sfld{Expert key.} \textbf{Strong:} Secure Configuration (11) --- debug mode in
+production is a configuration failure; Identity and Access Management (4).
+\textbf{Partial:} Penetration Testing (19) would have found it, at three points;
+Software Inventory (10); Third-Party and Contractual (17), on the contractor who
+left. \textbf{Weak here:} Social Engineering Awareness (2), Backup and Recovery
+(6).\\
+\sfld{Debrief.}
+\begin{itemize}
+\item You had ten points. What is the cheapest purchase that actually closes this?
+\item Penetration testing would have found it. Was it worth three points here, and
+what would have to be true first?
+\item A utility can post public notices. What is the worst version of this that
+does not involve stealing anything?
+\end{itemize}
+
+% =====================================================================
+\scen{7}{The Trusted Paralegal --- Eastgate Legal Aid}{Budget 10 \quad Extended}
+\sfld{Teaching target.} Every preventive control in the deck fails, because the
+person had legitimate access. Detection is the only remaining lever.\\
+\sfld{Handle with care.} Involves surveillance of a person by someone they trusted.
+Offer the redraw.\\
+\sfld{Read aloud.} Eastgate Legal Aid handles housing and immigration matters. A
+paralegal of six years has legitimate access to the case system. A client
+reports that her landlord seems to know the contents of a filing that has not
+been served. The paralegal and the landlord attend the same church. There is no
+evidence of an intrusion, and nothing in the system is broken.\\
+\sfld{Suggested draw.} Method: Processes $\cdot$ Impact:
+Emotional Wellbeing $\cdot$ Resources: Entitlement $\cdot$ Motivation: Desire or
+Obsession\\
+\sfld{Expert key.} \textbf{Strong:} Audit Logging and SIEM (15) --- who read which
+file and when is the only question that can be answered; Identity and Access
+Management (4) with Least Privilege (24); Managed Detection and Response (20) if
+affordable. \textbf{Partial:} Incident Response Planning (13), Third-Party and
+Contractual (17) on employment terms. \textbf{Weak here:} Email and Browser
+Protections (12), Encryption (14), Software Updates (1) --- the access was
+authorized.\\
+\sfld{Debrief.}
+\begin{itemize}
+\item Which of your purchases would have stopped this? If none, what would you
+tell the client you can offer instead?
+\item Logging tells you afterward. Is a control that only works afterward worth
+two of ten points?
+\item Least Privilege has a cost that is not measured in points. What does the
+paralegal lose, and is the trade right?
+\end{itemize}
+
+% =====================================================================
+\scen{8}{The Camera Nobody Remembered --- Delridge Public Library}{Budget 6 \quad Foundational}
+\sfld{Teaching target.} Asset inventory is a precondition for everything else.
+Teams cannot defend what they have not enumerated.\\
+\sfld{Read aloud.} Delridge Public Library has public wifi, twenty patron
+computers, a self-checkout system, and four security cameras installed by a
+since-dissolved vendor in 2016. The county IT contractor reports that traffic is
+leaving the library network at three in the morning, and traces it to a device
+nobody on staff can identify. The library's network is flat: everything is on
+the same wifi, including the circulation desk.\\
+\sfld{Suggested draw.} Method: Technological Attack $\cdot$ Impact: Relationships
+$\cdot$ Resources: Technical Expertise $\cdot$ Motivation: Curiosity\\
+\sfld{Expert key.} \textbf{Strong:} Asset Inventory (9), Network Segmentation (18)
+if the budget reaches it, Secure Configuration (11) for the 2016 default
+credentials. \textbf{Partial:} Software Inventory (10), Audit Logging (15).
+\textbf{Weak here:} Social Engineering Awareness (2), Backup and Recovery (6).\\
+\sfld{Debrief.}
+\begin{itemize}
+\item At six points, segmentation may be out of reach. What do you buy first, and
+what do you tell the library board about the rest?
+\item The camera has been there for a decade. Which control would have caught it
+in year one, and how much does that control cost?
+\item Patron borrowing records are legally protected in many states. Does that
+change your ranking?
+\end{itemize}
+
+% =====================================================================
+\scen{9}{What the Grant Paid For --- Ridgeway Arts Collective}{Budget 6 \quad Campaign}
+\sfld{Teaching target.} Built for multi-engagement play. The right move is often to
+defer, and the card that lets you defer is the one that makes the cost of
+deferring visible.\\
+\sfld{Read aloud.} Ridgeway Arts received a technology grant in 2019 that paid for
+a donor database, a website, and a year of support. The grant ended. The database
+runs a version the vendor stopped patching in 2022. Migrating costs about four
+thousand dollars the collective does not have. The board meets quarterly. Nothing
+has gone wrong yet.\\
+\sfld{Suggested draw.} Method: Technological Attack $\cdot$ Impact: Financial
+Wellbeing $\cdot$ Resources: Technical Expertise $\cdot$ Motivation: Personal
+Gain\\
+\sfld{Expert key.} \textbf{Strong:} Software Inventory (10), Deferred Investment
+(28) played honestly with a stated exposure, Backup and Recovery (6).
+\textbf{Partial:} Network Segmentation (18) to isolate the unsupported system,
+Compensating Control (27), Risk Acceptance (26) with a named owner.
+\textbf{Weak here:} Software Updates (1) --- there are no patches to apply, which
+is the whole problem, and teams reliably buy it anyway.\\
+\sfld{Debrief.}
+\begin{itemize}
+\item Someone bought Software Updates. What happens when the vendor has stopped
+shipping them?
+\item If you deferred, name the exposure and say for how long. Would you put that
+in writing to the board?
+\item Revisit this in a later session and drift the threat. Was deferring still
+the right call?
+\end{itemize}
+
+% =====================================================================
+\scen{10}{Donor Records in a Shared Mailbox --- Second Chance Animal Rescue}{Budget 10 \quad Extended}
+\sfld{Teaching target.} Obligations survive the incident. Notification and
+disclosure are not technical controls and cannot be bought after the fact.\\
+\sfld{Read aloud.} Second Chance runs on donations and a shared mailbox that six
+volunteers access with the same password. On Friday the mailbox began sending
+donation appeals to the entire contact list from an address that is not theirs.
+The mailbox holds four years of correspondence, including scanned cheques with
+routing numbers and a spreadsheet of major donors.\\
+\sfld{Suggested draw.} Method: Manipulation or Coercion $\cdot$ Impact: Financial
+Wellbeing $\cdot$ Resources: Money $\cdot$ Motivation: Personal Gain\\
+\sfld{Expert key.} \textbf{Strong:} Password and Authentication (5) --- shared
+credentials plus no multi-factor is the whole story; Account Lifecycle
+Management (7); Incident Response Planning (13) for the notification duty.
+\textbf{Partial:} Email and Browser Protections (12), Audit Logging (15), Cyber
+Insurance (21). \textbf{Weak here:} Network Segmentation (18), Endpoint Detection
+(16) --- nothing was installed on any machine.\\
+\sfld{Debrief.}
+\begin{itemize}
+\item Six people share one password because it is genuinely convenient. What do
+you replace it with that they will actually use? (This is the Human Factors card
+in disguise.)
+\item Which of your purchases helps you tell four thousand donors what happened?
+\item Insurance may cover the cost. Does it cover the donor who stops giving?
+\end{itemize}
+
+% =====================================================================
+\vspace{1.2em}
+\subsection*{Writing Your Own}
+
+A scenario that works has four properties. It names an organization concrete
+enough to picture. It states a consequence in human terms rather than technical
+ones. It has \emph{more than one} defensible answer, or teams agree in ninety
+seconds. And it has at least one card that looks obviously right and is not ---
+that card is where the argument happens.
+
+Test a draft by asking what a team would buy with it, then asking whether a
+different team could reasonably buy something else. If the answer to the second
+question is no, the scenario is a quiz question rather than a game.

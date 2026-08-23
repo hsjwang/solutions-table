@@ -37,8 +37,19 @@ npm install
 ```
 
 **Configure the database.** At [console.firebase.google.com](https://console.firebase.google.com):
-create a project, enable **Realtime Database** in test mode, then copy the web
-app config into `FIREBASE_CONFIG` at the top of `src/backend.js`.
+create a project, enable **Realtime Database** in test mode, *then* register a web
+app under Project settings.
+
+Open `src/backend.js` and find the block marked **PASTE YOUR VALUES HERE**. Fill
+in the seven values from the Firebase console.
+
+> **Copy only the values, not the whole snippet.** Firebase shows you a block that
+> includes its own `import { initializeApp } from "firebase/app"` and its own
+> `const app = initializeApp(firebaseConfig)`. This file already has both. Pasting
+> the whole thing produces `The symbol "initializeApp" has already been declared`.
+
+Create the Realtime Database *before* registering the web app, or the config
+Firebase generates will have no `databaseURL` — the app needs it.
 
 The Firebase web API key is not a secret. It identifies the project; it does not
 grant access. Access is controlled by database rules. Committing it is normal.
@@ -110,6 +121,42 @@ accepted modifiers, and residual-risk text.
 
 Those columns line up with measures M1, M2, and M4 in the study design — the app
 collects them automatically instead of from paper record sheets.
+
+---
+
+## Documentation
+
+Everything a facilitator needs is in `docs/`. LaTeX sources are in `docs/src/`;
+rebuild any of them with `pdflatex <file>` run twice.
+
+| File | Pages | For |
+|---|---|---|
+| [`facilitator_quickref.pdf`](docs/facilitator_quickref.pdf) | 4 | **Start here.** Print double-sided on one folded sheet and hand it to a TA. Running the activity, when to intervene, web-version operations, and the scenario index |
+| [`facilitator_manual.pdf`](docs/facilitator_manual.pdf) | 24 | Full reference. Gameplay variants, modifier adjudication with worked examples, campaign play, assessment rubric, and ten scenarios with expert keys (Appendix C) |
+| [`survey_instrument.pdf`](docs/survey_instrument.pdf) | 8 | Participant and facilitator survey forms with scoring notes |
+| `docs/src/qualtrics_*.txt` | — | Import straight into Qualtrics: *Create project → Survey → From a file* |
+
+### If you read only two things
+
+Page 2 of the quick reference (**when to intervene**) and Appendix C of the
+manual (**the ten scenarios**). Facilitators who improvise a scenario, or who
+intervene too early, account for most sessions that fall flat.
+
+### Scenarios in the app
+
+The ten scenarios from Appendix C are built into the interface. Claiming the
+facilitator role on a fresh session loads Scenario 1 automatically; the dropdown
+switches between the rest. Loading one sets the organization, the read-aloud
+text, the budget, and moves play to Phase 1.
+
+Each scenario carries an **expert key** — strong, partial, and weak-here
+controls — shown to the facilitator only. It is a scoring reference and a way to
+follow the discussion. It is not an answer to steer teams toward, and it is never
+shown to players.
+
+Scenarios marked $\bullet$ may land on a participant's personal experience.
+Offer the redraw described on page 2 of the quick reference **before** reading
+them, addressed to the team rather than to any individual.
 
 ---
 

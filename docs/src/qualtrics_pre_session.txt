@@ -1,0 +1,27 @@
+[[AdvancedFormat]]
+
+[[Block:Instructions]]
+
+[[Question:Text]]
+Please complete this short survey <b>before</b> today's activity. It takes about two minutes.
+<br><br>
+<b>Please create your code:</b> the first two letters of the street you grew up on, the last two digits of your phone number, and the first two letters of your mother's first name. Example: ELM Street, phone ending 47, mother Rosa gives EL47RO. Write it down - you will need the same code afterwards.
+
+[[Question:TE:SingleLine]]
+[[ID:CODE]]
+Your code
+
+[[Block:B Confidence Before]]
+
+[[Question:Text]]
+How confident are you that you could do each of the following <b>right now</b>? Slide from 0 (cannot do at all) to 100 (highly certain I can do).
+
+[[Question:Slider:Bars]]
+[[ID:B]]
+Confidence
+[[Choices]]
+Explain to a non-technical person why an organization should keep backups.
+Given a described attack, name two security measures that would make it less likely to succeed.
+Choose between two security measures when the organization can only afford one, and say why.
+Explain the difference between making an attack less likely and making it less damaging.
+Tell an organization what risk remains after the measures they have put in place.

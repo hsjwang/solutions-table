@@ -1,0 +1,217 @@
+[[AdvancedFormat]]
+
+[[Block:Instructions]]
+
+[[Question:Text]]
+Thank you for taking part. This survey takes about six minutes.
+<br><br>
+There are no right answers and your responses are not shared with your instructor in a way that identifies you. Please answer for the activity you just did, not for the course as a whole.
+<br><br>
+<b>Please create your code:</b> the first two letters of the street you grew up on, the last two digits of your phone number, and the first two letters of your mother's first name. Example: ELM Street, phone ending 47, mother Rosa gives EL47RO. Use exactly the same code as on the survey you completed before the activity.
+
+[[Question:TE:SingleLine]]
+[[ID:CODE]]
+Your code
+
+[[Block:A Background]]
+
+[[Question:MC:SingleAnswer:Vertical]]
+[[ID:A1]]
+What is your primary field of study?
+[[Choices]]
+Computer science
+Information technology
+Engineering
+Natural sciences
+Mathematics
+Social sciences
+Humanities
+Business
+Health sciences
+Other
+
+[[Question:MC:SingleAnswer:Vertical]]
+[[ID:A2]]
+What is your current level?
+[[Choices]]
+First or second year undergraduate
+Third or fourth year undergraduate
+Graduate student
+Faculty or staff
+Other
+
+[[Question:MC:SingleAnswer:Vertical]]
+[[ID:A3]]
+How many cybersecurity courses have you completed?
+[[Choices]]
+None
+One
+Two or three
+More than three
+
+[[Question:MC:SingleAnswer:Vertical]]
+[[ID:A4]]
+Before today, had you heard of the CIS Critical Security Controls?
+[[Choices]]
+No
+I had heard of them
+I had used them
+
+[[Question:MC:SingleAnswer:Vertical]]
+[[ID:A5]]
+How often do you play board or card games with other people?
+[[Choices]]
+Never
+A few times a year
+Monthly
+Weekly or more
+
+[[Question:MC:SingleAnswer:Vertical]]
+[[ID:A6]]
+In your team today, which best describes you?
+[[Choices]]
+I did most of the talking
+I contributed about equally
+I mostly listened
+Unsure
+
+[[Block:C Anchor Items]]
+
+[[Question:Matrix:Likert:SingleAnswer]]
+[[ID:C]]
+How much do you agree with each statement?
+[[Choices]]
+The Security Cards helped me learn.
+The Security Cards are easy to use.
+The Security Cards raised or maintained my cybersecurity awareness.
+The Security Cards were not a source of frustration.
+[[Answers]]
+Strongly disagree
+Disagree
+Neither agree nor disagree
+Agree
+Strongly agree
+
+[[Block:D Content]]
+
+[[Question:Matrix:Likert:SingleAnswer]]
+[[ID:D]]
+Thinking about the cards themselves:
+[[Choices]]
+The cards used language I could understand without asking for help.
+The examples on the back of the cards helped me decide what a card meant.
+There were too many cards to keep track of.
+Some cards seemed to overlap with each other.
+Seeing that a card referred to a published control, such as "CIS Control 7," made the card feel more trustworthy.
+If I wanted to learn more about one of these controls after today, I would know where to start.
+[[Answers]]
+Strongly disagree
+Disagree
+Neither agree nor disagree
+Agree
+Strongly agree
+
+[[Block:E Process]]
+
+[[Question:Matrix:Likert:SingleAnswer]]
+[[ID:E]]
+Thinking about how the activity ran:
+[[Choices]]
+The order of the activities was clear to me.
+Having a limited budget made the choices harder in a way that was useful.
+There was usually one obviously correct answer.
+My team disagreed about at least one purchase.
+Having to justify a modifier card out loud made me think more carefully.
+I had a sense of whether our choices were any good.
+We had enough time to finish without rushing.
+The facilitator had to explain the rules more often than I expected.
+[[Answers]]
+Strongly disagree
+Disagree
+Neither agree nor disagree
+Agree
+Strongly agree
+
+[[Block:F Realism and Transfer]]
+
+[[Question:Matrix:Likert:SingleAnswer]]
+[[ID:F]]
+Thinking about the scenario:
+[[Choices]]
+The organization in the scenario felt like a place that could exist.
+The trade-offs felt like ones a real organization would actually face.
+I can see how this connects to advising an actual client.
+Placing the threat again after buying controls matched how I think risk really behaves.
+This felt more like a puzzle than like a real decision.
+I would use something I learned today if a friend or family member asked me a security question.
+[[Answers]]
+Strongly disagree
+Disagree
+Neither agree nor disagree
+Agree
+Strongly agree
+
+[[Block:G Confidence After]]
+
+[[Question:Text]]
+How confident are you that you could do each of the following <b>right now</b>? Slide from 0 (cannot do at all) to 100 (highly certain I can do).
+
+[[Question:Slider:Bars]]
+[[ID:G]]
+Confidence
+[[Choices]]
+Explain to a non-technical person why an organization should keep backups.
+Given a described attack, name two security measures that would make it less likely to succeed.
+Choose between two security measures when the organization can only afford one, and say why.
+Explain the difference between making an attack less likely and making it less damaging.
+Tell an organization what risk remains after the measures they have put in place.
+
+[[Block:H Workload and Features]]
+
+[[Question:Slider:Bars]]
+[[ID:H1_3]]
+Please rate each from 0 to 10.
+[[Choices]]
+The topic itself - threats and security controls - was complex. (0 = very easy, 10 = very complex)
+The way the activity was set up and explained made it harder than it needed to be. (0 = not at all, 10 = very much)
+The activity helped me understand how threats and controls relate. (0 = not at all, 10 = very much)
+
+[[Question:MC:SingleAnswer:Vertical]]
+[[ID:BEST]]
+Which one part of the activity was MOST useful to you?
+[[Choices]]
+The four threat cards used to build the scenario
+The Solutions cards describing security measures
+The CIS control references printed on the cards
+The risk matrix
+The limited budget and spending tokens
+The modifier cards and having to justify them
+Placing the threat a second time after buying controls
+Comparing your team's choices with another team's
+
+[[Question:MC:SingleAnswer:Vertical]]
+[[ID:WORST]]
+Which one part was LEAST useful to you?
+[[Choices]]
+The four threat cards used to build the scenario
+The Solutions cards describing security measures
+The CIS control references printed on the cards
+The risk matrix
+The limited budget and spending tokens
+The modifier cards and having to justify them
+Placing the threat a second time after buying controls
+Comparing your team's choices with another team's
+
+[[Block:Open Responses]]
+
+[[Question:TE:Essay]]
+[[ID:H4]]
+Which purchase did your team argue about most, and how did you settle it?
+
+[[Question:TE:Essay]]
+[[ID:H5]]
+What did you want to buy and could not afford? What would you have told the organization about that gap?
+
+[[Question:TE:Essay]]
+[[ID:H6]]
+If you could change one thing about this activity, what would it be?

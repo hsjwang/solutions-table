@@ -1,0 +1,441 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[letterpaper,margin=1in,headheight=14pt]{geometry}
+\usepackage{mathptmx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[most]{tcolorbox}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{deep}{HTML}{1F3A5F}
+\definecolor{warn}{HTML}{9C3B2E}
+\definecolor{soft}{HTML}{F2F4F7}
+
+\titleformat{\section}{\normalfont\Large\bfseries\color{deep}}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{2.3ex}{1.1ex}
+\pagestyle{fancy}\fancyhf{}
+\lhead{\small\color{deep}Solutions Dimension --- Survey Instrument}
+\rhead{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlist{itemsep=2pt,parsep=0pt,topsep=3pt}
+\renewcommand{\arraystretch}{1.22}
+\newcolumntype{R}{>{\raggedright\arraybackslash}X}
+
+\newtcolorbox{note}[1]{colback=soft,colframe=deep!45,fonttitle=\bfseries,
+  title={#1},boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt}
+\newtcolorbox{caution}[1]{colback=warn!6,colframe=warn,fonttitle=\bfseries,
+  title={#1},boxrule=0.8pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt}
+
+\newcommand{\R}{\textsuperscript{R}}
+\newcommand{\anchor}{\textsuperscript{\dag}}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{2.4cm}
+{\color{deep}\rule{\textwidth}{2pt}}\\[0.8em]
+{\Huge\bfseries\color{deep} Survey Instrument}\\[0.6em]
+{\LARGE The Solutions Dimension}\\[0.4em]
+{\large Participant and facilitator forms, with scoring notes}\\[0.5em]
+{\color{deep}\rule{\textwidth}{2pt}}\\[2.4cm]
+\begin{minipage}{0.84\textwidth}
+\begin{note}{What this instrument is for}
+It measures three things at once: whether participants found the activity usable
+and worthwhile, whether the four design requirements from Cycle 1 were actually
+met, and whether confidence on specific tasks moved. Items marked \anchor{} are
+carried verbatim from the Cycle 1 survey so the two rounds stay comparable.
+Items marked \R{} are reverse-scored.
+\end{note}
+\end{minipage}
+\vfill
+{\small Version 1.0 \quad$\cdot$\quad Draft for IRB review}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% =====================================================================
+\section{Before You Administer This}
+
+\begin{caution}{The one mistake to avoid}
+Satisfaction is not learning. Cycle 1 reported that participants enjoyed the
+activity and found it easy, and reviewers correctly objected that this said
+nothing about whether anyone learned anything. This instrument has the same
+limit. It can support claims about \emph{usability, perceived value, workload,
+and confidence}. It cannot support a claim about learning gains --- only the
+performance measures M1--M4 in the study design can do that, and they come from
+the session artifacts, not from here.
+
+Write the claims down before you collect anything, and check afterwards that
+none of them drifted.
+\end{caution}
+
+\subsection{Length and Timing}
+
+The whole participant instrument is 38 items and runs 6--8 minutes. That is
+already longer than a single play session, so resist adding to it. If you must
+cut, drop Part F (cognitive load) first and Part D (realism) second; keep Parts
+B, C and E intact.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}l l R@{}}
+\toprule
+\textbf{When} & \textbf{What} & \textbf{Why then} \\
+\midrule
+Before play, 2 min & Part A (background), Part B (pre-confidence) & Confidence
+must be measured before exposure or the pre/post comparison is worthless \\
+After the debrief, 6 min & Parts C--H & After debrief, not after Phase 3 --- the
+debrief is part of the intervention \\
+Same day & Facilitator form (Part I) & Memory for interventions decays fast \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Linking Pre to Post Without Names}
+
+Participants generate their own code, which lets you pair pre and post responses
+without collecting identity. Put this at the top of both forms:
+
+\begin{quote}\itshape
+Please create your code: the first two letters of the street you grew up on, the
+last two digits of your phone number, and the first two letters of your mother's
+first name. For example, ELM Street, phone ending 47, mother Rosa gives
+\texttt{EL47RO}. Use exactly the same code on both surveys.
+\end{quote}
+
+Expect 10--15\% of codes not to match. Report the pairing rate.
+
+\subsection{Response Format}
+
+All agreement items use a five-point scale: \textbf{1 Strongly disagree,
+2 Disagree, 3 Neither agree nor disagree, 4 Agree, 5 Strongly agree.} Confidence
+items use a 0--100 slider. Cognitive load items use 0--10.
+
+Do not offer a ``not applicable'' option on agreement items; it invites
+satisficing. Do allow every item to be skipped.
+
+% =====================================================================
+\section{Part A --- Background}
+
+Reviewers of the Cycle 1 paper specifically asked for this. Six items.
+
+\begin{enumerate}[label=A\arabic*.]
+\item What is your primary field of study? \emph{(Computer science / Information
+technology / Engineering / Natural sciences / Mathematics / Social sciences /
+Humanities / Business / Health sciences / Other)}
+\item What is your current level? \emph{(First or second year undergraduate /
+Third or fourth year undergraduate / Graduate student / Faculty or staff /
+Other)}
+\item How many cybersecurity courses have you completed? \emph{(None / One /
+Two or three / More than three)}
+\item Before today, had you heard of the CIS Critical Security Controls?
+\emph{(No / Heard of them / Used them)}
+\item How often do you play board or card games with other people?
+\emph{(Never / A few times a year / Monthly / Weekly or more)}
+\item In your team today, which best describes you? \emph{(I did most of the
+talking / I contributed about equally / I mostly listened / Unsure)}
+\end{enumerate}
+
+\begin{note}{Why A5 and A6 are here}
+A5 tests a confound worth ruling out: if only experienced gamers enjoyed it, the
+activity is less useful than it looks. A6 gives you a cheap check on whether
+non-majors were talked over, which is the failure mode the facilitator manual
+warns about, and it is more honest than asking the facilitator to judge it.
+\end{note}
+
+% =====================================================================
+\section{Part B --- Confidence, Before Play}
+
+Administer \emph{before} the session. Same five items reappear as Part G.
+
+\begin{quote}\small
+How confident are you that you could do each of the following right now?
+Slide from 0 (cannot do at all) to 100 (highly certain I can do).
+\end{quote}
+
+\begin{enumerate}[label=B\arabic*.]
+\item Explain to a non-technical person why an organization should keep backups.
+\item Given a described attack, name two security measures that would make it
+less likely to succeed.
+\item Choose between two security measures when the organization can only afford
+one, and say why.
+\item Explain the difference between making an attack less likely and making it
+less damaging.
+\item Tell an organization what risk remains after the measures they have put in
+place.
+\end{enumerate}
+
+\begin{note}{Why these five}
+They are written to Bandura's guidance for self-efficacy scales: specific tasks
+rather than general traits, and graded confidence rather than agreement. Each
+maps to something the game actually asks a player to do --- B3 is the budget,
+B4 is the risk matrix, B5 is Phase 3 --- so movement is interpretable rather
+than diffuse.
+\end{note}
+
+% =====================================================================
+\section{Part C --- The Cycle 1 Anchor Items}
+
+Carry these four verbatim. They are the only bridge between the two rounds, and
+rewording them for elegance would break it.
+
+\begin{enumerate}[label=C\arabic*.]
+\item\anchor{} The Security Cards helped me learn.
+\item\anchor{} The Security Cards are easy to use.
+\item\anchor{} The Security Cards raised or maintained my cybersecurity awareness.
+\item\anchor{} The Security Cards were not a source of frustration.
+\end{enumerate}
+
+\begin{note}{Reporting these}
+Report counts, not percentages. With nineteen or thirty participants,
+``31.6\%'' claims a precision the sample does not have; ``6 of 19'' is honest and
+easier to read. A diverging stacked bar beats four pie charts.
+\end{note}
+
+% =====================================================================
+\section{Part D --- Content of the Cards}
+
+Tests design goal G1 (vocabulary accessibility), G3 (framework traceability),
+and requirement R2 (bound the working set).
+
+\begin{enumerate}[label=D\arabic*.]
+\item The cards used language I could understand without asking for help.
+\item The examples on the back of the cards helped me decide what a card meant.
+\item\R{} There were too many cards to keep track of.
+\item\R{} Some cards seemed to overlap with each other.
+\item Seeing that a card referred to a published control, such as ``CIS Control
+7,'' made the card feel more trustworthy.
+\item If I wanted to learn more about one of these controls after today, I would
+know where to start.
+\end{enumerate}
+
+\begin{note}{D3 and D4 are the honest ones}
+Both are direct quotations of Cycle 1 complaints, reworded as items. If the
+tiering and the eight-card hand worked, D3 should fall relative to Cycle 1's
+open-ended reports. If it does not, say so --- a requirement that was not met is
+a finding, not a failure.
+\end{note}
+
+% =====================================================================
+\section{Part E --- Process and Gameplay}
+
+Tests R1 (choices must be contestable) and R3 (basis for feedback on quality).
+E3 is the single most important item in this instrument.
+
+\begin{enumerate}[label=E\arabic*.]
+\item The order of the activities was clear to me.
+\item Having a limited budget made the choices harder in a way that was useful.
+\item\R{} There was usually one obviously correct answer.
+\item My team disagreed about at least one purchase.
+\item Having to justify a modifier card out loud made me think more carefully.
+\item I had a sense of whether our choices were any good.
+\item We had enough time to finish without rushing.
+\item\R{} The facilitator had to explain the rules more often than I expected.
+\end{enumerate}
+
+\begin{note}{Reading E3 and E4 together}
+Cycle 1's core complaint was that too many answers seemed equally acceptable.
+E3 is that complaint stated as an item and E4 is its behavioural counterpart. If
+the budget mechanism did what it was designed to do, E3 falls and E4 rises. If
+E3 stays high, the budget is too loose --- which is a calibration problem with a
+known fix, not a refutation of the design.
+
+E6 will probably score low. Novices want an answer key and the activity
+deliberately withholds one. Report it and interpret it rather than treating it
+as a defect.
+\end{note}
+
+% =====================================================================
+\section{Part F --- Realism and Transfer}
+
+\begin{caution}{A limit worth stating in the paper}
+Novices are poor judges of whether a security scenario is realistic --- they have
+no basis for comparison, which is why they are in the course. Treat Part F as
+measuring \emph{perceived relevance and intent to transfer}, not realism.
+Realism is judged on the facilitator form by someone with domain knowledge, and
+that is the number to cite if you make a claim about it.
+\end{caution}
+
+\begin{enumerate}[label=F\arabic*.]
+\item The organization in the scenario felt like a place that could exist.
+\item The trade-offs felt like ones a real organization would actually face.
+\item I can see how this connects to advising an actual client.
+\item Placing the threat again after buying controls matched how I think risk
+really behaves.
+\item\R{} This felt more like a puzzle than like a real decision.
+\item I would use something I learned today if a friend or family member asked me
+a security question.
+\end{enumerate}
+
+% =====================================================================
+\section{Part G --- Confidence, After Play}
+
+Repeat items B1--B5 verbatim, same 0--100 slider, same wording. Label them
+G1--G5. Do not show participants their earlier answers.
+
+% =====================================================================
+\section{Part H --- Workload, Features, and Open Responses}
+
+\subsection{Workload (0--10)}
+
+Three items, separating load that comes from the subject from load that comes
+from how it was presented. The distinction matters: high intrinsic load is
+expected and fine, high extraneous load is a design defect you can fix.
+
+\begin{enumerate}[label=H\arabic*.]
+\item The topic itself --- threats and security controls --- was complex.
+\emph{(0 = very easy, 10 = very complex)}
+\item The way the activity was set up and explained made it harder than it
+needed to be. \emph{(0 = not at all, 10 = very much)}
+\item The activity helped me understand how threats and controls relate.
+\emph{(0 = not at all, 10 = very much)}
+\end{enumerate}
+
+\subsection{Which Parts Were Worth It}
+
+Best-worst rather than rating everything, because rating eight features on a
+five-point scale produces eight fours and tells you nothing.
+
+\begin{quote}\small
+Of the parts of the activity listed below, which \textbf{one} was most useful to
+you, and which \textbf{one} was least useful?
+\end{quote}
+
+\begin{enumerate}[label=(\alph*)]
+\item The four threat cards used to build the scenario
+\item The Solutions cards describing security measures
+\item The CIS control references printed on the cards
+\item The risk matrix
+\item The limited budget and spending tokens
+\item The modifier cards and having to justify them
+\item Placing the threat a second time after buying controls
+\item Comparing your team's choices with another team's
+\end{enumerate}
+
+\begin{note}{Scoring best-worst}
+For each option, score $= (\text{times chosen most useful}) - (\text{times chosen
+least useful})$, divided by the number of respondents. The result runs from $-1$
+to $+1$ and ranks cleanly. Report the whole ranking, including the negatives ---
+a feature that most participants found least useful is a candidate to cut, and
+saying so is more credible than reporting only what people liked.
+\end{note}
+
+\subsection{Open Responses}
+
+Three, all specific. Generic prompts such as ``any other comments'' produce
+generic answers.
+
+\begin{enumerate}[label=H\arabic*.,start=4]
+\item Which purchase did your team argue about most, and how did you settle it?
+\item What did you want to buy and could not afford? What would you have told the
+organization about that gap?
+\item If you could change one thing about this activity, what would it be?
+\end{enumerate}
+
+% =====================================================================
+\section{Part I --- Facilitator Form}
+
+One per facilitator per session, completed the same day. This is where domain
+judgment lives and where the process data that no participant can report gets
+captured.
+
+\begin{enumerate}[label=I\arabic*.]
+\item Scenario used, budget issued, gameplay variant, number of teams, team sizes.
+\item Actual elapsed minutes per phase, and total including debrief.
+\item As someone with security background: how realistic was this scenario for
+the kind of organization it described? \emph{(1--5, plus one line of comment)}
+\item Did teams argue substantively about at least one purchase?
+\emph{(All teams / Most / Some / None)}
+\item Roughly how many interventions did you make per table, and at which rung?
+\emph{(Counts for rungs 1--5 from the facilitator manual)}
+\item Did any of the four immediate-intervention situations arise? \emph{(Yes/No
+per situation; do not record details of disclosures or personal content)}
+\item Justification quality, scored 0--3 per team using the manual's rubric.
+\item What broke, confused people, or took longer than expected?
+\item What would you change before running it again?
+\end{enumerate}
+
+\begin{caution}{On I6}
+Record only that a situation occurred, never its content. If a participant
+disclosed a real vulnerability or a scenario touched personal experience, that
+belongs in your own follow-up, not in a research dataset. Say this explicitly in
+your IRB protocol.
+\end{caution}
+
+% =====================================================================
+\section{Scoring and Analysis Notes}
+
+\subsection{Reverse-Scored Items}
+
+D3, D4, E3, E8, F5. Recode as $6 - x$ before combining with anything.
+
+\subsection{Suggested Groupings}
+
+These are provisional. With a first sample you can report item-level results and
+compute internal consistency; do not present them as validated subscales until
+you have the data to justify it.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}l l R@{}}
+\toprule
+\textbf{Grouping} & \textbf{Items} & \textbf{What it speaks to} \\
+\midrule
+Accessibility & D1, D2, D6, C2 & Goal G1, and the Cycle 1 ease-of-use result \\
+Cognitive burden & D3\R, D4\R, H2 & Requirement R2 \\
+Contestability & E2, E3\R, E4 & Requirement R1 --- the central design claim \\
+Feedback and rigour & E5, E6 & Requirement R3 \\
+Traceability & D5, D6 & Goal G3 \\
+Perceived transfer & F2, F3, F6 & Whether it connects to clinic work \\
+Confidence change & G1--G5 minus B1--B5 & Paired, per participant \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Analysis}
+
+Report counts and medians for ordinal items rather than means alone; with samples
+this size a mean of 4.42 and a mean of 4.11 are not meaningfully different.
+Use Wilcoxon signed-rank for the paired confidence change, report an effect size
+with a confidence interval, and treat the study as powered only for large
+effects. State the pre/post pairing rate.
+
+\subsection{What You Can and Cannot Say}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}R R@{}}
+\toprule
+\textbf{Supported by this instrument} & \textbf{Not supported} \\
+\midrule
+Participants found the deck usable and its vocabulary accessible &
+Participants learned to select appropriate controls \\
+The budget made choices feel contestable &
+The budget improved decision quality \\
+Confidence on five specific tasks rose after one session &
+Competence rose, or the change persisted \\
+Participants rated the trade-offs as plausible &
+The scenarios are realistic \emph{(use the facilitator judgment, I3)} \\
+Which features participants valued most &
+Which features contributed most to learning \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The right-hand column is answerable, but from the session artifacts --- the
+exported portfolios, matrix deltas, and justification scores --- not from a
+questionnaire.
+
+\end{document}

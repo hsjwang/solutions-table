@@ -68,6 +68,112 @@ const MODIFIERS = [
   [28,"Deferred Investment","Cap spend at 4, bank 2. Name your exposure and for how long."],
 ].map(([id,name,demand])=>({id,name,demand,cost:0}));
 
+
+/* ---- Scenario library. Mirrors Appendix C of the facilitator manual.
+   Expert keys are shown to the facilitator only, never to players. ---- */
+const SCENARIOS = [
+  {id:1, care:false, budget:6, title:"Payroll Redirection",
+   org:"Harborview Food Bank — 3 staff, 40 volunteers, no IT",
+   target:"Severity is who gets harmed, not how clever the attack was. The strongest control here is free and procedural.",
+   text:"Harborview Food Bank has three paid staff and about forty volunteers. The bookkeeper works two days a week from home. Last Tuesday she received an email that appeared to come from the board treasurer, in his usual phrasing, asking her to update the payroll provider's bank details before Friday's run. A follow-up voicemail in his voice confirmed it. Friday's payroll is eighteen thousand dollars, roughly a month of operating cash.",
+   draw:{method:"Manipulation or Coercion",impact:"Financial Wellbeing",resource:"Artificial Intelligence",motive:"Personal Gain"},
+   strong:[2,3,12], partial:[5,13], weak:[14,18,19],
+   debrief:["The attack was technically trivial and you rated it Very Severe. What made it severe, and would it be severe at a different organization?",
+            "Nobody can buy a callback rule. Which purchase would you trade for one sentence in a written procedure?",
+            "The voice on the phone was cloned. Does awareness training still work when familiarity stops being evidence?"]},
+
+  {id:2, care:false, budget:6, title:"Ransomware",
+   org:"Cedar Ridge Health Clinic — 2 providers, 900 patients",
+   target:"Once it has happened, prevention cards are worth nothing and recovery cards are worth everything.",
+   text:"Cedar Ridge is a two-provider clinic serving about nine hundred patients in a county with no other primary care. On Monday morning the front desk cannot open the scheduling system. Every file on the shared drive has a new extension, and a text file on the desktop asks for payment in cryptocurrency. The practice manager thinks there is a backup, but it is on a drive plugged into the same server, and nobody has ever restored from it.",
+   draw:{method:"Technological Attack",impact:"Physical Wellbeing",resource:"Money",motive:"Personal Gain"},
+   strong:[6,13,16], partial:[1,12,21], weak:[19],
+   debrief:["The backup existed and was useless. What is the difference between having a backup and having a recovery?",
+            "Impact is Physical Wellbeing, not Financial. What does a clinic without scheduling do to a patient?",
+            "If you bought only prevention, describe your Monday."]},
+
+  {id:3, care:true, budget:6, title:"A Laptop Leaves the Building",
+   org:"Wilder House — a twelve-bed shelter",
+   target:"When Human Impact is physical safety, ordinary controls carry stakes students have not attached to them before.",
+   text:"Wilder House is a twelve-bed shelter. A caseworker's laptop was taken from her car in a grocery store parking lot on Saturday. It holds an offline copy of the intake spreadsheet: names, dates of birth, the schools children attend, and current addresses for eleven families. The laptop has a login password. Nothing else.",
+   draw:{method:"Physical Attack",impact:"Physical Wellbeing",resource:"Entitlement",motive:"Curiosity"},
+   strong:[14,8,4], partial:[9,13], weak:[15,18],
+   debrief:["A login password and full-disk encryption feel similar to a non-specialist. What is the actual difference to whoever has the laptop now?",
+            "The spreadsheet was a convenience copy. Which control stops one existing, and what does the caseworker lose when it does?",
+            "Who has to be told, how quickly, and what do you say to eleven families?"]},
+
+  {id:4, care:false, budget:5, title:"The Volunteer Who Left in 2021",
+   org:"Fairmount Land Trust — 2 staff, rotating volunteers",
+   target:"The strongest answer is the least interesting card in the deck. Teams overlook it and buy something exciting.",
+   text:"Fairmount Land Trust has two staff and a rotating pool of volunteers. A volunteer who managed the donation platform in 2021 moved out of state and stopped responding. Last month a two-hundred-dollar test transaction appeared, then reversed. The executive director does not know how many people still have logins, and the platform bills annually to a credit card nobody can locate the statement for.",
+   draw:{method:"Processes",impact:"Financial Wellbeing",resource:"Entitlement",motive:"Personal Gain"},
+   strong:[7,4], partial:[9,10,15], weak:[2],
+   debrief:["Nobody attacked this organization. Is this a security incident?",
+            "The right answer costs one point and takes an afternoon. Why is it the one nobody does?",
+            "How would this organization even produce a list of who has access?"]},
+
+  {id:5, care:false, budget:10, title:"The Vendor's Breach",
+   org:"Northbridge School District — four rural schools",
+   target:"Nothing you buy internally helps. The only real control was written a year earlier in a contract.",
+   text:"Northbridge is a rural district of four schools. Their bus routing and student scheduling run on a hosted platform used by two hundred districts. On Thursday a reporter calls the superintendent for comment on a breach at that vendor. The district has had no notification. The vendor's support line has a recorded message. The data includes student names, home addresses, and bus stop times.",
+   draw:{method:"Indirect Attack",impact:"Relationships",resource:"Technical Expertise",motive:"Personal Gain"},
+   strong:[17,13], partial:[9,21], weak:[1,11,16,18],
+   debrief:["Half your deck is useless here. What does that say about where a small organization's real risk lives?",
+            "The superintendent learned from a reporter. What clause would have changed that, and when would it have had to be written?",
+            "Bus stop times plus home addresses. Which Human Impact card is this really?"]},
+
+  {id:6, care:false, budget:10, title:"Debug Mode in Production",
+   org:"Millbrook Water Authority — 11,000 residents",
+   target:"A one-point Foundational card beats every expensive option. Teams with ten points overspend here.",
+   text:"Millbrook Water Authority serves eleven thousand residents. Their public site posts water quality reports and lets residents pay bills. A contractor built it four years ago and moved on. A resident emails to say that adding a parameter to a URL shows an administrative page listing every account and a button labelled post notice. The page has no login.",
+   draw:{method:"Processes",impact:"Relationships",resource:"Technical Expertise",motive:"Politics"},
+   strong:[11,4], partial:[19,10,17], weak:[2,6],
+   debrief:["You had ten points. What is the cheapest purchase that actually closes this?",
+            "Penetration testing would have found it. Was it worth three points here, and what would have to be true first?",
+            "A utility can post public notices. What is the worst version of this that does not involve stealing anything?"]},
+
+  {id:7, care:true, budget:10, title:"The Trusted Paralegal",
+   org:"Eastgate Legal Aid — housing and immigration",
+   target:"Every preventive control fails, because the access was authorized. Detection is the only lever left.",
+   text:"Eastgate Legal Aid handles housing and immigration matters. A paralegal of six years has legitimate access to the case system. A client reports that her landlord seems to know the contents of a filing that has not been served. The paralegal and the landlord attend the same church. There is no evidence of an intrusion, and nothing in the system is broken.",
+   draw:{method:"Processes",impact:"Emotional Wellbeing",resource:"Entitlement",motive:"Desire or Obsession"},
+   strong:[15,4,20], partial:[13,17], weak:[12,14,1],
+   debrief:["Which of your purchases would have stopped this? If none, what do you tell the client you can offer instead?",
+            "Logging tells you afterward. Is a control that only works afterward worth two of ten points?",
+            "Least Privilege has a cost not measured in points. What does the paralegal lose, and is the trade right?"]},
+
+  {id:8, care:false, budget:6, title:"The Camera Nobody Remembered",
+   org:"Delridge Public Library",
+   target:"Asset inventory is a precondition for everything else. Teams cannot defend what they have not enumerated.",
+   text:"Delridge Public Library has public wifi, twenty patron computers, a self-checkout system, and four security cameras installed by a since-dissolved vendor in 2016. The county IT contractor reports that traffic is leaving the library network at three in the morning, and traces it to a device nobody on staff can identify. The network is flat: everything is on the same wifi, including the circulation desk.",
+   draw:{method:"Technological Attack",impact:"Relationships",resource:"Technical Expertise",motive:"Curiosity"},
+   strong:[9,18,11], partial:[10,15], weak:[2,6],
+   debrief:["At six points, segmentation may be out of reach. What do you buy first, and what do you tell the board about the rest?",
+            "The camera has been there a decade. Which control would have caught it in year one, and what does it cost?",
+            "Patron borrowing records are legally protected in many states. Does that change your ranking?"]},
+
+  {id:9, care:false, budget:6, title:"What the Grant Paid For",
+   org:"Ridgeway Arts Collective — campaign play",
+   target:"Built for multi-engagement play. The right move is often to defer, and the card that lets you defer makes the cost visible.",
+   text:"Ridgeway Arts received a technology grant in 2019 that paid for a donor database, a website, and a year of support. The grant ended. The database runs a version the vendor stopped patching in 2022. Migrating costs about four thousand dollars the collective does not have. The board meets quarterly. Nothing has gone wrong yet.",
+   draw:{method:"Technological Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+   strong:[10,28,6], partial:[18,27,26], weak:[1],
+   debrief:["Someone bought Software Updates. What happens when the vendor has stopped shipping them?",
+            "If you deferred, name the exposure and say for how long. Would you put that in writing to the board?",
+            "Revisit this later and drift the threat. Was deferring still the right call?"]},
+
+  {id:10, care:false, budget:10, title:"Donor Records in a Shared Mailbox",
+   org:"Second Chance Animal Rescue",
+   target:"Obligations survive the incident. Notification is not a technical control and cannot be bought afterwards.",
+   text:"Second Chance runs on donations and a shared mailbox that six volunteers access with the same password. On Friday the mailbox began sending donation appeals to the entire contact list from an address that is not theirs. The mailbox holds four years of correspondence, including scanned cheques with routing numbers and a spreadsheet of major donors.",
+   draw:{method:"Manipulation or Coercion",impact:"Financial Wellbeing",resource:"Money",motive:"Personal Gain"},
+   strong:[5,7,13], partial:[12,15,21], weak:[18,16],
+   debrief:["Six people share one password because it is genuinely convenient. What do you replace it with that they will actually use?",
+            "Which of your purchases helps you tell four thousand donors what happened?",
+            "Insurance may cover the cost. Does it cover the donor who stops giving?"]},
+];
+const scenarioById = (id) => SCENARIOS.find(x=>x.id===id);
+
 const DEFAULT_DIMS = {
   method: ["Attack Cover Up","Physical Attack","Multi-phase Attack","Indirect Attack",
            "Technological Attack","Processes","Manipulation or Coercion"],
@@ -347,9 +453,15 @@ export default function SolutionsTable(){
     <FacGate cfg={cfg} clientId={clientId} onClaim={async(code)=>{
       const c = await sGet(CFG_KEY);
       if (c?.facilitatorId && c.facilitatorId!==clientId && c.claimCode!==code) return "That code does not match the facilitator for this session.";
+      const s1 = scenarioById(1);
+      const fresh = !c?.org && !c?.scenario;   // nothing set up yet
       await saveCfg({...(c||{}), facilitatorId:clientId, claimCode:code,
-        phase:c?.phase||"setup", budget:c?.budget??6, dims:c?.dims||DEFAULT_DIMS,
-        org:c?.org||"", scenario:c?.scenario||""});
+        phase:c?.phase||"setup", dims:c?.dims||DEFAULT_DIMS,
+        teamCount:c?.teamCount??DEFAULT_TEAMS,
+        scenarioId:c?.scenarioId ?? (fresh ? s1.id : undefined),
+        budget:c?.budget ?? (fresh ? s1.budget : 6),
+        org:c?.org || (fresh ? s1.org : ""),
+        scenario:c?.scenario || (fresh ? s1.text : "")});
       setRole("fac"); return null;
     }} onBack={()=>setRole(null)}/>
   );
@@ -422,6 +534,20 @@ function FacGate({onClaim,onBack,cfg,clientId}){
 function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
   const [org,setOrg] = useState(cfg?.org||"");
   const [scenario,setScenario] = useState(cfg?.scenario||"");
+  const [pick,setPick] = useState(1);
+  const loaded = scenarioById(cfg?.scenarioId);
+
+  const loadScenario = async (id)=>{
+    const x = scenarioById(id); if(!x) return;
+    setOrg(x.org); setScenario(x.text);
+    await saveCfg({scenarioId:x.id, org:x.org, scenario:x.text, budget:x.budget, phase:"p1", timerEnd:null});
+  };
+  const applyDraw = async (x)=>{
+    for (const n of ids){
+      const t = teams[n]; if(!t?.joined) continue;
+      await saveTeam(n,{threat:{...x.draw}});
+    }
+  };
   const phase = cfg?.phase||"setup";
   const budget = cfg?.budget??6;
 
@@ -482,6 +608,41 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
   return (
     <div style={{display:"grid",gridTemplateColumns:"minmax(280px,1fr) minmax(300px,1.3fr)",gap:26,alignItems:"start"}}>
       <div>
+        <Section title="Scenario">
+          <div style={{display:"flex",gap:7,marginBottom:8,flexWrap:"wrap"}}>
+            <select value={pick} onChange={e=>setPick(Number(e.target.value))} style={{flex:"1 1 180px"}}>
+              {SCENARIOS.map(x=>(
+                <option key={x.id} value={x.id} style={{background:C.panel}}>
+                  {x.id}. {x.title}{x.care?" (care)":""}
+                </option>
+              ))}
+            </select>
+            <button style={btn("primary")} disabled={busy} onClick={()=>loadScenario(pick)}>Load</button>
+          </div>
+          {loaded && (
+            <div style={{border:`1px solid ${C.edge}`,borderRadius:4,padding:11,background:C.panel}}>
+              <div style={{fontFamily:MONO,fontSize:10,color:C.solution,textTransform:"uppercase",
+                letterSpacing:".08em"}}>Teaching target — facilitator only</div>
+              <div style={{fontSize:12.5,lineHeight:1.55,margin:"5px 0 9px"}}>{loaded.target}</div>
+              {loaded.care && (
+                <div style={{fontFamily:MONO,fontSize:10.5,color:C.warn,lineHeight:1.55,marginBottom:9}}>
+                  May land on personal experience. Offer the redraw to the team before reading it.
+                </div>
+              )}
+              <div style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Expert key</div>
+              <div style={{fontSize:11.5,lineHeight:1.6,marginTop:4}}>
+                <span style={{color:C.ok}}>Strong:</span> {loaded.strong.map(i=>card(i)?.name).join(", ")}<br/>
+                <span style={{color:C.brass}}>Partial:</span> {loaded.partial.map(i=>card(i)?.name).join(", ")}<br/>
+                <span style={{color:C.muted}}>Weak here:</span> {loaded.weak.map(i=>card(i)?.name).join(", ")}
+              </div>
+              <button style={{...btn(),marginTop:10,width:"100%",fontSize:11}} disabled={busy}
+                onClick={()=>applyDraw(loaded)}>
+                Also deal the suggested threat cards to every team
+              </button>
+            </div>
+          )}
+        </Section>
+
         <Section title="Session" right={<button style={btn()} onClick={onExit}>Leave</button>}>
           <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Client organization</label>
           <input value={org} onChange={e=>setOrg(e.target.value)} placeholder="e.g. a volunteer-run food bank"
@@ -564,6 +725,14 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
             Dealing replaces any hand a team already has. Deal once, at the start of Phase 2.
           </p>
         </Section>
+
+        {loaded && (cfg?.phase==="debrief"||cfg?.phase==="p3") && (
+          <Section title="Debrief questions for this scenario">
+            <ol style={{margin:0,paddingLeft:18,fontSize:12.5,lineHeight:1.6}}>
+              {loaded.debrief.map((q,i)=><li key={i} style={{marginBottom:5}}>{q}</li>)}
+            </ol>
+          </Section>
+        )}
 
         <Section title="Adjudication" right={<span style={{fontFamily:MONO,fontSize:11,color:pending.length?C.brass:C.muted}}>{pending.length} waiting</span>}>
           {pending.length===0

@@ -41,15 +41,15 @@ import {
    Firebase console. Keep the quotes and the commas.
    ============================================================ */
 const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyBg1ARm_pqEPd3XT1GKwDjBFvjujHS1K8o",
-  authDomain:        "cybercardgame.firebaseapp.com",
+  apiKey:            "REPLACE_ME",
+  authDomain:        "REPLACE_ME.firebaseapp.com",
   // Copy databaseURL exactly. Outside us-central1 it looks like
   // https://<project>-default-rtdb.<region>.firebasedatabase.app
-  databaseURL:       "https://cybercardgame-default-rtdb.firebaseio.com/",
-  projectId:         "cybercardgame",
-  storageBucket:     "cybercardgame.firebasestorage.app",
-  messagingSenderId: "506801869669",
-  appId:             "1:506801869669:web:9f25b09524aad1b876878c"
+  databaseURL:       "REPLACE_ME",
+  projectId:         "REPLACE_ME",
+  storageBucket:     "REPLACE_ME.appspot.com",
+  messagingSenderId: "REPLACE_ME",
+  appId:             "REPLACE_ME",
 };
 /* ===================== STOP EDITING ========================= */
 
@@ -93,14 +93,49 @@ const db = getDatabase(app);
    and this app's keys look like "game:team:3". Colons are fine. */
 const path = (key) => `sessions/${SESSION}/${key.replace(/[.#$[\]]/g, "_")}`;
 
+/* Realtime Database throws on any `undefined` anywhere in the payload.
+   A JSON round-trip drops undefined keys and leaves nulls intact. */
+const clean = (v) => JSON.parse(JSON.stringify(v ?? null));
+
+/* Explain the common failures instead of letting them surface as a
+   generic "could not save". */
+function explain(err, key) {
+  const code = err?.code || "";
+  if (code.includes("PERMISSION_DENIED") || /permission/i.test(err?.message || "")) {
+    return `Firebase refused the write to "${key}". Open Realtime Database -> Rules ` +
+           `and confirm ".read" and ".write" are true. Test-mode rules also expire ` +
+           `after 30 days.`;
+  }
+  if (/undefined/i.test(err?.message || "")) {
+    return `Payload for "${key}" contained undefined. This is a bug in the app, ` +
+           `not your setup — please report it.`;
+  }
+  if (/URL|network|offline|host/i.test(err?.message || "")) {
+    return `Could not reach the database writing "${key}". Check that databaseURL ` +
+           `in src/backend.js exactly matches the URL shown above the data tree ` +
+           `in the Firebase console.`;
+  }
+  return `Write to "${key}" failed: ${err?.message || err}`;
+}
+
 window.SOLUTIONS_BACKEND = {
   async get(key) {
-    const snap = await get(ref(db, path(key)));
-    return snap.exists() ? snap.val() : null;
+    try {
+      const snap = await get(ref(db, path(key)));
+      return snap.exists() ? snap.val() : null;
+    } catch (err) {
+      console.error("Solutions Table:", explain(err, key), err);
+      throw err;
+    }
   },
   async set(key, val) {
-    await set(ref(db, path(key)), val);
-    return true;
+    try {
+      await set(ref(db, path(key)), clean(val));
+      return true;
+    } catch (err) {
+      console.error("Solutions Table:", explain(err, key), err);
+      throw err;
+    }
   },
   /* Optional push updates. The app polls every 4s by default; call this
      from a useEffect and drop the interval if you want instant sync. */

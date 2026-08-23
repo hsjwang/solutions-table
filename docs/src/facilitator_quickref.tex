@@ -1,0 +1,487 @@
+% =====================================================================
+%  facilitator_quickref.tex
+%
+%  Two-page quick reference. Print double-sided on one sheet.
+%  Page 1 = how to run it.  Page 2 = when to intervene.
+%  Derived from facilitator_manual.tex; see that document for detail.
+% =====================================================================
+
+\documentclass[9pt,letterpaper]{extarticle}
+
+\usepackage[letterpaper,top=0.5in,bottom=0.45in,left=0.55in,right=0.55in]{geometry}
+\usepackage{mathptmx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{multicol}
+\usepackage[most]{tcolorbox}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{deep}{HTML}{1F3A5F}
+\definecolor{warn}{HTML}{9C3B2E}
+\definecolor{calm}{HTML}{2F6B4F}
+\definecolor{soft}{HTML}{EEF1F5}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\columnsep}{14pt}
+\renewcommand{\arraystretch}{1.12}
+\newcolumntype{R}{>{\raggedright\arraybackslash}X}
+\setlist{nosep,leftmargin=1.1em,itemsep=1pt}
+
+\titleformat{\section}{\bfseries\normalsize\color{deep}}{}{0em}{}
+\titlespacing*{\section}{0pt}{1.4ex}{0.5ex}
+
+\newcommand{\say}[1]{\textit{``#1''}}
+\newcommand{\hd}[1]{\vspace{0.5ex}{\bfseries\color{deep}#1}\vspace{0.3ex}\\}
+
+\newtcolorbox{redbox}[1]{colback=warn!7,colframe=warn,fonttitle=\bfseries\small,
+  title={#1},boxrule=0.7pt,arc=1.5pt,left=4pt,right=4pt,top=2.5pt,bottom=2.5pt,
+  fontupper=\small}
+\newtcolorbox{greenbox}[1]{colback=calm!7,colframe=calm,fonttitle=\bfseries\small,
+  title={#1},boxrule=0.7pt,arc=1.5pt,left=4pt,right=4pt,top=2.5pt,bottom=2.5pt,
+  fontupper=\small}
+\newtcolorbox{graybox}[1]{colback=soft,colframe=deep!40,fonttitle=\bfseries\small,
+  title={#1},boxrule=0.6pt,arc=1.5pt,left=4pt,right=4pt,top=2.5pt,bottom=2.5pt,
+  fontupper=\small}
+
+\begin{document}
+
+% =====================================================================
+% PAGE 1 -- HOW TO RUN IT
+% =====================================================================
+{\color{deep}\rule{\textwidth}{1.5pt}}\\[0.3em]
+{\LARGE\bfseries\color{deep} Solutions Dimension --- Facilitator Quick Reference}\\[0.2em]
+{\small p1 how to run it \quad$\cdot$\quad p2 when to intervene \quad$\cdot$\quad
+p3 web version \quad$\cdot$\quad p4 scenario index \quad$\cdot$\quad Full detail in the Manual}\\[0.2em]
+{\color{deep}\rule{\textwidth}{1.5pt}}
+
+\vspace{0.6em}
+\begin{graybox}{The one thing to understand}
+\textbf{The disagreement is the lesson.} Students learning card definitions is a
+side effect. The activity works when a team argues about which of two defensible
+options is better and has to say why. \textbf{A session where everyone agreed
+quickly did not work.} No security expertise is needed to facilitate.
+\end{graybox}
+
+\vspace{0.4em}
+\begin{multicols}{2}
+
+\section{Setup}
+\begin{itemize}
+\item Teams of \textbf{2--3}. Four is the maximum before someone stops talking.
+\item Per team: original 4-dimension deck, Solutions deck, printed $3\times3$
+risk matrix, \textbf{6 physical tokens}, record sheet.
+\item Sort Solutions into piles before you start: Foundational (1--13),
+Extended (14--18), Advanced (19--21), modifiers (22--28).
+\item Use real tokens, not a tally. Spending must be visible and irreversible.
+\item \textbf{Explain Phase 1 only, then start.} Explain each later phase when
+teams reach it. Front-loading all three confuses everyone.
+\end{itemize}
+
+\section{Costs}
+\small
+\begin{tabularx}{\linewidth}{@{}l c X@{}}
+\toprule
+\textbf{Tier} & \textbf{Cost} & \textbf{Cards} \\
+\midrule
+Foundational & 1 & 1--13 \\
+Extended & 2 & 14--18 \\
+Advanced & 3 & 19--21 \\
+Modifiers & 0 & 22--28 \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\vspace{0.4em}
+Budget \textbf{6 tokens}. Deal \textbf{8 control cards + 3 modifiers}. A good
+default deal is 6 Foundational, 1 Extended, 1 Advanced. \textbf{Deal
+deliberately, not randomly} --- if a team's threat calls for a card, include it.
+
+\section{Timing (35--45 min total)}
+\small
+\begin{tabularx}{\linewidth}{@{}X r@{}}
+\toprule
+Setup and rules & 5--7 \\
+Phase 1: threat and placement & 5--7 \\
+Phase 2: budgeted defense & 8--10 \\
+Phase 3: residual risk & 4--5 \\
+Cross-team comparison & 5--8 \\
+Debrief & 5--10 \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\columnbreak
+
+\section{Phase 1 --- Threat and Placement}
+Draw one card from each of the four original dimensions. Build a scenario where
+all four are true. Place on the matrix. Record the coordinates.
+
+\vspace{0.3em}
+\say{Build a story where all four of these are true at once. Every card has to
+do some work in it.}
+
+\vspace{0.3em}
+\textbf{Severity rule.} They must justify severity by pointing at the
+\textbf{Human Impact card} and naming who is harmed. Novices rate severity by
+how sophisticated an attack \emph{sounds}; this corrects it without a lecture.
+
+\section{Phase 2 --- Budgeted Defense}
+Deal 8 Solutions + 3 modifiers. Give 6 tokens. For each purchase they say which
+safeguard addresses which part of the threat.
+
+\vspace{0.3em}
+\say{Six tokens. Anything you don't spend is gone. For each card, tell me which
+part of your scenario it touches.}
+
+\vspace{0.3em}
+\textbf{Enforce the arithmetic instantly.} A team that overspends unnoticed has
+not played the game.
+
+\section{Phase 3 --- Residual Risk}
+Same threat, same board, re-placed given what they bought. They state what still
+gets through.
+
+\vspace{0.3em}
+\say{Where does it sit now? And tell me what still gets through, because
+something does.}
+
+\vspace{0.3em}
+\textbf{Then compare teams.} Don't skip it. The question is never who was right
+--- it's why two reasonable groups bought different things.
+
+\end{multicols}
+
+\vspace{0.3em}
+\begin{graybox}{Adjudicating modifier cards --- the one-sentence test}
+Modifiers are free, so each requires a justification. If unsure, ask once:
+\say{Can you say that again naming a specific person, system, or failure?}
+Specific $\rightarrow$ accept. Still general after \textbf{one} prompt
+$\rightarrow$ card returns to the deck. Don't prompt twice.
+\vspace{0.3em}
+
+\textbf{Accept:} \say{Staff will share the one MFA phone at the front desk.}
+\quad \textbf{Reject:} \say{People are the weakest link.}
+\vspace{0.2em}
+
+\textbf{Accept:} \say{The exec director owns that decision, reviewed in twelve
+months.} \quad \textbf{Reject:} \say{We accept the rest of the risks.}
+\vspace{0.3em}
+
+Also: \textbf{max 2 modifiers per round}; card 24 requires that they bought card
+4 or 7; card 26 is played \emph{instead of} a purchase.
+\end{graybox}
+
+\vspace{0.3em}
+\begin{multicols}{2}
+\section{Debrief --- pick 3 or 4}
+\begin{itemize}
+\item Which purchase did you argue about most, and how did you settle it?
+\item What did you want and couldn't afford? What would you tell the client
+about that gap?
+\item Did anything you bought only help \emph{after} the attack succeeded? Worth
+the points?
+\item Two teams bought differently for similar threats. Why?
+\item Which card would you cut from this deck entirely?
+\end{itemize}
+
+\columnbreak
+
+\section{Misconceptions worth naming}
+\begin{itemize}
+\item Controls \emph{reduce} risk; they don't remove it. (That's Phase 3.)
+\item Expensive $\neq$ better. Cost tracks CIS Implementation Group, not value.
+\item Awareness training is one anti-phishing layer; email filtering (12) is
+cheaper and doesn't depend on a tired person at 4pm.
+\item Backups limit consequence; the data is still disclosed.
+\item Not everything must be fixed. Four treatments: avoid, mitigate, transfer
+(21), accept (26).
+\end{itemize}
+\end{multicols}
+
+\newpage
+% =====================================================================
+% PAGE 2 -- WHEN TO INTERVENE
+% =====================================================================
+{\color{deep}\rule{\textwidth}{1.5pt}}\\[0.3em]
+{\LARGE\bfseries\color{deep} When to Intervene}\\[0.2em]
+{\color{deep}\rule{\textwidth}{1.5pt}}
+
+\vspace{0.5em}
+\begin{graybox}{Your default is NON-intervention}
+New facilitators intervene far too early. A team silent for 30 seconds is
+thinking. A team arguing is learning. A team corrected by a peer has learned more
+than one corrected by you. \textbf{Your standing job is small:} keep time,
+enforce budget arithmetic, adjudicate modifiers, and handle the four red-flag
+situations below. Everything else is optional and most of it is
+counterproductive.
+\end{graybox}
+
+\vspace{0.4em}
+\textbf{\color{deep}The escalation ladder} --- use the lightest rung that works, then stop.
+
+\vspace{0.3em}
+\small
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+\textbf{Rung 1} & Wait & Count to 20 before deciding a silence is a stall. \\
+\textbf{Rung 2} & Ask an open question & \say{What's the worst thing that happens in your scenario?} Redirects without supplying content. \\
+\textbf{Rung 3} & Point at a card & Physically point at the Methods card and say nothing. Astonishingly effective. \\
+\textbf{Rung 4} & State a rule & \say{Remember you have to say which part of the threat each purchase touches.} \\
+\textbf{Rung 5} & Direct instruction & Only when time is nearly gone. Supplying an answer ends the learning for that team. \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\vspace{0.7em}
+\textbf{\color{deep}Triggers and thresholds}
+
+\vspace{0.3em}
+\small
+\begin{tabularx}{\textwidth}{@{}p{4.4cm} p{1.9cm} X@{}}
+\toprule
+\textbf{Signal} & \textbf{Threshold} & \textbf{What to do} \\
+\midrule
+Total stall, nobody speaking & 60 seconds & Rung 2. \say{Read your Methods card out loud and tell me who it hurts.} Reading aloud restarts almost every stalled table. \\
+One person doing all the talking & 2 minutes & Rung 2, aimed at someone else: \say{Which card would you defend that nobody has picked?} Don't name or silence the dominant speaker. \\
+\textbf{Agreement in under 90 sec} & Immediate & Rung 2. Argue the other side: \say{Make the case for the card you just dismissed.} Fast consensus means the trade-off wasn't felt. \\
+Jargon others don't share & First time & Rung 2, to the speaker: \say{Say that again for someone who hasn't taken a security course.} \\
+Buying without reference to the threat & 2nd purchase & Rung 3: point at the Methods card. Then Rung 4: \say{Which part of the scenario does that touch?} \\
+Overspending the budget & Immediate & Rung 4. Correct at once --- the constraint is the mechanic. \\
+Modifier played with no justification & Immediate & Rung 4. One prompt, then the card returns to the deck. \\
+Threat moved to Not Likely / Not Severe in Phase 3 & Immediate & Rung 2. \say{So this can't happen at all now? What would an attacker with more time do?} \\
+\say{Just tell us the right answer} & After one deflection & Be honest: \say{There's a better and a worse answer, but not one right one. Tell me your reasoning and I'll tell you where it's weak.} \\
+Drifting into how to perform the attack & First time & Rung 4. \say{We're on the defending side of the table.} No moralizing. \\
+Finished 5+ minutes early & Immediate & Rung 2. \say{Your budget was just cut by two tokens. What goes?} \\
+Running out of time & 3 min left & Rung 5. Make them commit to a portfolio even if unfinished --- incomplete is assessable, abandoned isn't. \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\vspace{0.7em}
+\begin{redbox}{Four situations --- act immediately, the ladder does not apply}
+\textbf{1. Someone discloses a real vulnerability} at their employer, student
+org, or family business. \textbf{Stop it at the table:} \say{Let's not work
+through a real system in the open --- come find me after.} Follow up privately.
+A live vulnerability discussed in a room of twenty creates risk for a third
+party who didn't consent.
+\vspace{0.4em}
+
+\textbf{2. A scenario lands on someone's personal experience.} Human Impact
+includes Physical and Emotional Wellbeing; Methods includes Manipulation or
+Coercion. Stalking, doxxing, or intimate partner surveillance can hit hard.
+Watch for someone going quiet or leaving. \textbf{Offer an exit without
+requiring an explanation, addressed to the team, not the person:} \say{This team
+can redraw the Impact card if you want a different scenario.} Never require
+anyone to narrate aloud. Keep a redraw available every session as a standing,
+unremarkable option.
+\vspace{0.4em}
+
+\textbf{3. Someone is being spoken over or dismissed} --- usually a non-major by
+a technical student. Fix it structurally, not socially: \say{Let's hear each
+person's top card before anyone argues.}
+\vspace{0.4em}
+
+\textbf{4. A factual error that will leave the room as a belief} --- e.g.\ that
+encryption stops phishing, backups prevent a breach, or insurance removes the
+duty to notify. Correct briefly, without ceremony, then hand it back. Leave all
+other wrong answers to peers or the debrief.
+\end{redbox}
+
+\vspace{0.5em}
+\begin{greenbox}{Leave these alone}
+\begin{multicols}{2}
+\begin{itemize}
+\item Silence under 20 seconds. It's thinking.
+\item Disagreement, including heated. It's the mechanism --- step in only if it
+turns personal.
+\item A defensible choice you wouldn't have made. Ask why; don't correct.
+\item A wrong answer a student is about to catch. Wait three seconds.
+\item A team ignoring a card you think is obviously right. Note it for debrief;
+steering purchases hollows out the exercise.
+\item Slightly unrealistic scenarios. Plausibility isn't the objective.
+\item A team spending everything on one expensive card. Let Phase 3 teach it.
+\end{itemize}
+\end{multicols}
+\end{greenbox}
+
+\vspace{0.4em}
+{\footnotesize\color{deep}\textbf{Self-check after your third session:} Did teams
+argue? Did I go above Rung 2 more than twice per table? Did non-majors speak as
+much as majors? Did I supply an answer a peer would have given within five
+seconds?}
+
+
+\newpage
+% =====================================================================
+% PAGE 3 -- RUNNING THE WEB VERSION
+% =====================================================================
+{\color{deep}\rule{\textwidth}{1.5pt}}\\[0.3em]
+{\LARGE\bfseries\color{deep} Scenario Operations --- Web Version}\\[0.2em]
+{\color{deep}\rule{\textwidth}{1.5pt}}
+
+\vspace{0.5em}
+\begin{graybox}{Everyone opens the same link}
+Facilitator adds \texttt{\#facilitator} to the URL. Projector adds
+\texttt{\#projector}. Players use the plain link. Add \texttt{?session=tue-am}
+to run two classes at once --- sessions are completely separate.
+\end{graybox}
+
+\vspace{0.4em}
+\begin{multicols}{2}
+
+\section{Starting a session}
+\begin{enumerate}[label=\arabic*.]
+\item Open with \texttt{\#facilitator}, pick a code, \textbf{Claim the role}.
+Write the code down --- it is how you get the role back if your browser closes.
+\item A fresh session \textbf{loads Scenario 1 automatically}. To use a different
+one, pick it from the dropdown and press \textbf{Load}.
+\item Loading sets the organization, the read-aloud text, the budget, and moves
+play to Phase 1. It does not touch teams.
+\item Set \textbf{Teams} to about class size $\div$ 3, rounded up. Options are
+6, 8, 10, 12, 16.
+\item Read the scenario aloud. Do not paraphrase it --- teams comparing notes
+later need to have heard the same thing.
+\end{enumerate}
+
+\section{During play}
+\begin{itemize}
+\item \textbf{Phase 2} --- press \textbf{Deal} once. Dealing again replaces every
+team's hand.
+\item \textbf{Timer} --- 5/8/10/15 min buttons; it shows on the projector and
+turns amber under two minutes.
+\item \textbf{Adjudication} --- modifier justifications queue here. \emph{Specific
+enough} or \emph{Return to deck}. One prompt only.
+\item \textbf{Phase 3} --- the scenario's own debrief questions appear in your
+panel automatically.
+\end{itemize}
+
+\columnbreak
+
+\section{The expert key}
+Visible only to you, under the loaded scenario. It lists \textbf{strong},
+\textbf{partial}, and \textbf{weak-here} controls.
+
+\vspace{0.3em}
+\textbf{Use it} to follow the discussion, to know which trade-off the scenario
+was built around, and to score justifications afterwards.
+
+\vspace{0.3em}
+\textbf{Do not} read it out, hint at it, or steer purchases toward it. A team
+that buys a ``partial'' card and defends it well has done better work than one
+that buys a ``strong'' card without reasoning. \textbf{Never show it to players.}
+
+\section{Ending}
+\begin{enumerate}[label=\arabic*.]
+\item \textbf{Export CSV} first, always. Neither reset exports for you.
+\item \textbf{New round} --- clears threats, hands, placements, purchases; teams
+keep their seats. Use between scenarios with the same class.
+\item \textbf{End session and clear board} --- clears everything including team
+membership, archiving a copy first. Use at the end of class.
+\item \textbf{Campaign play: do neither.} The same organization returns next week
+with drift applied.
+\end{enumerate}
+
+\end{multicols}
+
+\vspace{0.2em}
+\begin{redbox}{Three things that go wrong}
+\textbf{Two people on one team both clicking.} The board is shared and the last
+write wins, so one set of changes silently overwrites the other. The app names a
+driver and warns everyone else. Agree who types before Phase 2.
+\vspace{0.3em}
+
+\textbf{Dealing twice.} It replaces hands, including cards a team already bought.
+Deal once, at the start of Phase 2.
+\vspace{0.3em}
+
+\textbf{Clearing before exporting.} \emph{New round} does not archive. Export
+first or the round is gone.
+\end{redbox}
+
+\vspace{0.4em}
+\begin{greenbox}{If the app fails mid-class}
+Keep playing on paper. Every mechanic works with the physical deck, a printed
+$3\times3$ grid, and six coins --- the app is a convenience, not the activity.
+Collect the record sheets instead of exporting.
+\end{greenbox}
+
+\newpage
+% =====================================================================
+% PAGE 4 -- SCENARIO INDEX
+% =====================================================================
+{\color{deep}\rule{\textwidth}{1.5pt}}\\[0.3em]
+{\LARGE\bfseries\color{deep} Scenario Index}\\[0.2em]
+{\small Full text, suggested draws and debrief questions: Appendix C of the
+Facilitator's Manual. \quad $\bullet$ = may land on personal experience; offer
+the redraw to the team \emph{before} reading.}\\[0.2em]
+{\color{deep}\rule{\textwidth}{1.5pt}}
+
+\vspace{0.6em}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}c p{3.5cm} c p{3.4cm} R@{}}
+\toprule
+\textbf{\#} & \textbf{Organization} & \textbf{Bgt} & \textbf{Strongest controls} & \textbf{The trap} \\
+\midrule
+1 & Harborview Food Bank \newline \textit{payroll redirection} & 6 &
+Social Engineering Awareness; Deepfake Awareness; Email \& Browser &
+Teams rate severity by how clever the attack was. It is severe because
+\$18k is a month of cash. \\
+2 & Cedar Ridge Health Clinic \newline \textit{ransomware} & 6 &
+Backup \& Recovery; Incident Response; EDR &
+The backup exists and is useless --- it is on the same server. Prevention buys
+nothing here. \\
+3 $\bullet$ & Wilder House shelter \newline \textit{stolen laptop} & 6 &
+Encryption; Physical Security; Identity \& Access &
+A login password feels like protection. It is not. \\
+4 & Fairmount Land Trust \newline \textit{dormant account} & 5 &
+Account Lifecycle; Identity \& Access &
+Nobody attacked anyone. The right answer is the dullest card in the deck. \\
+5 & Northbridge School District \newline \textit{vendor breach} & 10 &
+Third-Party \& Contractual; Incident Response &
+Half the deck is useless --- the district owns none of the affected systems. \\
+6 & Millbrook Water Authority \newline \textit{debug mode live} & 10 &
+Secure Configuration; Identity \& Access &
+With ten points teams overspend. The fix costs one. \\
+7 $\bullet$ & Eastgate Legal Aid \newline \textit{insider access} & 10 &
+Audit Logging \& SIEM; Identity \& Access + Least Privilege; MDR &
+Every preventive control fails. The access was authorized. \\
+8 & Delridge Public Library \newline \textit{unknown device} & 6 &
+Asset Inventory; Segmentation; Secure Configuration &
+Segmentation is out of reach at six points. What do you tell the board? \\
+9 & Ridgeway Arts Collective \newline \textit{unsupported software} & 6 &
+Software Inventory; Deferred Investment; Backup &
+Teams buy Software Updates. There are no patches --- that is the problem. \\
+10 & Second Chance Rescue \newline \textit{shared mailbox} & 10 &
+Password \& Authentication; Account Lifecycle; Incident Response &
+The shared password exists because it is genuinely convenient. \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\vspace{0.9em}
+\begin{graybox}{Choosing one}
+\textbf{First session:} 1, 2, 4 or 8. \quad \textbf{Once they know the loop:}
+5, 6, 7, 10. \quad \textbf{Campaign play:} 9.
+\vspace{0.3em}
+
+Vary the teaching target between sessions. If nobody bought logging last time,
+run 7, where detection is the only lever that works. If teams over-bought
+expensive cards, run 6, where a one-point card wins.
+\end{graybox}
+
+\vspace{0.5em}
+{\footnotesize\color{deep}\textbf{Never run a session against a real client's
+systems.} All ten organizations are fictional. If a participant starts
+describing a real vulnerability at a real place, stop it at the table and follow
+up privately --- see page 2.}
+
+\end{document}
