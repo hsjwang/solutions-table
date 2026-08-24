@@ -142,6 +142,81 @@ Page 2 of the quick reference (**when to intervene**) and Appendix C of the
 manual (**the ten scenarios**). Facilitators who improvise a scenario, or who
 intervene too early, account for most sessions that fall flat.
 
+### Campaign play across a term
+
+The same client organization returns in a later week. Use **Next engagement**,
+not *New round* — it carries the board forward instead of clearing it.
+
+On advance, for every team that played **Deferred Investment**:
+
+- the threat's **likelihood** moves one cell toward *Very Likely*
+- **severity never moves.** It is a property of who gets harmed, and that does
+  not change because an organization delayed
+- a threat already at *Very Likely* **realizes** instead of drifting: the attack
+  happens, and the outcome is resolved against every card the team has bought
+  across all engagements — detection, response, recovery, financial and
+  disclosure, each answered yes or no by their own purchase history, never by
+  chance
+- the team receives **10 points** next engagement, the banked budget the card
+  promised
+
+Teams that did not defer carry forward unchanged. Threats, matrix positions,
+purchase history and engagement number persist; hands, purchases and modifiers
+clear. The export gains `engagement`, `drift`, `realized` and `ever_purchased`
+columns.
+
+Realization exists to correct a structural bias: 21 of the 28 cards are
+preventive, and novices spend on prevention first. A team that never experiences
+an incident never learns why detection and recovery were worth points.
+
+
+### The facilitator role
+
+Enforced by the database, not just the interface. Every browser signs in
+anonymously and gets a stable `uid`; the rules permit writes to the session
+config only from the uid that holds the role.
+
+- **A student cannot take the role by clicking the facilitator link.** The write
+  is refused by Firebase, not hidden by the UI.
+- **Only the holder can release it** — a *Release the role* button in their
+  panel. Teams and the board are untouched.
+- **The role frees itself about two minutes after the holder's last action.** A
+  crashed browser, a closed laptop, or a switch of device does not strand the
+  class. The facilitator view sends a keepalive every 45 seconds so reading the
+  room does not count as absence.
+- **While the role is live, a takeover also needs the code** (stored hashed).
+  Once it is stale, no code is needed, because by then nobody is there to ask.
+- **The displaced holder is locked out**, not left running. Two people changing
+  the phase at once is worse than one being locked out.
+- **Change the code** mid-session to cut off anyone who has learned it.
+
+`heldAt` is written with Firebase's server timestamp and the rules require it to
+equal their own clock, so a client cannot backdate it to force a takeover.
+
+**Required setup:** Build → Authentication → Sign-in method → **Anonymous** →
+Enable. Without it nothing saves, and the app says so in a red bar.
+
+**Tuning:** shorten the two-minute grace period if facilitators change often;
+lengthen it if a stale role gets grabbed during long debriefs. The value appears
+in the rules and as `STALE_MS` in the component; change both.
+
+### Team seats
+
+A team key is writable only by the browser that claimed the seat, plus the
+facilitator — who has to be able to deal cards, adjudicate modifiers and reset
+boards. A student cannot alter another team's board even by editing the
+database directly.
+
+- **Claiming** happens on join. The first device to open a team takes the seat.
+- **Later devices watch.** Their controls are disabled and a banner says where
+  the changes are being made, so nobody clicks into a refusal.
+- **Release seat** — a per-team button in the facilitator's room view. The
+  board is untouched; the next device to open that team takes over.
+
+Seats belong to browsers, not people. A student who switches laptops, opens
+incognito or clears storage gets a new uid and loses the seat. That is what
+*Release seat* is for — without it a flat battery would cost a team its board.
+
 ### Scenarios in the app
 
 The ten scenarios from Appendix C are built into the interface. Claiming the

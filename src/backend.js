@@ -39,20 +39,41 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 /* ============================================================
-   PASTE YOUR VALUES HERE
-   Replace each REPLACE_ME with the matching value from the
-   Firebase console. Keep the quotes and the commas.
+   CONFIGURATION
+
+   Values come from build-time environment variables when present,
+   and fall back to the literals below so the file still works if
+   you just want to paste and go.
+
+   Copy .env.example to .env and fill it in for local development.
+   For GitHub Pages, add the same names as repository secrets and
+   the workflow injects them at build time.
+
+   A NOTE ON "SECRETS"
+   The Firebase web API key is not a secret. It identifies the
+   project; it does not grant access. It is compiled into the
+   JavaScript bundle and anyone can read it out of the deployed
+   site, whether or not it appears in your repository. Moving it
+   to an environment variable silences GitHub's secret scanner and
+   keeps it out of git history — it does not hide it.
+
+   What actually protects the project:
+     1. Database rules (see the bottom of this file)
+     2. HTTP referrer restrictions on the API key, set in the
+        Google Cloud console — see SECURITY.md
+     3. Firebase App Check, if you want to go further
    ============================================================ */
+const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
 const FIREBASE_CONFIG = {
-  apiKey:            "REPLACE_ME",
-  authDomain:        "REPLACE_ME.firebaseapp.com",
-  // Copy databaseURL exactly. Outside us-central1 it looks like
+  apiKey:            env.VITE_FIREBASE_API_KEY            || "REPLACE_ME",
+  authDomain:        env.VITE_FIREBASE_AUTH_DOMAIN        || "REPLACE_ME.firebaseapp.com",
+  // Outside us-central1 this looks like
   // https://<project>-default-rtdb.<region>.firebasedatabase.app
-  databaseURL:       "REPLACE_ME",
-  projectId:         "REPLACE_ME",
-  storageBucket:     "REPLACE_ME.appspot.com",
-  messagingSenderId: "REPLACE_ME",
-  appId:             "REPLACE_ME",
+  databaseURL:       env.VITE_FIREBASE_DATABASE_URL       || "REPLACE_ME",
+  projectId:         env.VITE_FIREBASE_PROJECT_ID         || "REPLACE_ME",
+  storageBucket:     env.VITE_FIREBASE_STORAGE_BUCKET     || "REPLACE_ME.appspot.com",
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID|| "REPLACE_ME",
+  appId:             env.VITE_FIREBASE_APP_ID             || "REPLACE_ME",
 };
 /* ===================== STOP EDITING ========================= */
 
@@ -210,69 +231,17 @@ if (!missing.length) {
 }
 
 /* ------------------------------------------------------------
-   DATABASE RULES — paste into Realtime Database -> Rules, Publish.
+   DATABASE RULES
 
-   Requires Anonymous sign-in:
-     Build -> Authentication -> Sign-in method -> Anonymous -> Enable
+   The rules are in database.rules.json at the repository root, not
+   here. Paste that file into Realtime Database -> Rules -> Publish,
+   or deploy it with the Firebase CLI:
 
-   What these enforce:
-     - only signed-in clients can write anything
-     - only the uid holding the facilitator role can write the session
-       config, so a student cannot take over by opening the facilitator link
-     - the role frees itself about two minutes after the holder's last
-       action, so a crashed browser or a switch of device does not strand
-       the class
-     - heldAt must equal the server's own clock, so a client cannot fake a
-       stale role to force a takeover
-     - a team key is writable only by the device that claimed the seat,
-       plus the facilitator, who must be able to deal cards, adjudicate
-       modifiers and reset boards
-     - a seat with no owner is free to claim; the facilitator can release
-       one from the room view when a laptop dies
+       npm i -g firebase-tools
+       firebase login
+       firebase deploy --only database
 
-{
-  "rules": {
-    "sessions": {
-      "$session": {
-        ".read": "auth != null",
-        ".validate": "$session.matches(/^[a-zA-Z0-9_-]{1,40}$/)",
-
-        "game:config": {
-          ".write": "auth != null && (
-              !data.exists()
-              || !data.child('facilitatorId').exists()
-              || data.child('facilitatorId').val() === auth.uid
-              || data.child('heldAt').val() < (now - 120000)
-          )",
-          ".validate": "(
-              newData.child('facilitatorId').val() === auth.uid
-              || !newData.child('facilitatorId').exists()
-            ) && newData.child('heldAt').val() === now"
-        },
-
-        "$key": {
-          ".write": "auth != null && (
-              !$key.beginsWith('game:team:')
-              || !data.exists()
-              || !data.child('ownerUid').exists()
-              || data.child('ownerUid').val() === auth.uid
-              || root.child('sessions').child($session).child('game:config')
-                     .child('facilitatorId').val() === auth.uid
-          )",
-          ".validate": "newData.isString() ? newData.val().length < 20000 : true"
-        }
-      }
-    }
-  }
-}
-
-   NOTE ON SEATS
-     Seat ownership is by browser, not by person. A student who switches
-     laptops, opens incognito, or clears storage gets a new uid and loses
-     the seat. That is why the facilitator can release one — without it a
-     dead battery would cost a team its board.
-
-   LOOSENING
-     Shorten 120000 (two minutes) if facilitators change often; lengthen it
-     if a stale role is being grabbed during long debriefs.
+   The rules are what actually enforce the facilitator role and team
+   seat ownership. This file only talks to the database; it cannot
+   grant itself anything the rules refuse.
    ------------------------------------------------------------ */

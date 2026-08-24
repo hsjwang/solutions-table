@@ -174,6 +174,34 @@ const SCENARIOS = [
 ];
 const scenarioById = (id) => SCENARIOS.find(x=>x.id===id);
 
+/* Realization. Likelihood drifts; severity does not, because severity is a
+   property of who is harmed and that does not change because an organization
+   delayed. A threat already at Very Likely has nowhere left to drift, so it
+   happens — and the outcome follows from what the team bought in earlier
+   engagements, never from chance. */
+const REALIZATION = [
+  {q:"Detection", cards:[15,20],
+   yes:"Discovered within days, internally.",
+   no:"Discovered months later, by a third party or the press."},
+  {q:"Response", cards:[13],
+   yes:"They know who to call and in what order.",
+   no:"Forfeit the first purchase of this engagement to confusion."},
+  {q:"Recovery", cards:[6],
+   yes:"Data and systems are restored.",
+   no:"The loss is permanent."},
+  {q:"Financial", cards:[21],
+   yes:"Part of the cost is transferred.",
+   no:"The full cost lands on the organization."},
+  {q:"Disclosure", cards:[17],
+   yes:"The provider is obliged to notify them.",
+   no:"They learn from someone else."},
+];
+const resolveRealization = (everBought=[]) =>
+  REALIZATION.map(r=>{
+    const had = r.cards.some(c=>everBought.includes(c));
+    return {q:r.q, had, text: had ? r.yes : r.no};
+  });
+
 const DEFAULT_DIMS = {
   method: ["Attack Cover Up","Physical Attack","Multi-phase Attack","Indirect Attack",
            "Technological Attack","Processes","Manipulation or Coercion"],
@@ -221,7 +249,9 @@ const blankTeam = (n) => ({
   n, name:`Team ${n}`, members:"", joined:false,
   threat:{method:"",impact:"",resource:"",motive:""},
   pre:null, post:null, hand:[], modHand:[], purchases:[],
-  modifiers:[], residual:"", ownerUid:null, updatedAt:0,
+  modifiers:[], residual:"", ownerUid:null,
+  engagement:1, everBought:[], drift:0, realized:null, budgetOverride:null,
+  updatedAt:0,
 });
 
 /* Storage adapter. Inside a Claude artifact this uses window.storage.
@@ -614,6 +644,37 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
     setStatus("Board cleared. Teams are still seated — set the new scenario above.");
   };
 
+  /* Campaign advance. Keeps the threat and carries the board forward instead of
+     clearing it, which is the difference between a new round and a next
+     engagement. Drift applies only where a team played Deferred Investment,
+     because that card is the promise the drift is the price of. */
+  const nextEngagement = async ()=>{
+    for (const n of ids){
+      const t = teams[n];
+      if(!t?.joined) continue;
+      const deferred = (t.modifiers||[]).some(m=>m.id===28 && m.status==="accepted");
+      const ever = Array.from(new Set([...(t.everBought||[]), ...(t.purchases||[])]));
+      let pos = t.post || t.pre || null;
+      let realized = null, drift = t.drift||0;
+      if (deferred && pos){
+        if (pos.l >= LIKELIHOOD.length-1){
+          realized = {at:Date.now(), outcome:resolveRealization(ever)};
+        } else {
+          pos = {l:pos.l+1, s:pos.s};   // likelihood only
+          drift = drift+1;
+        }
+      }
+      await saveTeam(n,{
+        ...blankTeam(n), name:t.name, members:t.members, ownerUid:t.ownerUid, joined:true,
+        threat:t.threat, pre:pos, post:null,
+        engagement:(t.engagement||1)+1, everBought:ever, drift, realized,
+        budgetOverride: deferred ? 10 : null,
+      });
+    }
+    await saveCfg({phase:"p1", timerEnd:null});
+    setStatus("Next engagement. Threats carried forward; deferred teams drifted or realized.");
+  };
+
   const endSession = async ()=>{
     const label = new Date().toISOString().slice(0,16).replace(/[:T]/g,"-");
     const snapshot = {cfg, teams, archivedAt:Date.now()};
@@ -625,16 +686,19 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
   };
 
   const exportData = ()=>{
-    const rows = [["team","org","threat_method","threat_impact","threat_resource","threat_motive",
-      "pre_likelihood","pre_severity","post_likelihood","post_severity","spent","purchases",
-      "modifiers_accepted","residual"]];
+    const rows = [["team","org","engagement","drift","realized","threat_method","threat_impact",
+      "threat_resource","threat_motive","pre_likelihood","pre_severity","post_likelihood",
+      "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual"]];
     ids.forEach(n=>{
       const t=teams[n]; if(!t?.joined) return;
       const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
-      rows.push([t.name,cfg?.org||"",t.threat.method,t.threat.impact,t.threat.resource,t.threat.motive,
+      rows.push([t.name,cfg?.org||"",t.engagement||1,t.drift||0,t.realized?"yes":"no",
+        t.threat.method,t.threat.impact,t.threat.resource,t.threat.motive,
         t.pre?LIKELIHOOD[t.pre.l]:"",t.pre?SEVERITY[t.pre.s]:"",
-        t.post?LIKELIHOOD[t.post.l]:"",t.post?SEVERITY[t.post.s]:"",spent,
+        t.post?LIKELIHOOD[t.post.l]:"",t.post?SEVERITY[t.post.s]:"",
+        t.budgetOverride ?? cfg?.budget ?? 6, spent,
         (t.purchases||[]).map(id=>card(id)?.name).join("; "),
+        (t.everBought||[]).map(id=>card(id)?.name).join("; "),
         (t.modifiers||[]).filter(m=>m.status==="accepted").map(m=>card(m.id)?.name).join("; "),
         (t.residual||"").replace(/\n/g," ")]);
     });
@@ -760,6 +824,22 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
             Deal 8 controls + 3 modifiers to every team
           </button>
           <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.edge}`}}>
+            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Campaign — same client, later in the term</label>
+            <button style={{...btn("primary"),marginTop:6,width:"100%"}} disabled={busy}
+              onClick={()=>{ if(window.confirm(
+                "Advance to the next engagement?\n\nThreats and matrix positions carry forward. "+
+                "Teams that played Deferred Investment drift one cell toward Very Likely, or realize "+
+                "if they were already there, and receive 10 points.\n\nHands, purchases and modifiers "+
+                "are cleared. Export the CSV first.")) nextEngagement(); }}>
+              Next engagement — carry the board forward
+            </button>
+            <p style={{fontFamily:MONO,fontSize:10,color:C.muted,lineHeight:1.6,marginTop:6}}>
+              Use this instead of New round when the same organization returns. Severity never
+              drifts; only likelihood does.
+            </p>
+          </div>
+
+          <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.edge}`}}>
             <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Another scenario, same room</label>
             <button style={{...btn(),marginTop:6,width:"100%"}} disabled={busy}
               onClick={()=>{ if(window.confirm(
@@ -868,7 +948,13 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
                   display:"grid",gridTemplateColumns:"1fr auto",gap:12,alignItems:"start"}}>
                   <div style={{minWidth:0}}>
                     <div style={{fontWeight:600,fontSize:14}}>{t.name}</div>
-                    <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:2}}>{t.members||"—"}</div>
+                    <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:2}}>
+                      {t.members||"—"}
+                      {(t.engagement||1)>1 && ` · engagement ${t.engagement}`}
+                      {(t.drift||0)>0 && ` · drifted ${t.drift}`}
+                      {t.realized && <span style={{color:C.warn}}> · realized</span>}
+                      {t.budgetOverride && <span style={{color:C.brass}}> · {t.budgetOverride} pts</span>}
+                    </div>
                     <div style={{display:"flex",gap:5,flexWrap:"wrap",margin:"7px 0"}}>
                       {Object.entries(DIM_META).map(([k,m])=> t.threat[k] ? (
                         <span key={k} style={{fontFamily:MONO,fontSize:9.5,padding:"2px 6px",borderRadius:2,
@@ -1073,13 +1159,14 @@ function Projector({cfg,teams,ids,onExit}){
 
 function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   const phase = cfg?.phase||"setup";
-  const budget = cfg?.budget??6;
   const dims = cfg?.dims||DEFAULT_DIMS;
   const t = teamN ? (teams[teamN]||blankTeam(teamN)) : null;
   const [just,setJust] = useState({});
   /* The database refuses writes from anyone but the seat holder, so the
      interface disables them rather than letting a click fail. */
   const isOwner = !t?.ownerUid || t.ownerUid===clientId;
+  // Banking last engagement buys a bigger budget this one
+  const budget = t?.budgetOverride ?? (cfg?.budget??6);
 
   if(!teamN){
     return (
@@ -1150,6 +1237,37 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               onChange={e=>saveTeam(teamN,{members:e.target.value})}/>
           </div>
         </div>
+        {t.realized && (
+          <div style={{marginTop:12,padding:"12px 14px",borderRadius:4,
+            border:`1px solid ${C.warn}`,background:"rgba(192,69,59,.10)"}}>
+            <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+              textTransform:"uppercase",color:C.warn}}>It happened</div>
+            <p style={{fontSize:13,lineHeight:1.6,margin:"6px 0 9px"}}>
+              You left this at <b>Very Likely</b> and deferred again. The attack succeeded.
+              What follows is decided by what you have bought across every engagement, not by chance.
+            </p>
+            <div style={{display:"grid",gap:4}}>
+              {t.realized.outcome.map((o,i)=>(
+                <div key={i} style={{display:"flex",gap:9,fontSize:12.5,lineHeight:1.5}}>
+                  <span style={{fontFamily:MONO,fontSize:10.5,minWidth:76,
+                    color:o.had?C.ok:C.warn}}>{o.q}</span>
+                  <span style={{color:o.had?C.paper:"#E8A9A3"}}>{o.text}</span>
+                </div>
+              ))}
+            </div>
+            <p style={{fontFamily:MONO,fontSize:10.5,color:C.muted,lineHeight:1.6,marginBottom:0,marginTop:9}}>
+              Tell the room what happened in the client's words, using your Human Impact card.
+            </p>
+          </div>
+        )}
+        {!t.realized && (t.drift||0)>0 && (
+          <div style={{marginTop:12,padding:"9px 12px",borderRadius:4,
+            border:`1px solid ${C.brass}`,background:"rgba(217,180,91,.10)",
+            fontFamily:MONO,fontSize:11,color:C.brass,lineHeight:1.6}}>
+            Engagement {t.engagement}. This threat has drifted {t.drift} cell{(t.drift||0)===1?"":"s"} toward
+            Very Likely while you waited. Severity has not moved — it never does.
+          </div>
+        )}
         {!isOwner && (
           <div style={{marginTop:12,padding:"9px 12px",borderRadius:4,
             border:`1px solid ${C.brass}`,background:"rgba(217,180,91,.10)",
