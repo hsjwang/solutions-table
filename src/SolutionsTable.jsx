@@ -559,13 +559,24 @@ export default function SolutionsTable(){
       const s1 = scenarioById(1);
       const fresh = !c?.org && !c?.scenario;   // nothing set up yet
       const claimHash = await hashCode(code);
-      await saveCfg({...(c||{}), facilitatorId:clientId, claimHash, claimCode:null,
+      const wrote = await sSet(CFG_KEY, {...(c||{}), facilitatorId:clientId, claimHash, claimCode:null,
         phase:c?.phase||"setup", dims:c?.dims||DEFAULT_DIMS,
         teamCount:c?.teamCount??DEFAULT_TEAMS,
         scenarioId:c?.scenarioId ?? (fresh ? s1.id : undefined),
         budget:c?.budget ?? (fresh ? s1.budget : 6),
         org:c?.org || (fresh ? s1.org : ""),
-        scenario:c?.scenario || (fresh ? s1.text : "")});
+        scenario:c?.scenario || (fresh ? s1.text : ""),
+        heldAt: stamp(), updatedAt: Date.now()});
+      if (!wrote) {
+        // Refused by the rules. Say so plainly instead of pretending it worked
+        // and then bouncing to the displaced screen a second later.
+        return "The database refused the claim. Either someone is actively running "
+          + "this session — wait two minutes after their last action and try again — or "
+          + "the session is stuck from an earlier version. A facilitator can clear it in "
+          + "the Firebase console under Realtime Database, or you can start a clean one "
+          + "by adding ?session=" + Math.random().toString(36).slice(2,7) + " to the URL.";
+      }
+      await refresh();
       setRole("fac"); return null;
     }} onBack={()=>setRole(null)}/>
   );

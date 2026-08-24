@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "sessions": {
+      "$session": {
+        ".read": "auth != null",
+        ".validate": "$session.matches(/^[a-zA-Z0-9_-]{1,40}$/)",
+        "game:config": {
+          ".write": "auth != null && ( !data.exists() || !data.child('facilitatorId').exists() || data.child('facilitatorId').val() === auth.uid || !data.child('heldAt').exists() || data.child('heldAt').val() < (now - 120000) )",
+          ".validate": "( newData.child('facilitatorId').val() === auth.uid || !newData.child('facilitatorId').exists() ) && newData.child('heldAt').val() === now"
+        },
+        "$key": {
+          ".write": "auth != null && ( !$key.beginsWith('game:team:') || !data.exists() || !data.child('ownerUid').exists() || data.child('ownerUid').val() === auth.uid || root.child('sessions').child($session).child('game:config') .child('facilitatorId').val() === auth.uid )",
+          ".validate": "newData.isString() ? newData.val().length < 20000 : true"
+        }
+      }
+    }
+  }
+}
