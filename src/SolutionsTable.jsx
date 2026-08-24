@@ -546,7 +546,7 @@ export default function SolutionsTable(){
   if (role===null) return shell(<Gate onPlayer={()=>setRole("player")} onFac={()=>setRole("fac-gate")}
     onProjector={()=>setRole("projector")} cfg={cfg}/>);
   if (role==="fac-gate") return shell(
-    <FacGate cfg={cfg} clientId={clientId} onClaim={async(code)=>{
+    <FacGate cfg={cfg} clientId={clientId} authReady={!!authUid} onClaim={async(code)=>{
       const c = await sGet(CFG_KEY);
       const STALE_MS = 120000;              // matches the grace period in the rules
       const live = c?.heldAt && (Date.now() - c.heldAt) < STALE_MS;
@@ -571,7 +571,8 @@ export default function SolutionsTable(){
   );
   if (role==="fac") return shell(
     <Facilitator cfg={cfg} teams={teams} ids={teamsOf(cfg)} saveCfg={saveCfg} saveTeam={saveTeam}
-      busy={busy} onExit={()=>setRole(null)}/>
+      busy={busy} clientId={clientId} onExit={()=>setRole(null)}
+      onReclaim={()=>setRole("fac-gate")}/>
   );
   return shell(
     <Player cfg={cfg} teams={teams} ids={teamsOf(cfg)} teamN={teamN} setTeamN={setTeamN}
@@ -608,10 +609,14 @@ function Gate({onPlayer,onFac,onProjector,cfg}){
   );
 }
 
-function FacGate({onClaim,onBack,cfg,clientId}){
+function FacGate({onClaim,onBack,cfg,clientId,authReady}){
   const [code,setCode] = useState("");
   const [err,setErr] = useState(null);
   const claimed = cfg?.facilitatorId && cfg.facilitatorId!==clientId;
+  /* Claiming before anonymous sign-in resolves would write a random local id
+     as the holder, and the database rules — which compare against auth.uid —
+     would refuse every later write. */
+  const waiting = BACKEND.ready && !authReady;
   return (
     <div style={{maxWidth:420}}>
       <Section title="Facilitator">
@@ -621,10 +626,13 @@ function FacGate({onClaim,onBack,cfg,clientId}){
             : "Pick a code and share it only with co-facilitators. It is what lets you reclaim the role if your browser closes."}
         </p>
         <input value={code} onChange={e=>setCode(e.target.value)} placeholder="Facilitator code"
-          onKeyDown={e=>{ if(e.key==="Enter"&&code.trim()) onClaim(code.trim()).then(setErr); }}/>
+          disabled={waiting}
+          onKeyDown={e=>{ if(e.key==="Enter"&&code.trim()&&!waiting) onClaim(code.trim()).then(setErr); }}/>
+        {waiting && <div style={{fontFamily:MONO,fontSize:10.5,color:C.muted,marginTop:8}}>
+          Signing in…</div>}
         {err && <div style={{color:"#E88C84",fontFamily:MONO,fontSize:11,marginTop:8}}>{err}</div>}
         <div style={{display:"flex",gap:8,marginTop:12}}>
-          <button style={btn("primary")} disabled={!code.trim()}
+          <button style={btn("primary")} disabled={!code.trim()||waiting}
             onClick={()=>onClaim(code.trim()).then(setErr)}>Claim the role</button>
           <button style={btn()} onClick={onBack}>Back</button>
         </div>
@@ -635,7 +643,7 @@ function FacGate({onClaim,onBack,cfg,clientId}){
 
 /* ---------------- facilitator ---------------- */
 
-function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,onExit}){
+function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onReclaim}){
   const [org,setOrg] = useState(cfg?.org||"");
   const [scenario,setScenario] = useState(cfg?.scenario||"");
   const [pick,setPick] = useState(1);
