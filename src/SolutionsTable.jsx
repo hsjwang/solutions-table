@@ -608,9 +608,48 @@ function HelpPanel({onClose}){
   );
 }
 
+
+/* A render crash used to blank the page, which mid-session is worse than
+   useless — a student cannot tell a bug from a network drop. This turns any
+   uncaught render error into something they can read out to the facilitator. */
+class Boundary extends React.Component {
+  constructor(p){ super(p); this.state={err:null}; }
+  static getDerivedStateFromError(err){ return {err}; }
+  componentDidCatch(err,info){ console.error("Solutions Table render error:", err, info); }
+  render(){
+    if(!this.state.err) return this.props.children;
+    const msg = String(this.state.err?.message || this.state.err);
+    return (
+      <div style={{minHeight:"100%",background:C.slate,color:C.paper,fontFamily:SANS,
+        padding:"40px 24px"}}>
+        <div style={{maxWidth:560,margin:"0 auto"}}>
+          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".16em",
+            textTransform:"uppercase",color:C.warn}}>Something broke</div>
+          <h1 style={{fontSize:24,margin:"6px 0 10px",fontWeight:600}}>
+            This screen could not load
+          </h1>
+          <p style={{fontSize:13.5,lineHeight:1.65,color:"#D6D2C8"}}>
+            Your team's work is saved — nothing is lost. Reload the page and you should be able
+            to carry on. If it happens again, read the line below to your facilitator.
+          </p>
+          <pre style={{fontFamily:MONO,fontSize:11,lineHeight:1.6,color:C.brass,
+            background:C.panel,border:`1px solid ${C.edge}`,borderRadius:4,
+            padding:"10px 12px",whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{msg}</pre>
+          <button style={{...btn("primary"),marginTop:14}}
+            onClick={()=>window.location.reload()}>Reload</button>
+        </div>
+      </div>
+    );
+  }
+}
+
 /* ---------------- root ---------------- */
 
 export default function SolutionsTable(){
+  return <Boundary><SolutionsTableInner/></Boundary>;
+}
+
+function SolutionsTableInner(){
   const [localId] = useState(()=>Math.random().toString(36).slice(2,10));
   const [authUid,setAuthUid] = useState(null);
   /* With Firebase the identity is the authenticated uid, which the database
@@ -1515,7 +1554,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   const threat = locked ? scen.draw : (t?.threat || {});
   // Positions carry forward once play has started, otherwise use the scenario's
   const standing = useStanding
-    ? scen.standing.map(r=>({...r, at:(t?.standingPos||{})[r.id] || r.pos}))
+    ? (scen.standing||[]).map(r=>({...r, at:(t?.standingPos||{})[r.id] || r.pos || {l:1,s:1}}))
     : [];
   const bought = [...(t?.purchases||[]), ...(t?.everBought||[])];
   const addressedIdsTrue = standing.filter(r=>r.cards.some(c=>bought.includes(c))).map(r=>r.id);
@@ -1617,7 +1656,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               What follows is decided by what you have bought across every engagement, not by chance.
             </p>
             <div style={{display:"grid",gap:4}}>
-              {t.realized.outcome.map((o,i)=>(
+              {(t.realized?.outcome||[]).map((o,i)=>(
                 <div key={i} style={{display:"flex",gap:9,fontSize:12.5,lineHeight:1.5}}>
                   <span style={{fontFamily:MONO,fontSize:10.5,minWidth:76,
                     color:o.had?C.ok:C.warn}}>{o.q}</span>
@@ -1857,7 +1896,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
       {phase==="debrief" && scen && (
         <Section title="Debrief — be ready to answer">
           <ol style={{margin:0,paddingLeft:18,fontSize:13.5,lineHeight:1.75}}>
-            {scen.debrief.map((q,i)=><li key={i} style={{marginBottom:7}}>{q}</li>)}
+            {(scen.debrief||[]).map((q,i)=><li key={i} style={{marginBottom:7}}>{q}</li>)}
           </ol>
           <div style={{marginTop:14}}>
             <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
@@ -1888,9 +1927,9 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               </div>
               {(()=>{
                 const bp = t.purchases||[];
-                const hit = bp.filter(id=>scen.strong.includes(id));
-                const par = bp.filter(id=>scen.partial.includes(id));
-                const off = bp.filter(id=>!scen.strong.includes(id)&&!scen.partial.includes(id));
+                const hit = bp.filter(id=>(scen.strong||[]).includes(id));
+                const par = bp.filter(id=>(scen.partial||[]).includes(id));
+                const off = bp.filter(id=>!(scen.strong||[]).includes(id)&&!(scen.partial||[]).includes(id));
                 const Row = ({label,ids,color,note}) => ids.length ? (
                   <div style={{display:"flex",gap:9,marginBottom:5,alignItems:"flex-start"}}>
                     <span style={{fontFamily:MONO,fontSize:10,color,minWidth:104}}>{label}</span>
