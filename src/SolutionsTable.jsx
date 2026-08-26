@@ -31,7 +31,7 @@ const C = {
   method: "#4E8C5A", solution: "#7C5FA8", brass: "#D9B45B",
   ok: "#4E8C5A", warn: "#C0453B",
 };
-const BUILD = "2026-08-26.1641";
+const BUILD = "2026-08-26.1658";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -63,7 +63,7 @@ const SOLUTIONS = [
 const MODIFIERS = [
   [22,"Defense in Depth","Name two purchases that fail by different means."],
   [23,"Fail Safe Defaults","Name the state a purchased control fails into."],
-  [24,"Least Privilege","Requires card 4 or 7. Name one access you would reduce and what breaks."],
+  [24,"Least Privilege","Needs Identity & Access Management or Account Lifecycle Management in place. Name one person whose access you would cut, and what they would lose."],
   [25,"Human Factors","Name a purchase staff will circumvent, and how."],
   [26,"Risk Acceptance","Played instead of a purchase. Name the risk and its owner."],
   [27,"Compensating Control","Name what you cannot afford and what the substitute misses."],
@@ -275,7 +275,7 @@ const blankTeam = (n) => ({
   n, name:`Team ${n}`, members:"", joined:false,
   threat:{method:"",impact:"",resource:"",motive:""},
   pre:null, post:null, hand:[], modHand:[], purchases:[],
-  modifiers:[], residual:"", recommendation:"", ownerUid:null,
+  modifiers:[], residual:"", debriefAnswers:{}, recommendation:"", ownerUid:null,
   engagement:1, everBought:[], drift:0, realized:null, lastVerdict:null,
   standingPos:{}, standingIgnored:0, budgetOverride:null,
   updatedAt:0,
@@ -1029,13 +1029,13 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   };
 
   const exportData = ()=>{
-    const rows = [["team","org","engagement","drift","realized","threat_method","threat_impact",
+    const rows = [["team","org","scenario","engagement","drift","realized","threat_method","threat_impact",
       "verdict","standing_ignored","threat_resource","threat_motive","pre_likelihood","pre_severity","post_likelihood",
-      "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","recommendation"]];
+      "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","debrief_1","debrief_2","debrief_3","recommendation"]];
     ids.forEach(n=>{
       const t=teams[n]; if(!t?.joined) return;
       const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
-      rows.push([t.name,cfg?.org||"",t.engagement||1,t.drift||0,t.realized?"yes":"no",
+      rows.push([t.name,cfg?.org||"",scenarioById(cfg?.scenarioId)?.title||"",t.engagement||1,t.drift||0,t.realized?"yes":"no",
         t.lastVerdict||"",t.standingIgnored??"",t.threat.method,t.threat.impact,t.threat.resource,t.threat.motive,
         t.pre?LIKELIHOOD[t.pre.l]:"",t.pre?SEVERITY[t.pre.s]:"",
         t.post?LIKELIHOOD[t.post.l]:"",t.post?SEVERITY[t.post.s]:"",
@@ -1044,6 +1044,9 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
         (t.everBought||[]).map(id=>card(id)?.name).join("; "),
         (t.modifiers||[]).filter(m=>m.status==="accepted").map(m=>card(m.id)?.name).join("; "),
         (t.residual||"").replace(/\n/g," "),
+        ((t.debriefAnswers||{})[0]||"").replace(/\n/g," "),
+        ((t.debriefAnswers||{})[1]||"").replace(/\n/g," "),
+        ((t.debriefAnswers||{})[2]||"").replace(/\n/g," "),
         (t.recommendation||"").replace(/\n/g," ")]);
     });
     const csv = rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -1864,7 +1867,14 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 {(t.modHand||[]).map(id=>{
                   const m=card(id);
                   const played=(t.modifiers||[]).find(x=>x.id===id);
-                  const blocked = id===24 && !(t.purchases||[]).some(p=>p===4||p===7);
+                  const prereq = id===24 ? [4,7] : [];
+                  const holds = prereq.some(p=>(t.purchases||[]).includes(p) || (t.everBought||[]).includes(p));
+                  const dealt = prereq.some(p=>(t.hand||[]).includes(p) || (t.everBought||[]).includes(p));
+                  const blocked = prereq.length>0 && !holds;
+                  const blockMsg = !blocked ? null
+                    : dealt
+                      ? `Buy ${prereq.map(p=>card(p)?.name).join(" or ")} first, then this becomes available.`
+                      : `You cannot play this one — neither ${prereq.map(p=>card(p)?.name).join(" nor ")} was dealt to you this round.`;
                   return (
                     <div key={id} style={{border:`1px solid ${played?C.solution:C.edge}`,borderRadius:4,
                       padding:11,background:C.panel}}>
@@ -1876,10 +1886,13 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                         </span>
                       </div>
                       <div style={{fontFamily:MONO,fontSize:10,color:C.muted,margin:"4px 0 7px"}}>{m.demand}</div>
+                      {blocked && <div style={{fontFamily:MONO,fontSize:10.5,color:C.warn,
+                        margin:"0 0 7px",lineHeight:1.55}}>{blockMsg}</div>}
                       {!played && (
                         <>
                           <textarea value={just[id]||""} onChange={e=>setJust(j=>({...j,[id]:e.target.value}))}
-                            placeholder={blocked?"Buy card 4 or 7 first.":"Answer the question above, naming a person, a system, or how something breaks."}
+                            placeholder={blocked ? blockMsg
+                              : "Answer the question above, naming a person, a system, or how something breaks."}
                             disabled={blocked||modsPlayed>=2||!isOwner}/>
                           <button style={{...btn("primary"),marginTop:7}}
                             disabled={blocked||modsPlayed>=2||!isOwner||(just[id]||"").trim().length<12}
@@ -1899,18 +1912,47 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
       )}
 
       {phase==="debrief" && scen && (
-        <Section title="Debrief — be ready to answer">
-          <ol style={{margin:0,paddingLeft:18,fontSize:13.5,lineHeight:1.75}}>
-            {(scen.debrief||[]).map((q,i)=><li key={i} style={{marginBottom:7}}>{q}</li>)}
-          </ol>
-          <div style={{marginTop:14}}>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
-              One sentence: what would you actually tell this organization? Say it in their words,
-              not in card names.
+        <Section title="Debrief">
+          <p style={{fontSize:12.5,color:C.muted,lineHeight:1.6,margin:"0 0 14px"}}>
+            One sentence each. Write what your team actually decided, not what sounds right —
+            these are the answers you will be asked to defend out loud.
+          </p>
+
+          <div style={{display:"grid",gap:14}}>
+            {(scen.debrief||[]).map((q,i)=>(
+              <div key={i}>
+                <div style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:5}}>
+                  <span style={{width:19,height:19,borderRadius:"50%",flexShrink:0,marginTop:1,
+                    background:(t.debriefAnswers||{})[i]?.trim() ? C.ok : C.edge,
+                    color:(t.debriefAnswers||{})[i]?.trim() ? "#0E1A12" : C.muted,
+                    fontFamily:MONO,fontSize:10.5,display:"flex",
+                    alignItems:"center",justifyContent:"center"}}>{i+1}</span>
+                  <span style={{fontSize:13.5,lineHeight:1.55}}>{q}</span>
+                </div>
+                <textarea value={(t.debriefAnswers||{})[i]||""} disabled={!isOwner}
+                  style={{minHeight:44}} placeholder="One sentence."
+                  onChange={e=>saveTeam(teamN,{debriefAnswers:{...(t.debriefAnswers||{}),[i]:e.target.value}})}/>
+              </div>
+            ))}
+          </div>
+
+          <div style={{marginTop:20,paddingTop:16,borderTop:`1px solid ${C.edge}`}}>
+            <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+              textTransform:"uppercase",color:C.brass}}>And then the one that matters</div>
+            <label style={{fontFamily:MONO,fontSize:11,color:C.muted,display:"block",
+              margin:"7px 0 5px",lineHeight:1.6}}>
+              If you could tell this organization one thing, what would it be? Say it in their
+              words, not in card names — &ldquo;turn on multi-factor authentication&rdquo; is a card;
+              &ldquo;nobody should be able to move money on the strength of an email&rdquo; is a
+              recommendation.
             </label>
             <textarea value={t.recommendation||""} disabled={!isOwner}
               placeholder="Nobody should be able to move money on the strength of an email, even from the director."
               onChange={e=>saveTeam(teamN,{recommendation:e.target.value})}/>
+            <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:6,lineHeight:1.6}}>
+              Keep this. You will be handed it back later in the course, when you write the real
+              thing for a real client.
+            </div>
           </div>
         </Section>
       )}
@@ -1922,53 +1964,97 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               background:C.panel,padding:"12px 14px"}}>
               <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
                 textTransform:"uppercase",color:C.solution}}>
-                Did what you bought address this threat?
+                How each purchase matches the threat
               </div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap",margin:"8px 0 10px"}}>
+
+              <div style={{fontSize:14,fontWeight:600,margin:"7px 0 3px"}}>{scen.title}</div>
+              <div style={{fontSize:12.5,color:C.muted,lineHeight:1.5}}>{cfg?.org}</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",margin:"8px 0 12px"}}>
                 {Object.entries(DIM_META).map(([k,m])=> threat[k] ? (
                   <span key={k} style={{fontFamily:MONO,fontSize:10,padding:"2px 7px",
                     borderRadius:2,border:`1px solid ${m.color}`,color:m.color}}>{threat[k]}</span>
                 ):null)}
               </div>
+
               {(()=>{
                 const bp = t.purchases||[];
-                const hit = bp.filter(id=>(scen.strong||[]).includes(id));
-                const par = bp.filter(id=>(scen.partial||[]).includes(id));
-                const off = bp.filter(id=>!(scen.strong||[]).includes(id)&&!(scen.partial||[]).includes(id));
-                const row = (label,ids,color,note) => ids.length ? (
-                  <div key={label} style={{display:"flex",gap:9,marginBottom:5,alignItems:"flex-start"}}>
-                    <span style={{fontFamily:MONO,fontSize:10,color,minWidth:104}}>{label}</span>
-                    <span style={{fontSize:12.5,lineHeight:1.5,color:"#D6D2C8"}}>
-                      {ids.map(i=>card(i)?.name).join(" · ")}
-                      {note && <span style={{color:C.muted}}> — {note}</span>}
-                    </span>
-                  </div>
-                ) : null;
+                const verdictOf = (id)=> (scen.strong||[]).includes(id) ? "strong"
+                                       : (scen.partial||[]).includes(id) ? "partial" : "off";
+                const LBL = {
+                  strong:{t:"addresses this threat", c:C.ok},
+                  partial:{t:"helps, but not squarely", c:C.brass},
+                  off:{t:"does not apply to this threat", c:C.muted},
+                };
+                if(!bp.length) return (
+                  <div style={{fontSize:12.5,color:C.muted}}>You bought nothing this round.</div>
+                );
+                const anyStrong = bp.some(id=>verdictOf(id)==="strong");
+                const anyPartial = bp.some(id=>verdictOf(id)==="partial");
                 return (
                   <>
-                    {row("addresses it", hit, C.ok)}
-                    {row("helps a little", par, C.brass)}
-                    {row("not this threat", off, C.muted,
-                      "may still be worth buying, just not for this")}
-                    {!bp.length && <div style={{fontSize:12.5,color:C.muted}}>
-                      You bought nothing this round.</div>}
-                    <div style={{fontSize:12.5,lineHeight:1.6,marginTop:9,
-                      color: hit.length ? C.ok : par.length ? C.brass : C.warn}}>
-                      {hit.length
-                        ? "You bought something that addresses this directly. Likelihood should fall — move the marker."
-                        : par.length
-                        ? "You bought something adjacent, not squarely on it. Likelihood probably holds where it is."
-                        : "Nothing you bought addresses this threat. Be honest about where the marker belongs."}
+                    <div style={{display:"grid",gap:5}}>
+                      {bp.map(id=>{
+                        const v = LBL[verdictOf(id)];
+                        return (
+                          <div key={id} style={{display:"flex",gap:10,alignItems:"baseline",
+                            flexWrap:"wrap"}}>
+                            <span style={{fontSize:13,minWidth:190}}>{card(id)?.name}</span>
+                            <span style={{fontFamily:MONO,fontSize:10.5,color:v.c}}>{v.t}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{fontSize:12.5,lineHeight:1.6,marginTop:11,
+                      color: anyStrong ? C.ok : anyPartial ? C.brass : C.warn}}>
+                      {anyStrong
+                        ? "At least one purchase works directly against this threat, so it should be less likely than when you placed it. Move the marker left."
+                        : anyPartial
+                        ? "Nothing you bought works directly against this threat, though something is adjacent. Likelihood probably sits where it is."
+                        : "Nothing you bought works against this threat. It is as likely now as it was before you spent anything."}
                     </div>
                     <div style={{fontFamily:MONO,fontSize:10.5,color:C.muted,marginTop:7,lineHeight:1.6}}>
-                      Now that you can see this, do you want to move the marker? Changing your mind
-                      here is the point, not a mistake.
+                      Severity does not move — controls change how often something happens, not who
+                      gets hurt when it does. Do you want to move the marker now that you can see this?
                     </div>
                   </>
                 );
               })()}
+
+              {useStanding && standing.length>0 && (
+                <div style={{marginTop:13,paddingTop:11,borderTop:`1px solid ${C.edge}`}}>
+                  <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+                    textTransform:"uppercase",color:C.solution}}>
+                    The problems this client already had
+                  </div>
+                  <div style={{display:"grid",gap:7,marginTop:8}}>
+                    {standing.map(r=>{
+                      const by = r.cards.filter(c=>bought.includes(c));
+                      const done = by.length>0;
+                      return (
+                        <div key={r.id} style={{display:"flex",gap:9,alignItems:"flex-start"}}>
+                          <span style={{width:17,height:17,borderRadius:2,flexShrink:0,marginTop:1,
+                            fontFamily:MONO,fontSize:9.5,display:"flex",alignItems:"center",
+                            justifyContent:"center",background:done?C.ok:"transparent",
+                            border:`1.5px solid ${done?C.ok:C.warn}`,
+                            color:done?"#0E1A12":C.warn}}>{String.fromCharCode(64+r.id)}</span>
+                          <div>
+                            <div style={{fontSize:12.5,lineHeight:1.5}}>{r.text}</div>
+                            <div style={{fontFamily:MONO,fontSize:10.5,marginTop:2,
+                              color:done?C.ok:C.warn}}>
+                              {done
+                                ? `covered by ${by.map(c=>card(c)?.name).join(" and ")}`
+                                : "still open — nothing you bought touches this"}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
           <div style={{display:"flex",gap:28,flexWrap:"wrap",alignItems:"flex-start"}}>
             <div>
               <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginBottom:7}}>
