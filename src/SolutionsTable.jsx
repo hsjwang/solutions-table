@@ -31,6 +31,8 @@ const C = {
   method: "#4E8C5A", solution: "#7C5FA8", brass: "#D9B45B",
   ok: "#4E8C5A", warn: "#C0453B",
 };
+const BUILD = "2026-08-26.1641";
+
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
 
@@ -646,6 +648,7 @@ class Boundary extends React.Component {
 /* ---------------- root ---------------- */
 
 export default function SolutionsTable(){
+  useEffect(()=>{ console.info(`Solutions Table build ${BUILD}`); },[]);
   return <Boundary><SolutionsTableInner/></Boundary>;
 }
 
@@ -766,6 +769,8 @@ function SolutionsTableInner(){
             <button onClick={()=>setHelp(true)} style={{...btn(),fontSize:11,padding:"3px 10px"}}>
               How to play
             </button>
+            <span title="Build version — check this matches your latest deploy"
+              style={{fontFamily:MONO,fontSize:9.5,color:C.edge}}>{BUILD}</span>
           </div>
         </div>
         <div style={{display:"flex",alignItems:"flex-start",gap:18}}>
@@ -1930,8 +1935,8 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 const hit = bp.filter(id=>(scen.strong||[]).includes(id));
                 const par = bp.filter(id=>(scen.partial||[]).includes(id));
                 const off = bp.filter(id=>!(scen.strong||[]).includes(id)&&!(scen.partial||[]).includes(id));
-                const Row = ({label,ids,color,note}) => ids.length ? (
-                  <div style={{display:"flex",gap:9,marginBottom:5,alignItems:"flex-start"}}>
+                const row = (label,ids,color,note) => ids.length ? (
+                  <div key={label} style={{display:"flex",gap:9,marginBottom:5,alignItems:"flex-start"}}>
                     <span style={{fontFamily:MONO,fontSize:10,color,minWidth:104}}>{label}</span>
                     <span style={{fontSize:12.5,lineHeight:1.5,color:"#D6D2C8"}}>
                       {ids.map(i=>card(i)?.name).join(" · ")}
@@ -1941,10 +1946,10 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 ) : null;
                 return (
                   <>
-                    <Row label="addresses it" ids={hit} color={C.ok}/>
-                    <Row label="helps a little" ids={par} color={C.brass}/>
-                    <Row label="not this threat" ids={off} color={C.muted}
-                      note="may still be worth buying, just not for this"/>
+                    {row("addresses it", hit, C.ok)}
+                    {row("helps a little", par, C.brass)}
+                    {row("not this threat", off, C.muted,
+                      "may still be worth buying, just not for this")}
                     {!bp.length && <div style={{fontSize:12.5,color:C.muted}}>
                       You bought nothing this round.</div>}
                     <div style={{fontSize:12.5,lineHeight:1.6,marginTop:9,
