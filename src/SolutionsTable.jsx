@@ -241,7 +241,7 @@ const LIKELIHOOD = ["Not Likely","Likely","Very Likely"];
 const SEVERITY = ["Not Severe","Severe","Very Severe"];
 const PHASES = [
   {id:"setup", label:"Setup"},
-  {id:"p1", label:"Phase 1 — Threat & placement"},
+  {id:"p1", label:"Phase 1 — Threat model & placement"},
   {id:"p2", label:"Phase 2 — Budgeted defense"},
   {id:"p3", label:"Phase 3 — Residual risk"},
   {id:"debrief", label:"Debrief"},
@@ -273,7 +273,7 @@ const blankTeam = (n) => ({
   n, name:`Team ${n}`, members:"", joined:false,
   threat:{method:"",impact:"",resource:"",motive:""},
   pre:null, post:null, hand:[], modHand:[], purchases:[],
-  modifiers:[], residual:"", ownerUid:null,
+  modifiers:[], residual:"", recommendation:"", ownerUid:null,
   engagement:1, everBought:[], drift:0, realized:null, lastVerdict:null,
   standingPos:{}, standingIgnored:0, budgetOverride:null,
   updatedAt:0,
@@ -390,7 +390,11 @@ function CardTile({c,state,onClick,disabled,note}){
           {c.cost===0?"free":`${c.cost} pt${c.cost>1?"s":""}`}
         </span>
       </div>
-      <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:3}}>
+      <div title={c.ctrl
+          ? "CIS Controls are a published checklist of security practices, written by a non-profit and used by real organizations. This number is where to look it up afterwards."
+          : undefined}
+        style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:3,
+          cursor:c.ctrl?"help":"default"}}>
         {String(c.id).padStart(2,"0")} · {c.ctrl || c.demand}
       </div>
       {note && <div style={{fontFamily:MONO,fontSize:10,color:C.brass,marginTop:4}}>{note}</div>}
@@ -419,6 +423,191 @@ const btn = (kind="ghost") => ({
   color: kind==="primary"?C.brass:kind==="danger"?"#E88C84":C.paper,
 });
 
+
+/* What to do now, per phase. Playtesting showed teams stall at Phase 3 and
+   guess at the modifiers, so this is shown in the interface rather than left
+   to the facilitator to repeat six times. */
+const PHASE_GUIDE = {
+  p1:{ title:"Build the threat model, then place it",
+    steps:[
+      "Read the scenario together before touching anything.",
+      "Four cards make the model: the method, who it harms, what the attacker has, and why. Say the story out loud in one sentence.",
+      "Put the threat on the grid. Across is how bad it would be. Down is how often it could happen.",
+    ],
+    key:"Judge severity by the Human Impact card — who gets hurt — not by how clever the attack sounds.",
+    done:"One marker on the grid, and you can name the person who gets hurt." },
+  p2:{ title:"Spend your budget",
+    steps:[
+      "Cards cost 1, 2 or 3 points. Anything you do not spend is gone.",
+      "For each card you buy, say which part of your threat it touches. If you cannot, do not buy it.",
+      "Modifier cards are free, but each one asks you to make a specific claim. At most two.",
+    ],
+    key:"You cannot afford everything. That is the exercise, not a mistake.",
+    done:"You have stopped spending and can defend every card you bought." },
+  p3:{ title:"What still gets through",
+    steps:[
+      "Move the same threat to where it sits now, given what you bought.",
+      "Likelihood usually falls. Severity usually does not move — controls rarely change who gets hurt.",
+      "Write one sentence naming what an attacker could still do.",
+    ],
+    key:"If you moved it to the bottom-left corner, you have over-credited yourselves. Something always gets through.",
+    done:"The marker has moved and there is a sentence in the box." },
+  debrief:{ title:"Compare and explain",
+    steps:[
+      "Be ready to say which purchase you argued about most.",
+      "Be ready to say what you wanted and could not afford.",
+    ],
+    key:"There is no single right answer. There are answers you can defend and answers you cannot.",
+    done:"" },
+};
+
+const PHASE_MINUTES = {p1:7, p2:10, p3:5, debrief:8, setup:5};
+
+function HeaderClock({end}){
+  const [now,setNow] = useState(Date.now());
+  useEffect(()=>{ const i=setInterval(()=>setNow(Date.now()),1000); return ()=>clearInterval(i); },[]);
+  const left = Math.max(0, end-now);
+  const m = Math.floor(left/60000), sec = Math.floor((left%60000)/1000);
+  const low = left < 120000;
+  return (
+    <div style={{fontFamily:MONO,fontSize:26,fontWeight:600,lineHeight:1,
+      fontVariantNumeric:"tabular-nums",
+      color: left===0 ? C.warn : low ? C.brass : C.paper}}>
+      {left===0 ? "time" : `${m}:${String(sec).padStart(2,"0")}`}
+    </div>
+  );
+}
+
+function PhaseGuide({phase}){
+  const g = PHASE_GUIDE[phase];
+  const [open,setOpen] = useState(true);
+  if(!g) return null;
+  return (
+    <div style={{border:`1px solid ${C.solution}`,borderRadius:4,
+      background:"rgba(124,95,168,.10)",padding:"11px 13px",marginBottom:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10}}>
+        <span style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+          textTransform:"uppercase",color:C.solution}}>What to do now — {g.title}</span>
+        <button onClick={()=>setOpen(o=>!o)} style={{...btn(),fontSize:10,padding:"2px 8px"}}>
+          {open?"hide":"show"}
+        </button>
+      </div>
+      {open && (
+        <>
+          <ol style={{margin:"8px 0 0",paddingLeft:18,fontSize:12.5,lineHeight:1.65}}>
+            {g.steps.map((x,i)=><li key={i} style={{marginBottom:3}}>{x}</li>)}
+          </ol>
+          <div style={{fontSize:12.5,lineHeight:1.6,marginTop:8,color:C.brass}}>{g.key}</div>
+          {g.done && <div style={{fontFamily:MONO,fontSize:10.5,color:C.muted,marginTop:6}}>
+            Done when: {g.done}</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
+
+function HelpPanel({onClose}){
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:900,
+      background:"rgba(10,13,17,.82)",overflowY:"auto",padding:"28px 16px"}}>
+      <div onClick={e=>e.stopPropagation()} style={{maxWidth:720,margin:"0 auto",
+        background:C.panel,border:`1px solid ${C.edge}`,borderRadius:6,padding:"22px 26px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+          <h2 style={{margin:0,fontSize:22,fontWeight:600}}>How to play</h2>
+          <button onClick={onClose} style={btn()}>Close</button>
+        </div>
+
+        <p style={{fontSize:13.5,lineHeight:1.65,color:"#D6D2C8"}}>
+          You are advising an organization that cannot afford everything. Your job is to pick
+          what it should do, and be able to say why. There is no single right answer — there
+          are answers you can defend and answers you cannot.
+        </p>
+
+        {["p1","p2","p3"].map(p=>{
+          const g = PHASE_GUIDE[p];
+          return (
+            <div key={p} style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.edge}`}}>
+              <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+                textTransform:"uppercase",color:C.solution}}>
+                {PHASES.find(x=>x.id===p)?.label}
+              </div>
+              <div style={{fontSize:15,fontWeight:600,margin:"3px 0 6px"}}>{g.title}</div>
+              <ol style={{margin:0,paddingLeft:18,fontSize:12.5,lineHeight:1.65,color:"#D6D2C8"}}>
+                {g.steps.map((x,i)=><li key={i}>{x}</li>)}
+              </ol>
+              <div style={{fontSize:12.5,color:C.brass,marginTop:6}}>{g.key}</div>
+            </div>
+          );
+        })}
+
+        <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.edge}`}}>
+          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+            textTransform:"uppercase",color:C.solution}}>What &ldquo;CIS Control 7&rdquo; means</div>
+          <p style={{fontSize:12.5,lineHeight:1.65,color:"#D6D2C8",margin:"6px 0 0"}}>
+            The <b>CIS Critical Security Controls</b> are a published checklist of security
+            practices, maintained by the Center for Internet Security, a non-profit. There are 18
+            controls containing 153 specific safeguards, and real organizations are measured
+            against them.
+          </p>
+          <p style={{fontSize:12.5,lineHeight:1.65,color:"#D6D2C8",margin:"7px 0 0"}}>
+            The number on a card is where that practice lives in the list. It matters for two
+            reasons. It means the card is not our opinion — someone else already argued about
+            what belongs on the list. And it gives you something to look up: search
+            &ldquo;CIS Control 7&rdquo; after today and you will find the full detail, which
+            &ldquo;keep things patched&rdquo; would not have given you.
+          </p>
+          <p style={{fontSize:12.5,lineHeight:1.65,color:"#D6D2C8",margin:"7px 0 0"}}>
+            The controls are also split into three <b>Implementation Groups</b> by how much an
+            organization can realistically manage. That is where card costs come from: a
+            1-point card is something a small charity can do, a 3-point card needs staff and
+            money. Cost is difficulty, not usefulness.
+          </p>
+        </div>
+
+        <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.edge}`}}>
+          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+            textTransform:"uppercase",color:C.solution}}>The cards</div>
+          <table style={{width:"100%",fontSize:12.5,marginTop:7,borderCollapse:"collapse"}}>
+            <tbody>
+              {[["Foundational","1 point","Basic hygiene. Most of the deck."],
+                ["Extended","2 points","Needs someone to run it."],
+                ["Advanced","3 points","Half your budget. Rarely the right first move."],
+                ["Modifiers","free","A principle, not a control. Must be justified."]].map(r=>(
+                <tr key={r[0]}>
+                  <td style={{padding:"3px 10px 3px 0",fontWeight:600,whiteSpace:"nowrap"}}>{r[0]}</td>
+                  <td style={{padding:"3px 10px 3px 0",fontFamily:MONO,fontSize:11,
+                    color:C.brass,whiteSpace:"nowrap"}}>{r[1]}</td>
+                  <td style={{padding:"3px 0",color:"#D6D2C8"}}>{r[2]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.edge}`}}>
+          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+            textTransform:"uppercase",color:C.solution}}>Things teams get wrong</div>
+          <ul style={{margin:"7px 0 0",paddingLeft:18,fontSize:12.5,lineHeight:1.7,color:"#D6D2C8"}}>
+            <li>Rating severity by how clever the attack is. Severity is who gets hurt.</li>
+            <li>Moving the threat to the bottom-left in Phase 3. Something always gets through.</li>
+            <li>Buying the expensive card because it sounds serious. Cost tracks how hard a
+              control is to run, not how much it helps you.</li>
+            <li>Writing &ldquo;people are the weakest link&rdquo; as a justification. Name a person,
+              a system, or how something breaks.</li>
+            <li>Agreeing in ninety seconds. If nobody disagreed, you have not finished.</li>
+          </ul>
+        </div>
+
+        <p style={{fontFamily:MONO,fontSize:10.5,color:C.muted,lineHeight:1.6,marginTop:18,marginBottom:0}}>
+          Ask your facilitator for the full manual, or find it in the project repository
+          under docs/.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- root ---------------- */
 
 export default function SolutionsTable(){
@@ -438,6 +627,7 @@ export default function SolutionsTable(){
   const [cfg,setCfg] = useState(null);
   const [teams,setTeams] = useState({});
   const [status,setStatus] = useState("");
+  const [help,setHelp] = useState(false);
   const [busy,setBusy] = useState(false);
   const poll = useRef(null);
 
@@ -511,6 +701,7 @@ export default function SolutionsTable(){
     const ok = await sSet(teamKey(n),next);
     setStatus(ok?"Saved":`Could not save — ${LAST_ERROR?.code||LAST_ERROR?.message||"see the browser console"}`);
     setBusy(false);
+    return ok;
   };
 
   const shell = (children)=>(
@@ -522,20 +713,29 @@ export default function SolutionsTable(){
         textarea{resize:vertical;min-height:56px;line-height:1.5}
         @media (prefers-reduced-motion: reduce){*{transition:none!important}}
       `}</style>
+      {help && <HelpPanel onClose={()=>setHelp(false)}/>}
       <header style={{maxWidth:1100,margin:"0 auto 22px",display:"flex",
         justifyContent:"space-between",alignItems:"flex-end",gap:12,flexWrap:"wrap"}}>
         <div>
           <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".16em",color:C.solution,textTransform:"uppercase"}}>
             Solutions dimension
           </div>
-          <h1 style={{fontFamily:SANS,fontSize:26,margin:"3px 0 0",fontWeight:600,letterSpacing:"-.02em"}}>
-            Solutions Table
-          </h1>
+          <div style={{display:"flex",alignItems:"baseline",gap:12}}>
+            <h1 style={{fontFamily:SANS,fontSize:26,margin:"3px 0 0",fontWeight:600,letterSpacing:"-.02em"}}>
+              Solutions Table
+            </h1>
+            <button onClick={()=>setHelp(true)} style={{...btn(),fontSize:11,padding:"3px 10px"}}>
+              How to play
+            </button>
+          </div>
         </div>
-        <div style={{fontFamily:MONO,fontSize:11,color:C.muted,textAlign:"right"}}>
-          {cfg?.org ? <div style={{color:C.paper}}>{cfg.org}</div> : null}
-          <div>{PHASES.find(p=>p.id===(cfg?.phase||"setup"))?.label}</div>
-          {status && <div style={{color:C.brass,marginTop:3}}>{status}</div>}
+        <div style={{display:"flex",alignItems:"flex-start",gap:18}}>
+          {cfg?.timerEnd && <HeaderClock end={cfg.timerEnd}/>}
+          <div style={{fontFamily:MONO,fontSize:11,color:C.muted,textAlign:"right"}}>
+            {cfg?.org ? <div style={{color:C.paper}}>{cfg.org}</div> : null}
+            <div>{PHASES.find(p=>p.id===(cfg?.phase||"setup"))?.label}</div>
+            {status && <div style={{color:C.brass,marginTop:3}}>{status}</div>}
+          </div>
         </div>
       </header>
       <main style={{maxWidth:1100,margin:"0 auto"}}>{children}</main>
@@ -664,13 +864,22 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   const loadScenario = async (id)=>{
     const x = scenarioById(id); if(!x) return;
     setOrg(x.org); setScenario(x.text);
-    await saveCfg({scenarioId:x.id, org:x.org, scenario:x.text, budget:x.budget, phase:"p1", timerEnd:null});
+    // Pre-built scenarios supply the threat model, so lock it. Teams that join
+    // later read it from the scenario rather than needing it written to them.
+    await saveCfg({scenarioId:x.id, org:x.org, scenario:x.text, budget:x.budget,
+      phase:"p1", timerEnd:null, threatLocked:true});
+    for (const n of ids){
+      const t = teams[n]; if(!t?.joined) continue;
+      await saveTeam(n,{threat:{...x.draw}});
+    }
   };
   const applyDraw = async (x)=>{
     for (const n of ids){
       const t = teams[n]; if(!t?.joined) continue;
       await saveTeam(n,{threat:{...x.draw}});
     }
+    // Teams that are handed a threat should not be able to re-roll it
+    await saveCfg({threatLocked:true});
   };
   const phase = cfg?.phase||"setup";
   const budget = cfg?.budget??6;
@@ -714,6 +923,9 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
       // Controls stay installed. An organization does not forget its backups.
       const installed = Array.from(new Set([...(t.everBought||[]), ...(t.purchases||[])]));
       const cov = coverage(t.purchases||[], scen);
+      // Without a loaded scenario there is no key to score against, so treat an
+      // empty portfolio as unaddressed rather than freezing the board.
+      if (!scen && !(t.purchases||[]).length) { cov.move = 1; cov.verdict = "unaddressed"; }
 
       let pos = t.post || t.pre || null;
       let realized = null, drift = t.drift||0;
@@ -775,7 +987,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   const exportData = ()=>{
     const rows = [["team","org","engagement","drift","realized","threat_method","threat_impact",
       "verdict","standing_ignored","threat_resource","threat_motive","pre_likelihood","pre_severity","post_likelihood",
-      "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual"]];
+      "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","recommendation"]];
     ids.forEach(n=>{
       const t=teams[n]; if(!t?.joined) return;
       const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
@@ -787,7 +999,8 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
         (t.purchases||[]).map(id=>card(id)?.name).join("; "),
         (t.everBought||[]).map(id=>card(id)?.name).join("; "),
         (t.modifiers||[]).filter(m=>m.status==="accepted").map(m=>card(m.id)?.name).join("; "),
-        (t.residual||"").replace(/\n/g," ")]);
+        (t.residual||"").replace(/\n/g," "),
+        (t.recommendation||"").replace(/\n/g," ")]);
     });
     const csv = rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
@@ -858,8 +1071,17 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
               </div>
               <button style={{...btn(),marginTop:10,width:"100%",fontSize:11}} disabled={busy}
                 onClick={()=>applyDraw(loaded)}>
-                Also deal the suggested threat cards to every team
+                Re-deal the suggested threat model to every team
               </button>
+              <div style={{display:"flex",gap:6,marginTop:7,alignItems:"center"}}>
+                <span style={{fontFamily:MONO,fontSize:10,color:C.muted,flex:1}}>
+                  Threat cards {cfg?.threatLocked?"locked":"open to teams"}
+                </span>
+                <button style={{...btn(),fontSize:10,padding:"3px 9px"}}
+                  onClick={()=>saveCfg({threatLocked:!cfg?.threatLocked})}>
+                  {cfg?.threatLocked?"Unlock":"Lock"}
+                </button>
+              </div>
             </div>
           )}
         </Section>
@@ -937,7 +1159,9 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
             </button>
             <p style={{fontFamily:MONO,fontSize:10,color:C.muted,lineHeight:1.6,marginTop:6}}>
               Use this instead of New round when the same organization returns. Severity never
-              drifts; only likelihood does.
+              drifts; only likelihood does.{!cfg?.scenarioId && (
+                <span style={{color:C.warn}}> No scenario is loaded, so coverage cannot be
+                scored and threats will not move. Load one first.</span>)}
             </p>
           </div>
 
@@ -964,11 +1188,17 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           </div>
 
           <div style={{marginTop:12}}>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Timer on the projector</label>
+            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+              Timer — everyone sees it, not just the projector
+            </label>
             <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
-              {[5,8,10,15].map(m=>(
+              <button style={{...btn("primary"),fontSize:11}}
+                onClick={()=>saveCfg({timerEnd:Date.now()+(PHASE_MINUTES[phase]||8)*60000})}>
+                Start {PHASE_MINUTES[phase]||8} min for this phase
+              </button>
+              {[5,10,15].map(m=>(
                 <button key={m} style={{...btn(),fontSize:11}}
-                  onClick={()=>saveCfg({timerEnd:Date.now()+m*60000})}>{m} min</button>
+                  onClick={()=>saveCfg({timerEnd:Date.now()+m*60000})}>{m}</button>
               ))}
               <button style={{...btn(),fontSize:11}} onClick={()=>saveCfg({timerEnd:null})}>Clear</button>
             </div>
@@ -1004,7 +1234,10 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           </div>
         </Section>
 
-        <Section title="Adjudication" right={<span style={{fontFamily:MONO,fontSize:11,color:pending.length?C.brass:C.muted}}>{pending.length} waiting</span>}>
+        <Section title="Adjudication" right={<span style={{fontFamily:MONO,fontSize:11,
+          padding:pending.length?"2px 8px":0, borderRadius:3,
+          background:pending.length?C.brass:"transparent",
+          color:pending.length?"#2A1F05":C.muted}}>{pending.length} waiting</span>}>
           {pending.length===0
             ? <p style={{color:C.muted,fontSize:12,margin:0,lineHeight:1.6}}>
                 Nothing to judge yet. When a team plays a modifier, its justification arrives here.</p>
@@ -1274,15 +1507,29 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   const isOwner = !t?.ownerUid || t.ownerUid===clientId;
   const scen = scenarioById(cfg?.scenarioId);
   const useStanding = cfg?.standingOn && scen?.standing?.length;
+  /* When the scenario supplies the threat model, show it from the scenario
+     rather than from team state — otherwise a team that joins after the
+     facilitator loaded it sees four empty, un-editable boxes. */
+  const locked = !!(cfg?.threatLocked && scen?.draw);
+  const threat = locked ? scen.draw : (t?.threat || {});
   // Positions carry forward once play has started, otherwise use the scenario's
   const standing = useStanding
     ? scen.standing.map(r=>({...r, at:(t?.standingPos||{})[r.id] || r.pos}))
     : [];
-  const addressedIds = standing
-    .filter(r=>r.cards.some(c=>(t?.purchases||[]).includes(c) || (t?.everBought||[]).includes(c)))
-    .map(r=>r.id);
+  const bought = [...(t?.purchases||[]), ...(t?.everBought||[])];
+  const addressedIdsTrue = standing.filter(r=>r.cards.some(c=>bought.includes(c))).map(r=>r.id);
+  /* Withheld until Phase 3. If teams can watch a square turn green while they
+     shop, they stop reasoning and start clicking cards to see what lights up. */
+  const reveal = phase==="p3" || phase==="debrief";
+  const addressedIds = reveal ? addressedIdsTrue : [];
   // Banking last engagement buys a bigger budget this one
   const budget = t?.budgetOverride ?? (cfg?.budget??6);
+  useEffect(()=>{
+    if(!locked || !isOwner || !teamN) return;
+    const cur = t?.threat || {};
+    const same = ["method","impact","resource","motive"].every(k=>cur[k]===scen.draw[k]);
+    if(!same) saveTeam(teamN,{threat:{...scen.draw}});
+  },[locked,isOwner,teamN,t?.threat,scen]);
 
   if(!teamN){
     return (
@@ -1325,13 +1572,20 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
     saveTeam(teamN,{purchases:[...(t.purchases||[]),id]});
   };
 
-  const playModifier = (id)=>{
+  const [sendMsg,setSendMsg] = useState("");
+  const playModifier = async (id)=>{
     const text = (just[id]||"").trim();
-    if(text.length<12) return;
-    if(id===24 && !(t.purchases||[]).some(p=>p===4||p===7)) return;
-    if(modsPlayed>=2) return;
-    saveTeam(teamN,{modifiers:[...(t.modifiers||[]),{id,justification:text,status:"pending"}]});
+    if(text.length<12) return setSendMsg("Write a little more before sending.");
+    if(id===24 && !(t.purchases||[]).some(p=>p===4||p===7))
+      return setSendMsg("Least Privilege needs card 4 or 7 bought first.");
+    if(modsPlayed>=2) return setSendMsg("You have already played two modifiers.");
+    setSendMsg("Sending…");
+    const ok = await saveTeam(teamN,{modifiers:[...(t.modifiers||[]),
+      {id, justification:text, status:"pending", sentAt:Date.now()}]});
+    if(ok===false){ setSendMsg("It did not send. Tell your facilitator."); return; }
     setJust(j=>({...j,[id]:""}));
+    setSendMsg("Sent. Waiting on the facilitator.");
+    setTimeout(()=>setSendMsg(""),4000);
   };
 
   return (
@@ -1353,7 +1607,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               onChange={e=>saveTeam(teamN,{members:e.target.value})}/>
           </div>
         </div>
-        {t.realized && (
+        {t.realized && (phase==="setup"||phase==="p1") && (
           <div style={{marginTop:12,padding:"12px 14px",borderRadius:4,
             border:`1px solid ${C.warn}`,background:"rgba(192,69,59,.10)"}}>
             <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
@@ -1376,7 +1630,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
             </p>
           </div>
         )}
-        {!t.realized && t.lastVerdict && t.lastVerdict!=="unscored" && (
+        {!t.realized && t.lastVerdict && t.lastVerdict!=="unscored" && (phase==="setup"||phase==="p1") && (
           <div style={{marginTop:12,padding:"10px 13px",borderRadius:4,
             border:`1px solid ${t.lastVerdict==="held"?C.ok:t.lastVerdict==="partial"?C.brass:C.warn}`,
             background: t.lastVerdict==="held" ? "rgba(78,140,90,.12)"
@@ -1395,7 +1649,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
             </p>
           </div>
         )}
-        {!t.realized && (t.drift||0)>0 && (
+        {!t.realized && (t.drift||0)>0 && (phase==="setup"||phase==="p1") && (
           <div style={{marginTop:12,padding:"9px 12px",borderRadius:4,
             border:`1px solid ${C.brass}`,background:"rgba(217,180,91,.10)",
             fontFamily:MONO,fontSize:11,color:C.brass,lineHeight:1.6}}>
@@ -1454,19 +1708,24 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         )}
       </Section>
 
+      <PhaseGuide phase={phase==="setup"?"p1":phase}/>
+
       {(phase==="p1"||phase==="setup") && (
-        <Section title="Phase 1 — build the threat" right={
-          <button style={btn("primary")} disabled={!isOwner} onClick={()=>saveTeam(teamN,{threat:{
+        <Section title="Phase 1 — build the threat model" right={<>
+          {!locked && <button style={btn("primary")} disabled={!isOwner} onClick={()=>saveTeam(teamN,{threat:{
             method:sample(dims.method,1)[0], impact:sample(dims.impact,1)[0],
             resource:sample(dims.resource,1)[0], motive:sample(dims.motive,1)[0]}})}>
             Roll for cards
-          </button>}>
+          </button>}
+          {locked && <span style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+            set by the scenario</span>}
+        </>}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:9,marginBottom:16}}>
             {Object.entries(DIM_META).map(([k,m])=>(
               <div key={k} style={{border:`1px solid ${C.edge}`,borderLeft:`3px solid ${m.color}`,
                 borderRadius:4,padding:"10px 12px",background:C.panel,minHeight:62}}>
                 <div style={{fontFamily:MONO,fontSize:9.5,letterSpacing:".08em",textTransform:"uppercase",color:m.color}}>{m.label}</div>
-                <select value={t.threat[k]||""} disabled={!isOwner}
+                <select value={threat[k]||""} disabled={!isOwner || locked}
                   onChange={e=>saveTeam(teamN,{threat:{...t.threat,[k]:e.target.value}})}
                   style={{marginTop:6,border:"none",background:"transparent",padding:"2px 0",
                     fontFamily:SANS,fontSize:13.5,color:C.paper}}>
@@ -1524,10 +1783,29 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 })}
               </div>
 
+              <div style={{border:`1px solid ${C.solution}`,borderRadius:4,
+                background:"rgba(124,95,168,.08)",padding:"10px 12px",marginBottom:10}}>
+                <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+                  textTransform:"uppercase",color:C.solution}}>What modifiers are</div>
+                <p style={{fontSize:12.5,lineHeight:1.6,margin:"5px 0 7px"}}>
+                  They cost nothing, but they are not free points. Each one asks you to make a
+                  claim about <b>your</b> organization and <b>your</b> threat. Type it, send it,
+                  and the facilitator decides whether it is specific enough. Vague answers come
+                  back and the card returns to the deck.
+                </p>
+                <div style={{fontSize:12,lineHeight:1.6,fontFamily:MONO}}>
+                  <div style={{color:C.warn}}>✗ &ldquo;People are the weakest link.&rdquo;</div>
+                  <div style={{color:C.ok}}>✓ &ldquo;Staff will share the one MFA phone at the front
+                    desk, so we would need per-person enrolment.&rdquo;</div>
+                </div>
+                <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:7}}>
+                  Name a person, a system, or a way something breaks. At most two per round.
+                </div>
+              </div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",
                 gap:10,marginBottom:8,flexWrap:"wrap"}}>
                 <span style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
-                  Modifiers — free, {2-modsPlayed} left to play. Each needs a specific justification.
+                  {2-modsPlayed} modifier{2-modsPlayed===1?"":"s"} left to play
                 </span>
                 {((t.purchases||[]).length>0 || modsPlayed>0) && (
                   <button style={{...btn(),fontSize:11}} disabled={busy||!isOwner}
@@ -1557,11 +1835,14 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                       {!played && (
                         <>
                           <textarea value={just[id]||""} onChange={e=>setJust(j=>({...j,[id]:e.target.value}))}
-                            placeholder={blocked?"Buy card 4 or 7 first.":"Name a specific person, system, or failure."}
+                            placeholder={blocked?"Buy card 4 or 7 first.":"Answer the question above, naming a person, a system, or how something breaks."}
                             disabled={blocked||modsPlayed>=2||!isOwner}/>
                           <button style={{...btn("primary"),marginTop:7}}
                             disabled={blocked||modsPlayed>=2||!isOwner||(just[id]||"").trim().length<12}
                             onClick={()=>playModifier(id)}>Send to facilitator</button>
+                          {sendMsg && <div style={{fontFamily:MONO,fontSize:10.5,marginTop:6,
+                            color: sendMsg.startsWith("Sent") ? C.ok
+                                 : sendMsg.startsWith("Sending") ? C.muted : C.warn}}>{sendMsg}</div>}
                         </>
                       )}
                     </div>
@@ -1573,8 +1854,77 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         </Section>
       )}
 
+      {phase==="debrief" && scen && (
+        <Section title="Debrief — be ready to answer">
+          <ol style={{margin:0,paddingLeft:18,fontSize:13.5,lineHeight:1.75}}>
+            {scen.debrief.map((q,i)=><li key={i} style={{marginBottom:7}}>{q}</li>)}
+          </ol>
+          <div style={{marginTop:14}}>
+            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+              One sentence: what would you actually tell this organization? Say it in their words,
+              not in card names.
+            </label>
+            <textarea value={t.recommendation||""} disabled={!isOwner}
+              placeholder="Nobody should be able to move money on the strength of an email, even from the director."
+              onChange={e=>saveTeam(teamN,{recommendation:e.target.value})}/>
+          </div>
+        </Section>
+      )}
+
       {(phase==="p3"||phase==="debrief") && (
         <Section title="Phase 3 — what still gets through">
+          {scen && (
+            <div style={{marginBottom:16,border:`1px solid ${C.edge}`,borderRadius:4,
+              background:C.panel,padding:"12px 14px"}}>
+              <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+                textTransform:"uppercase",color:C.solution}}>
+                Did what you bought address this threat?
+              </div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",margin:"8px 0 10px"}}>
+                {Object.entries(DIM_META).map(([k,m])=> threat[k] ? (
+                  <span key={k} style={{fontFamily:MONO,fontSize:10,padding:"2px 7px",
+                    borderRadius:2,border:`1px solid ${m.color}`,color:m.color}}>{threat[k]}</span>
+                ):null)}
+              </div>
+              {(()=>{
+                const bp = t.purchases||[];
+                const hit = bp.filter(id=>scen.strong.includes(id));
+                const par = bp.filter(id=>scen.partial.includes(id));
+                const off = bp.filter(id=>!scen.strong.includes(id)&&!scen.partial.includes(id));
+                const Row = ({label,ids,color,note}) => ids.length ? (
+                  <div style={{display:"flex",gap:9,marginBottom:5,alignItems:"flex-start"}}>
+                    <span style={{fontFamily:MONO,fontSize:10,color,minWidth:104}}>{label}</span>
+                    <span style={{fontSize:12.5,lineHeight:1.5,color:"#D6D2C8"}}>
+                      {ids.map(i=>card(i)?.name).join(" · ")}
+                      {note && <span style={{color:C.muted}}> — {note}</span>}
+                    </span>
+                  </div>
+                ) : null;
+                return (
+                  <>
+                    <Row label="addresses it" ids={hit} color={C.ok}/>
+                    <Row label="helps a little" ids={par} color={C.brass}/>
+                    <Row label="not this threat" ids={off} color={C.muted}
+                      note="may still be worth buying, just not for this"/>
+                    {!bp.length && <div style={{fontSize:12.5,color:C.muted}}>
+                      You bought nothing this round.</div>}
+                    <div style={{fontSize:12.5,lineHeight:1.6,marginTop:9,
+                      color: hit.length ? C.ok : par.length ? C.brass : C.warn}}>
+                      {hit.length
+                        ? "You bought something that addresses this directly. Likelihood should fall — move the marker."
+                        : par.length
+                        ? "You bought something adjacent, not squarely on it. Likelihood probably holds where it is."
+                        : "Nothing you bought addresses this threat. Be honest about where the marker belongs."}
+                    </div>
+                    <div style={{fontFamily:MONO,fontSize:10.5,color:C.muted,marginTop:7,lineHeight:1.6}}>
+                      Now that you can see this, do you want to move the marker? Changing your mind
+                      here is the point, not a mistake.
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
           <div style={{display:"flex",gap:28,flexWrap:"wrap",alignItems:"flex-start"}}>
             <div>
               <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginBottom:7}}>
