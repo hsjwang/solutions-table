@@ -1502,6 +1502,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   const dims = cfg?.dims||DEFAULT_DIMS;
   const t = teamN ? (teams[teamN]||blankTeam(teamN)) : null;
   const [just,setJust] = useState({});
+  const [sendMsg,setSendMsg] = useState("");
   /* The database refuses writes from anyone but the seat holder, so the
      interface disables them rather than letting a click fail. */
   const isOwner = !t?.ownerUid || t.ownerUid===clientId;
@@ -1572,7 +1573,6 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
     saveTeam(teamN,{purchases:[...(t.purchases||[]),id]});
   };
 
-  const [sendMsg,setSendMsg] = useState("");
   const playModifier = async (id)=>{
     const text = (just[id]||"").trim();
     if(text.length<12) return setSendMsg("Write a little more before sending.");
