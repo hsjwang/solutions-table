@@ -73,7 +73,7 @@ const FIREBASE_CONFIG = {
   projectId:         env.VITE_FIREBASE_PROJECT_ID         || "cybercardgame",
   storageBucket:     env.VITE_FIREBASE_STORAGE_BUCKET     || "cybercardgame.firebasestorage.app",
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID|| "506801869669",
-  appId:             env.VITE_FIREBASE_APP_ID             || "1:506801869669:web:9f25b09524aad1b876878c",
+  appId:             env.VITE_FIREBASE_APP_ID             || "1:506801869669:web:9f25b09524aad1b876878c"
 };
 /* ===================== STOP EDITING ========================= */
 
