@@ -39,41 +39,38 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 /* ============================================================
-   CONFIGURATION
+   CONFIGURATION — the only thing you edit in this file.
 
-   Values come from build-time environment variables when present,
-   and fall back to the literals below so the file still works if
-   you just want to paste and go.
+   Paste the seven values from the Firebase console below. Copy only
+   the values, not the whole snippet Firebase shows you: that snippet
+   brings its own `import` lines and its own initializeApp() call,
+   and this file already has both.
 
-   Copy .env.example to .env and fill it in for local development.
-   For GitHub Pages, add the same names as repository secrets and
-   the workflow injects them at build time.
-
-   A NOTE ON "SECRETS"
-   The Firebase web API key is not a secret. It identifies the
-   project; it does not grant access. It is compiled into the
-   JavaScript bundle and anyone can read it out of the deployed
-   site, whether or not it appears in your repository. Moving it
-   to an environment variable silences GitHub's secret scanner and
-   keeps it out of git history — it does not hide it.
-
-   What actually protects the project:
-     1. Database rules (see the bottom of this file)
+   THESE ARE NOT SECRETS. The Firebase web config is compiled into
+   the JavaScript bundle and is readable by anyone who opens the
+   deployed site. Keeping it out of the repository hides nothing.
+   What protects the project is:
+     1. the database rules (database.rules.json)
      2. HTTP referrer restrictions on the API key, set in the
         Google Cloud console — see SECURITY.md
      3. Firebase App Check, if you want to go further
+
+   An earlier version of this file read these from build-time
+   environment variables. That was removed: an empty repository
+   secret silently overrode the values here and produced a site that
+   loaded and then refused every write. Literals are harder to get
+   wrong, and they cost nothing that mattered.
    ============================================================ */
-const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
 const FIREBASE_CONFIG = {
-  apiKey:            env.VITE_FIREBASE_API_KEY            || "AIzaSyBg1ARm_pqEPd3XT1GKwDjBFvjujHS1K8o",
-  authDomain:        env.VITE_FIREBASE_AUTH_DOMAIN        || "cybercardgame.firebaseapp.com",
+  apiKey:            "AIzaSyBg1ARm_pqEPd3XT1GKwDjBFvjujHS1K8o",
+  authDomain:        "cybercardgame.firebaseapp.com",
   // Outside us-central1 this looks like
   // https://<project>-default-rtdb.<region>.firebasedatabase.app
-  databaseURL:       env.VITE_FIREBASE_DATABASE_URL       || "https://cybercardgame-default-rtdb.firebaseio.com",
-  projectId:         env.VITE_FIREBASE_PROJECT_ID         || "cybercardgame",
-  storageBucket:     env.VITE_FIREBASE_STORAGE_BUCKET     || "cybercardgame.firebasestorage.app",
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID|| "506801869669",
-  appId:             env.VITE_FIREBASE_APP_ID             || "1:506801869669:web:9f25b09524aad1b876878c"
+  databaseURL:       "https://cybercardgame-default-rtdb.firebaseio.com",
+  projectId:         "cybercardgame",
+  storageBucket:     "cybercardgame.firebasestorage.app",
+  messagingSenderId: "506801869669",
+  appId:             "1:506801869669:web:9f25b09524aad1b876878c",
 };
 /* ===================== STOP EDITING ========================= */
 
@@ -82,29 +79,32 @@ const missing = Object.entries(FIREBASE_CONFIG)
   .filter(([, v]) => !v || String(v).includes("REPLACE_ME"))
   .map(([k]) => k);
 
-if (missing.length) {
-  const where = env.VITE_FIREBASE_API_KEY === undefined
-    ? "No build-time config was found. Either create a .env file from .env.example, " +
-      "or paste the values straight into FIREBASE_CONFIG in src/backend.js."
-    : "A .env was found but is incomplete.";
-  const msg =
-    `Solutions Table: Firebase config incomplete. Still unset: ${missing.join(", ")}. ` +
-    `${where} If this is the deployed site, the values come from repository ` +
-    `secrets — Settings > Secrets and variables > Actions — and the workflow must ` +
-    `be re-run after adding them. Teams will not see each other until this is done.`;
+function banner(msg) {
   console.error(msg);
-  document.addEventListener("DOMContentLoaded", () => {
+  const show = () => {
     const bar = document.createElement("div");
     bar.textContent = msg;
     bar.style.cssText =
       "position:fixed;inset:0 0 auto 0;z-index:9999;background:#C0453B;color:#fff;" +
       "font:13px/1.5 ui-monospace,Menlo,monospace;padding:10px 14px";
     document.body.appendChild(bar);
-  });
-} else if (!/^https:\/\/.+/.test(FIREBASE_CONFIG.databaseURL)) {
-  console.error(
-    "Solutions Table: databaseURL does not look like a URL. Copy it from " +
-    "Firebase console -> Realtime Database, the line shown above the data tree."
+  };
+  if (document.body) show();
+  else document.addEventListener("DOMContentLoaded", show);
+}
+
+if (missing.length) {
+  banner(
+    `Solutions Table: Firebase config incomplete — ${missing.join(", ")} still unset. ` +
+    `Open src/backend.js and fill in FIREBASE_CONFIG. If you are looking at a ` +
+    `deployed site, the change has not reached it: check the build version in the ` +
+    `app header against your latest commit. Nothing will save until this is fixed.`
+  );
+} else if (!/^https:\/\/[^\s]+$/.test(FIREBASE_CONFIG.databaseURL)) {
+  banner(
+    `Solutions Table: databaseURL is not a URL (${FIREBASE_CONFIG.databaseURL}). ` +
+    `Copy it from Firebase console -> Realtime Database, the line shown above the ` +
+    `data tree.`
   );
 }
 
@@ -134,15 +134,7 @@ signInAnonymously(auth).catch((err) => {
       "Build -> Authentication -> Sign-in method -> Anonymous -> Enable. " +
       "Nothing will save until this is on."
     : `Solutions Table: sign-in failed (${err?.code || err}).`;
-  console.error(msg);
-  document.addEventListener("DOMContentLoaded", () => {
-    const bar = document.createElement("div");
-    bar.textContent = msg;
-    bar.style.cssText =
-      "position:fixed;inset:0 0 auto 0;z-index:9999;background:#C0453B;color:#fff;" +
-      "font:13px/1.5 ui-monospace,Menlo,monospace;padding:10px 14px";
-    document.body.appendChild(bar);
-  });
+  banner(msg);
 });
 
 onAuthStateChanged(auth, (user) => { if (user) resolveReady(user.uid); });
@@ -232,7 +224,10 @@ window.SOLUTIONS_BACKEND = {
 };
 
 if (!missing.length) {
-  console.info(`Solutions Table: Firebase backend ready, session "${SESSION}"`);
+  console.info(
+    `Solutions Table: Firebase backend ready — project "${FIREBASE_CONFIG.projectId}", ` +
+    `session "${SESSION}", db ${FIREBASE_CONFIG.databaseURL}`
+  );
 }
 
 /* ------------------------------------------------------------
