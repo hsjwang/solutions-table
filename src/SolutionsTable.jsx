@@ -57,7 +57,7 @@ const URL_CONDITION = (()=>{
     ? "control" : null; }catch{ return null; }
 })();
 
-const BUILD = "2026-08-28.2046";
+const BUILD = "2026-08-28.2054";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -175,7 +175,7 @@ const SCENARIOS = [
    draw:{method:"Processes",impact:"Financial Wellbeing",resource:"Entitlement",motive:"Personal Gain"},
    strong:[7,4], partial:[9,10,15], weak:[2],
    standing:[{id:1, text:"The website was built by a volunteer who has since left.", pos:{l:1,s:1}, cards:[10,17]}, {id:2, text:"Nobody has opened the backup system in over a year.", pos:{l:1,s:2}, cards:[6]}],
-   why:{7:"the volunteer"s login should have been disabled the week she left", 4:"a documented grant-and-revoke process is what makes that happen reliably", 9:"you cannot revoke access to a platform nobody has listed", 10:"the donation platform is unmanaged software nobody owns", 15:"the two-hundred-dollar test would have shown in a log someone read"},
+   why:{7:"the volunteer's login should have been disabled the week she left", 4:"a documented grant-and-revoke process is what makes that happen reliably", 9:"you cannot revoke access to a platform nobody has listed", 10:"the donation platform is unmanaged software nobody owns", 15:"the two-hundred-dollar test would have shown in a log someone read"},
    debrief:["Nobody attacked this organization — a door was left open. Is that a security incident?",
             "The right answer costs one point and takes an afternoon. Why is it the one nobody does?",
             "How would this organization even produce a list of who has access?"]},
