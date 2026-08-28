@@ -1,0 +1,167 @@
+\section{Running It in the Browser}
+\label{sec:web}
+
+The activity works on paper and always will. The browser version exists because
+it removes three things a facilitator would otherwise carry: keeping every team
+on the same phase, adjudicating from memory, and transcribing record sheets
+afterwards. If it fails mid-class, keep playing on paper --- every mechanic works
+with the physical deck, a printed grid and six coins.
+
+\subsection{Opening It}
+
+Everyone uses the same link. Roles are chosen, not issued.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+\textbf{Who} & \textbf{Opens} & \textbf{Does} \\
+\midrule
+Facilitator & the link, then \emph{Take the facilitator role} &
+Sets scenario, condition, budget and phase; deals; adjudicates; exports \\
+Players & the plain link & Join a team, place the threat, list measures, buy
+controls, write justifications \\
+Projector & add \texttt{\#projector} to the URL &
+Read-only shared screen: countdown, every team on one grid \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Add \texttt{?session=tue-am} to run more than one class at once. Sessions are
+entirely separate.
+
+\textbf{The facilitator code} is chosen when you claim the role. Only someone
+with it can take the role while you are active, only you can release it, and it
+frees itself about two minutes after your last action so a dead laptop does not
+strand the class. Write it down.
+
+\subsection{What the Interface Does For You}
+
+\begin{itemize}
+\item \textbf{Phase guidance} appears above each phase: what to do, the one thing
+that matters, and what \emph{done} looks like. Teams can collapse it.
+\item \textbf{The threat model locks} when you load a scenario, so nobody rerolls
+a pre-built one by accident. There is a Lock/Unlock toggle if you want teams
+drawing their own.
+\item \textbf{Coverage is hidden until Phase 3.} Teams cannot watch a square turn
+green while they shop, which is what stops them clicking cards to see what
+lights up rather than reasoning.
+\item \textbf{Modifier justifications queue} for you with an amber badge showing
+how many are waiting.
+\item \textbf{The scenario's own debrief questions} appear in your panel at Phase
+3, and as separate answer boxes for teams.
+\item \textbf{Export} produces one row per team with everything the study scores.
+\end{itemize}
+
+\subsection{Accessibility}
+
+The header carries a text-size control (100, 115, 130\%) and a light/dark
+toggle. Both save per device, not per session, so one student enlarging text does
+not resize the board for the room. Mention this at the start; students rarely
+find it on their own and some will not ask.
+
+All colours meet WCAG AA contrast in both themes, and nothing in the interface
+depends on colour alone --- the matrix uses shape and letters as well as hue.
+
+\subsection{When Something Looks Wrong}
+
+The build version sits in grey beside \emph{How to play}. If a student reports
+odd behaviour, check theirs matches yours; a stale cached page is the most common
+cause. A hard reload fixes it.
+
+If a screen goes blank, the app shows a readable error rather than white space.
+Have the student read the line to you --- it names the fault.
+
+% =====================================================================
+\section{Running the Controlled Study}
+\label{sec:study}
+
+Skip this section unless you are collecting research data. Everything in it
+exists to keep one comparison honest.
+
+\subsection{The Two Arms}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}l X X@{}}
+\toprule
+& \textbf{Solutions deck} & \textbf{Control} \\
+\midrule
+Phase 1 & Identical & Identical \\
+Phase 2 & List the measures you would recommend, \emph{then} buy controls
+against a budget & List the measures you would recommend. No cards, no budget \\
+Phase 3 & Identical & Identical \\
+Debrief & Identical & Identical \\
+Guidance, timing, interface & Identical & Identical \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{intervene}{The one thing that would invalidate the study}
+The arms must differ \emph{only} in the Solutions cards and the budget. If the
+control group gets less guidance, less time, or a different facilitator manner,
+you have compared a guided session against an unguided one and any difference you
+find means nothing. The software holds guidance, timing and interface constant.
+\textbf{You have to hold your own behaviour constant.}
+
+Read the same scenario the same way. Intervene by the same rules. Do not explain
+extra because a control team looks stuck.
+\end{intervene}
+
+\subsection{Why Both Arms List Measures}
+
+Both conditions ask teams to write down the measures they would recommend, and in
+the Solutions arm that list sits \emph{above} the cards and explicitly invites
+things they could not afford.
+
+This is not decoration. One of the study's measures counts distinct mitigations
+raised per scenario. If that count came from purchases, a six-point budget would
+cap the Solutions arm at roughly five while the control arm listed as many as it
+liked --- the measure would be biased against the deck by construction. Asking
+both arms the same question fixes it, and the budget's effect shows up in the
+measures that are about \emph{choosing well} rather than \emph{choosing many}.
+
+Say this to teams in the Solutions arm: \say{List everything you would recommend,
+including what you cannot afford. Buying is a separate question.}
+
+\subsection{Setting the Condition}
+
+Set it in the \emph{Condition} panel before anyone joins, or open the session
+with \texttt{?condition=control} in the URL. The arm is stored in the session, so
+a student cannot switch it by editing their address bar.
+
+\textbf{It locks as soon as any team acts.} Changing arms mid-session would mix
+two conditions in one dataset, so the control greys out with the reason shown.
+
+Run the arms as separate sessions:
+
+\begin{center}\small\ttfamily
+?session=fall-a\\
+?session=fall-b\&condition=control
+\end{center}
+
+\subsection{Before, During, After}
+
+\textbf{Before.} Confirm IRB approval covers what you are collecting. Confirm the
+build version is current on every device. Decide who reads scenarios aloud and
+have them do it for both arms. Turn injects off; they add variance not held
+constant across teams.
+
+\textbf{During.} Keep to the timer. Record your interventions by rung on the
+facilitator form --- unequal intervention between arms is a confound you can
+measure only if you wrote it down. Note anything that broke.
+
+\textbf{After.} Export before clearing anything; neither reset archives for you.
+Complete the facilitator form the same day, while you still remember which team
+argued and which went quiet.
+
+\begin{note}{What the export gives you}
+One row per team: condition, scenario, threat model, both matrix placements,
+budget, spend, purchases, everything ever purchased, accepted modifiers, the
+measures list and its count, residual risk, each debrief answer separately, and
+the closing recommendation. That is most of the study's data without a single
+record sheet being transcribed.
+
+It does not capture what teams \emph{said}. If you want the argument as well as
+the outcome, you still need an observer or a recording, and consent for it.
+\end{note}

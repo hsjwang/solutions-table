@@ -1,0 +1,696 @@
+% =====================================================================
+%  main_short.tex  --  CONDENSED VERSION
+%
+%  Target: CISSE 30th Colloquium, deadline 15 September 2026.
+%  CISSE requires 3,000-4,000 words including a <=250 word abstract.
+%  The full-length main.tex runs ~5,500 body words and is over limit;
+%  this file is the submission version.
+%
+%  IMPORTANT: CISSE requires the official IEEE conference template.
+%  On Overleaf, comment out the \documentclass line below and use
+%  \documentclass[conference]{IEEEtran} instead. The article-class
+%  fallback here exists only so the file compiles without IEEEtran
+%  installed; it approximates but does not equal the IEEE template.
+%
+%  Also required by the CFP:
+%    - anonymized for double-blind review
+%    - ORCID iDs for all authors in the final submission
+%    - DOI links in references where available
+%    - figures at minimum 300 DPI
+%    - IRB / ethics approval information for human-subject research
+%    - disclosure of generative AI or automated tool use
+%    - student authors must declare student status at submission
+% =====================================================================
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+% \documentclass[conference]{IEEEtran}   % <-- REQUIRED for CISSE
+
+\usepackage[letterpaper,margin=0.72in,columnsep=0.25in]{geometry}
+\usepackage{mathptmx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{balance}
+\usepackage{titlesec}
+\usepackage[hidelinks,breaklinks]{hyperref}
+\usepackage{url}
+
+\captionsetup{font=small,labelfont=bf,skip=3pt}
+\setlist{nosep,leftmargin=1.1em}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.1ex}{0.6ex}
+\titlespacing*{\subsection}{0pt}{0.9ex}{0.4ex}
+\renewcommand{\arraystretch}{1.1}
+\newcommand{\ig}[1]{\textsc{ig#1}}
+\newcommand{\todo}[1]{\textcolor{red}{[\textbf{TODO:} #1]}}
+
+\title{\vspace{-1.6em}\bfseries From Threats to Controls: A CIS-Grounded
+Solutions Dimension and Gameplay Framework for the Security Cards}
+\author{\normalsize Anonymous Submission}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent\small
+The Security Cards organize security threat brainstorming into four dimensions
+and deliberately stop at threat discovery. In cybersecurity clinic courses,
+where students advise under-resourced community organizations, discussion that
+ends at threat identification leaves the central professional task---recommending
+proportionate controls under real budget constraints---unpracticed. We present a
+fifth dimension, \emph{Solutions}: twenty-one defensive control cards mapped to
+the CIS Critical Security Controls v8.1 at the safeguard level, plus seven
+zero-cost modifier cards carrying architectural and risk-treatment principles.
+We follow a design-based research process across three cycles: a formative study
+of the initial deck, a redesign in which every change traces to a requirement
+that study produced, and a controlled classroom evaluation. Card cost is derived
+from CIS Implementation Group tier rather than designer judgment, and the budget
+is calibrated against expected hand value so that trade-offs are forced rather
+than nominal. A coverage analysis against
+Implementation Group 1 identified five foundational gaps in our initial
+fifteen-card deck---asset inventory, software inventory, secure configuration,
+email and browser protections, and incident response planning---which motivated
+the current version and replaced designer intuition with an auditable procedure.
+We contribute the mapped deck, a six-variant gameplay framework, and a core loop
+in which a risk matrix is scored before and after control selection so that
+residual risk is simultaneously a game mechanic and a measurable artifact.
+Cycle 1, with 19 multidisciplinary participants, established feasibility and
+accessibility and produced four design requirements; we claim no learning gains
+from it. Cycle 3, a controlled classroom study, is scheduled for September 2026
+and its design is reported in full. The deck is released under an open license.
+
+\vspace{0.5em}
+\noindent\textbf{Keywords:} cybersecurity education, game-based learning,
+serious games, CIS Controls, design-based research, cybersecurity clinics
+\end{abstract}
+
+\vspace{0.6em}
+
+% =====================================================================
+\section{Introduction}
+
+Cybersecurity education faces a structural problem: the material changes faster
+than curricula can be rewritten, and the reasoning practitioners actually
+perform---weighing partial information, arguing a position, committing resources
+under constraint---is poorly served by lecture and multiple-choice assessment.
+Active and collaborative methods address this gap in engineering education
+generally \cite{prince2004active}, and game-based learning has become one
+practical vehicle in security specifically \cite{plass2015gbl,wouters2013meta}.
+
+Our setting is the cybersecurity clinic, a skill-based program in which
+university students deliver security services to under-resourced organizations
+in their community \cite{clinics_consortium}. Clinic students face an unusual
+demand curve: within one semester they move from little or no security
+background to advising a nonprofit director or municipal clerk on what to do
+next, given a budget frequently near zero. The early weeks therefore need an
+activity that requires no prerequisite vocabulary, exercises prioritization
+rather than recall, and ends in a defensible recommendation rather than a list
+of worries.
+
+The Security Cards \cite{denning2013securitycards} meet the first two
+requirements well. The 42-card toolkit organizes security thinking into four
+dimensions---Human Impact, Adversary's Motivations, Adversary's Resources,
+Adversary's Methods---and widens the space of threats a group considers. It is,
+by its authors' framing, a brainstorming toolkit rather than a game: no win
+condition, no scoring, no resource constraint. That is an appropriate choice for
+its stated purpose, and it is the source of the third gap. In our use,
+card-driven discussion reliably produced rich threat enumeration and then
+stopped. Students left with a longer list of things that could go wrong and no
+practiced vocabulary for what to do about it.
+
+This paper contributes the missing half of that loop: (1) a Solutions dimension
+of twenty-eight cards mapped to CIS Controls v8.1 \cite{cis2024controls} at
+safeguard level, not merely control titles; (2) a cost model derived from CIS
+Implementation Groups \cite{cis_ig} rather than designer intuition, with the
+budget calibrated so the constraint binds; (3) a coverage analysis that
+identified five foundational omissions in our own earlier deck and supplied a
+non-arbitrary rationale for the current card set; (4) a six-variant gameplay
+framework with a core loop that scores residual risk before and after control
+selection.
+
+\textbf{Method.} We report this as design-based research, in which an artifact
+and the requirements it satisfies are developed together across iterative cycles.
+\textbf{Cycle 1} (Section~\ref{sec:cycle1}) evaluated a fifteen-card deck with 19
+participants; its purpose was to generate design requirements, not to validate a
+finished artifact. \textbf{Cycle 2} (Section~\ref{sec:cycle2}) is the redesign,
+in which each change traces to a requirement Cycle 1 produced. \textbf{Cycle 3}
+(Section~\ref{sec:planned}) is a controlled classroom evaluation scheduled for
+September 2026, reported here as a design so that it can be criticized before
+rather than after data collection.
+
+We are explicit about what we do not claim. Cycle 1 establishes that the artifact
+is usable by novices in under ten minutes and identifies what was wrong with it.
+It does not establish learning gains, and the Cycle 2 deck has not yet been
+played in a classroom.
+
+% =====================================================================
+\section{Background and Related Work}
+
+Two ideas are frequently conflated. \emph{Gamification} applies game design
+elements to contexts that are not games \cite{deterding2011gamification};
+\emph{game-based learning} uses an actual game as the learning environment
+\cite{plass2015gbl,landers2014gamified}. This is game-based learning work: we
+add rules, roles, scarcity, and scoring to a toolkit that previously had none.
+Beyond self-reported engagement, game-based learning environments have been shown
+to produce measurable differences in frontal brain activity relative to
+conventional instruction \cite{kober2020frontal}.
+
+Security education has a developed tradition of card and tabletop games
+\cite{shostack_games}. \textbf{Control-Alt-Hack}
+\cite{denning2013controlalthack} targets novices with a dispositional aim,
+conveying that security work exists and is interesting rather than teaching an
+analytic procedure. \textbf{Elevation of Privilege} \cite{shostack2014eop}
+converts STRIDE threat modeling into a card game but assumes a system diagram
+and a developer audience, placing it downstream of where clinic students begin.
+\textbf{[d0x3d!]} \cite{gondree2013d0x3d} builds intuition for
+attacker--defender dynamics on a board. \textbf{Riskio} \cite{hart2020riskio}
+addresses non-technical organizational staff but requires an experienced Game
+Master. \textbf{Backdoors \& Breaches} \cite{young2021backdoors,bhis2019backdoors} is the closest
+analogue to our Solutions dimension---players select procedure cards against a
+hidden attack---but its focus is incident response rather than \emph{ex ante}
+control selection, and its cards are detection techniques rather than a
+framework-aligned control catalogue. \textbf{MalAware} \cite{malaware2024}
+structures a malware tabletop around NIST CSF functions, again with a response
+emphasis. \textbf{Cyber Defence Dice} \cite{cyberdefencedice2026} pursues a
+complementary goal, minimizing setup and play time for entry-level awareness,
+and its survey identifies facilitator dependence and session length as recurring
+barriers.
+
+The gap is specific. Existing games teach learners to \emph{find} threats or to
+\emph{respond} to incidents. None asks a novice to select a proportionate set of
+preventive controls against a stated budget and justify the choice against a
+recognized framework. That is the task a clinic student performs for a client in
+week eight.
+
+The CIS Critical Security Controls v8.1 organize defensive practice into 18
+controls containing 153 safeguards, partitioned into three Implementation
+Groups \cite{cis2024controls,cis_ig}. \ig{1} defines essential cyber hygiene:
+the 56 safeguards a small organization with limited expertise should implement
+first. Three properties make this an unusually good fit. \ig{1} is defined
+\emph{for} the class of organization clinic students serve. The tiering supplies
+an externally justified cost ordering, removing the need for designer-assigned
+point values. And control identifiers give students a durable reference they can
+pursue after the game ends.
+
+% =====================================================================
+\section{Cycle 1: The Initial Deck and Its Formative Study}
+\label{sec:cycle1}
+
+Cycle 1 evaluated a fifteen-card deck using a single variant: teams were given a
+scenario and asked to rank the three most important defensive measures, with no
+budget and no risk matrix. Its purpose was to determine whether novices can use
+the deck without facilitator expertise, how long play takes, and whether the
+vocabulary is accessible. We claim no learning gains; a single session with a
+post-play survey and no control condition cannot support such a claim.
+\todo{Insert IRB protocol number or exemption determination.}
+
+Nineteen participants were recruited from a summer research program at an
+undergraduate institution, spanning psychology, biology, physics, chemistry,
+mathematical sciences, and computer science; Table~\ref{tab:participants} reports
+the composition.
+\todo{Complete from your records: reviewers specifically requested discipline
+distribution, level, and prior gaming experience.}
+Six teams of two to three played simultaneously, each facilitated by a member of
+the research team. Teams received a hypothetical organization and an attack
+scenario, then used the deck to select and rank the three most important
+defensive measures. Sessions ran seven to ten minutes excluding debrief and
+survey. Play was collaborative, and the budget mechanic was not yet implemented.
+
+\begin{table}[h]
+\centering
+\caption{Formative evaluation participants ($N=19$).}
+\label{tab:participants}
+\footnotesize
+\begin{tabular}{@{}l r l r@{}}
+\toprule
+\textbf{Discipline} & \textbf{$n$} & \textbf{Level / background} & \textbf{$n$} \\
+\midrule
+Computer science & \textcolor{red}{--} & Undergraduate & \textcolor{red}{--} \\
+Psychology & \textcolor{red}{--} & Graduate & \textcolor{red}{--} \\
+Biology & \textcolor{red}{--} & Faculty & \textcolor{red}{--} \\
+Physics & \textcolor{red}{--} & No prior security course & \textcolor{red}{--} \\
+Mathematical sciences & \textcolor{red}{--} & One security course & \textcolor{red}{--} \\
+Other & \textcolor{red}{--} & More than one & \textcolor{red}{--} \\
+\midrule
+\multicolumn{4}{@{}l}{Self-rated security knowledge (1--5): mean 2.53, SD \textcolor{red}{--}}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Seventeen of nineteen agreed the cards helped them learn. Ease of use was the
+highest-rated item at 4.42 on a five-point scale; perceived sufficiency of card
+content scored 3.95.
+Figure~\ref{fig:likert} reports the full response distributions.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{likert.pdf}
+\caption{Post-play survey responses, Cycle 1 ($N=19$), reported as counts.}
+\label{fig:likert}
+\end{figure}
+
+Open-ended responses converged on three themes. Participants valued the
+definitions and examples on the card backs and the non-specialist vocabulary,
+speaking directly to G1. Participants wanted feedback on whether their rankings
+were correct, and noted that several solutions seemed equally valid.
+Participants found fifteen cards to be many, with some descriptions overlapping.
+
+\subsection{Design Requirements Produced by Cycle 1}
+\label{sec:reqs}
+
+Cycle 1 establishes two positive findings and yields four requirements. The
+positive findings are that the activity is feasible in under ten minutes, which
+matters in crowded syllabi, and that it is usable by participants with a mean
+self-rated knowledge of 2.53 and no facilitator expertise beyond reading the
+scenario aloud. It establishes nothing about learning.
+
+The requirements follow directly from the reported shortcomings:
+
+\begin{description}[leftmargin=1.6em,style=nextline]
+\item[R1. Choices must be contestable.] Participants reported that many
+responses seemed equally acceptable and that there was no clear distinction
+between stronger and weaker choices. Unconstrained ranking has no wrong answers,
+so it generates agreement rather than argument---and disagreement is the
+mechanism by which the activity teaches.
+\item[R2. Bound the working set.] Participants found fifteen cards to be many
+and some descriptions overlapping. Facilitators independently found that
+evaluating one dimension at a time reduced overload.
+\item[R3. Provide a basis for feedback on quality.] Participants wanted guidance
+on whether their rankings were appropriate. A defensible answer key requires
+that reasoning be recorded in a scoreable form.
+\item[R4. Make the card set auditable.] This requirement came from peer review
+rather than from participants: asked why these fifteen cards, the honest answer
+was designer intuition informed by clinic experience.
+\end{description}
+
+Section~\ref{sec:cycle2} addresses each in turn. We note that R1 and R3 are the
+same observation seen from two sides, and that a single mechanism---making
+choices cost something---answers both.
+
+% =====================================================================
+\section{Cycle 2: The Revised Deck}
+\label{sec:cycle2}
+\label{sec:design}
+
+Every change in this cycle traces to a requirement from
+Section~\ref{sec:reqs}: the budget and cost model answer \textbf{R1}, the
+tiering and eight-card hand answer \textbf{R2}, the justification rule and
+scoreable artifacts answer \textbf{R3}, and the coverage analysis answers
+\textbf{R4}. Four standing design goals also carry over, the first two inherited
+from the original toolkit: \textbf{G1} vocabulary accessibility, so a participant with no prior
+coursework can act on a card without explanation; \textbf{G2} discussion
+generation, since disagreement is the mechanism by which the activity teaches;
+\textbf{G3} framework traceability, so every claim made at the table is
+traceable to a published safeguard; and \textbf{G4} constraint realism, because
+the defining feature of the organizations clinic students serve is that they
+cannot do everything.
+
+We preserved the double-sided format and dimension coloring of the original
+deck, replaced its evocative photographs with pictographic icons after
+facilitators observed participants interpreting the photographs literally, added
+an \emph{Artificial Intelligence} card to Adversary's Resources, and moved the
+Solutions palette away from the existing Human Impact blue, adding a distinct
+icon frame so the dimensions separate in grayscale and for color-vision-deficient
+players. We report the icon change as a design decision motivated by facilitator
+observation, not as an empirical finding; it is confounded with other
+simultaneous revisions, and Section~\ref{sec:planned} includes a comprehension
+check designed to test it properly.
+
+Each Solutions card names a defensive practice, states what it does in one
+sentence of non-specialist language, gives two concrete examples, cites the CIS
+Control and representative safeguards, and carries a discussion prompt.
+Table~\ref{tab:mapping} presents the mapping. Two properties matter. Mapping is
+at safeguard level: a card reading only ``CIS Control 6: Access Control
+Management'' tells a novice nothing, whereas naming 6.1 and 6.2---grant access
+on a documented process, revoke it when someone leaves---tells them what the
+control asks an organization to do. And the \ig{} column and the cost column are
+the same information; cost is not an aesthetic judgment but the Implementation
+Group at which the card's representative safeguards sit.
+
+\begin{table*}[t]
+\centering
+\caption{Solutions dimension: cards, CIS Control v8.1 mapping, representative
+safeguards, Implementation Group, and derived play cost. Cards 9--13 were added
+in the current version following the \ig{1} coverage analysis. Full card text is
+available in the archived deck.}
+\label{tab:mapping}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}r l X c c@{}}
+\toprule
+\textbf{\#} & \textbf{Card} & \textbf{CIS Control (representative safeguards)} &
+\textbf{IG} & \textbf{Cost} \\
+\midrule
+\multicolumn{5}{@{}l}{\textit{Foundational tier}}\\
+1  & Software Updates & 7 Continuous Vulnerability Mgmt (7.1, 7.3, 7.4) & 1 & 1 \\
+2  & Social Engineering Awareness & 14 Security Awareness \& Skills Training (14.1, 14.2, 14.3) & 1 & 1 \\
+3  & Deepfake \& AI Fraud Awareness & 14 Security Awareness \& Skills Training (14.2, 14.9) & 1--2 & 1 \\
+4  & Identity \& Access Management & 6 Access Control Management (6.1, 6.2, 6.7) & 1--2 & 1 \\
+5  & Password \& Authentication & 5 Account Mgmt (5.2, 5.4); 6 Access Control Mgmt (6.3--6.5) & 1 & 1 \\
+6  & Backup \& Recovery & 11 Data Recovery (11.1--11.4) & 1 & 1 \\
+7  & Account Lifecycle Management & 5 Account Management (5.1, 5.3, 5.5) & 1--2 & 1 \\
+8  & Physical Security & No dedicated control; enables Controls 1 and 3 & --- & 1 \\
+9  & Asset Inventory & 1 Inventory \& Control of Enterprise Assets (1.1, 1.2) & 1 & 1 \\
+10 & Software Inventory & 2 Inventory \& Control of Software Assets (2.1, 2.2, 2.3) & 1 & 1 \\
+11 & Secure Configuration & 4 Secure Configuration (4.1, 4.2, 4.6, 4.7) & 1 & 1 \\
+12 & Email \& Browser Protections & 9 Email \& Web Browser Protections (9.1, 9.2, 9.6) & 1--2 & 1 \\
+13 & Incident Response Planning & 17 Incident Response Management (17.1--17.4) & 1--2 & 1 \\
+\midrule
+\multicolumn{5}{@{}l}{\textit{Extended tier}}\\
+14 & Encryption & 3 Data Protection (3.6, 3.10, 3.11) & 1--2 & 2 \\
+15 & Audit Logging \& SIEM & 8 Audit Log Mgmt (8.2, 8.9, 8.11); 13 Network Monitoring (13.1) & 1--2 & 2 \\
+16 & Endpoint Detection \& Response & 10 Malware Defenses (10.1, 10.6, 10.7) & 1--2 & 2 \\
+17 & Third-Party \& Contractual Controls & 15 Service Provider Management (15.1, 15.4, 15.5) & 1--3 & 2 \\
+18 & Network Segmentation & 12 Network Infrastructure Mgmt (12.2); 13 (13.4) & 2 & 2 \\
+\midrule
+\multicolumn{5}{@{}l}{\textit{Advanced tier}}\\
+19 & Penetration Testing & 18 Penetration Testing (18.1, 18.2, 18.3, 18.5) & 2--3 & 3 \\
+20 & Managed Detection \& Response & 8 (8.11); 13 (13.1, 13.11); 17 (17.1) & 2--3 & 3 \\
+21 & Cyber Insurance \& Risk Transfer & No control; transfer is a risk treatment & --- & 3 \\
+\midrule
+\multicolumn{5}{@{}l}{\textit{Modifier cards (three dealt per round, at most two played; each requires a stated justification)}}\\
+22 & Defense in Depth & Requires two purchases that fail by different means & --- & 0 \\
+23 & Fail Safe Defaults & Requires naming the state a purchased control fails into \cite{saltzer1975protection} & --- & 0 \\
+24 & Least Privilege & Requires card 4 or 7; name one access to reduce & --- & 0 \\
+25 & Human Factors & Requires naming a purchase staff will circumvent & --- & 0 \\
+26 & Risk Acceptance & Played instead of a purchase; requires a named decision owner & --- & 0 \\
+27 & Compensating Control & Requires naming the unaffordable control and the residual gap & --- & 0 \\
+28 & Deferred Investment & Caps spend at 4, banks 2 for a 10-point budget next engagement & --- & 0 \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\subsection{Coverage Analysis}
+\label{sec:gaps}
+
+\textbf{Addressing R4.} To replace intuition with a procedure, we asked, for
+each of the 56 \ig{1} safeguards, whether any card in the deck would prompt a
+player to consider it.
+
+Our initial fifteen-card deck omitted five foundational areas while including
+one outside \ig{1} entirely. Controls 1 and 2 (asset and software inventory)
+were absent, though an organization cannot patch software it does not know it
+runs. Control 4 (secure configuration) was absent, despite default credentials
+being among the most common clinic findings. Control 9 (email and browser
+protections) was absent even though phishing was the central threat in both of
+our recorded sessions---students reached for awareness training as the only
+anti-phishing lever because it was the only one present. Control 17 (incident
+response) was absent, despite clinic students being who a client calls during an
+incident. Meanwhile Control 18 (penetration testing) was present and is
+\ig{2}/\ig{3} only, inconsistent with our stated \ig{1} orientation; we retained
+it, because clients ask about it, but re-tiered it to cost~3 so its expense is
+visible in play.
+
+Cards 9--13 close these gaps, all at \ig{1} and cost~1, shifting the deck's
+center of gravity toward essential cyber hygiene as originally intended but not
+originally achieved. We deliberately added nothing for Control 16 (application
+software security), which begins at \ig{2} and addresses in-house development
+that these clients rarely undertake. We report the analysis because the
+procedure, not the resulting card list, is the transferable contribution: any
+deck extension of this kind can be audited against a published framework rather
+than defended on the designer's taste.
+
+\subsection{Calibrating the Budget}
+\label{sec:budget}
+
+\textbf{Addressing R1.} A budget makes choices contestable, but only if it is
+small relative to what is on the table. Our first implementation dealt eight
+cards against ten points, which on inspection
+is barely a constraint. The twenty-one purchasable cards carry 32 points, a mean
+of 1.52 per card, so a random eight-card hand is worth roughly 12.2 points. Ten
+points buys 82\% of such a hand, and a hand drawn entirely from the Foundational
+tier is fully purchasable---a team in that position makes no trade-off at all.
+We therefore set the default at \textbf{six points}, which buys roughly half a
+typical hand and makes any Advanced-tier card cost half of everything a team has
+(Table~\ref{tab:budget}).
+
+\begin{table}[h]
+\centering
+\caption{Budget calibration against an eight-card hand worth $\approx$12.2
+points. Larger budgets model better-resourced organizations.}
+\label{tab:budget}
+\footnotesize
+\begin{tabular}{@{}c c c l@{}}
+\toprule
+\textbf{Budget} & \textbf{\% hand} & \textbf{Cost-3 card} & \textbf{Organization modeled} \\
+\midrule
+5  & 41\% & 60\% & Volunteer-run, no IT staff \\
+\textbf{6}  & \textbf{49\%} & \textbf{50\%} & \textbf{Default; \ig{1}} \\
+10 & 82\% & 30\% & \ig{2}; one IT staff member \\
+15 & --- & 20\% & \ig{3}; security function \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Budget is therefore a property of the \emph{organization} in the scenario rather
+than of the game, and tying it to Implementation Group makes that explicit: the
+same threat facing a volunteer-run food bank and a county health department
+warrants different answers, and students should feel that difference rather than
+be told about it. For the study in Section~\ref{sec:planned} we hold the budget
+fixed at six, since varying it would confound the condition comparison.
+
+\subsection{Modifier Cards}
+
+\textbf{Addressing R3.} The seven modifier cards carry principles rather than
+controls, cost nothing, and are each governed by one rule: a modifier may be played only if the team can
+articulate the justification the card demands, or it returns to the deck. This
+is what keeps a zero-cost card from being a free point, and it serves the
+evaluation directly, since every modifier generates a recorded rationale.
+
+The class exists because the original deck, and our first Solutions version,
+taught exactly one risk treatment: buy a control. Practice recognizes
+four---avoid, mitigate, transfer, accept---and a student who leaves believing
+every risk must be fixed will give clients advice they cannot afford to take.
+\emph{Cyber Insurance} supplies transfer, \emph{Risk Acceptance} supplies
+acceptance, and \emph{Compensating Control} supplies the partial mitigation
+under-resourced organizations actually implement. \emph{Deferred Investment}
+adds a planning horizon: a team may cap spend at four of six and bank two,
+receiving ten points---the \ig{2} budget---at the next engagement, while every
+threat left unmitigated drifts one cell toward \emph{Very Likely}. Deferring is
+how an organization climbs an Implementation Group, and the accrued risk is what
+the climb costs.
+
+Because the matrix gives likelihood only three states, a deferred threat reaches
+\emph{Very Likely} within two engagements; rather than cap it there, a threat
+surviving another engagement unmitigated \emph{realizes}. The outcome follows
+not from chance but from what the team purchased earlier: discovery in days or
+months depends on logging, data return on backups, knowing who to call on
+incident response planning. This corrects a structural bias---twenty-one of
+twenty-eight cards are preventive, and a team that never experiences an incident
+never learns why detection and recovery were worth points.
+
+Growth from fifteen to twenty-eight cards runs against a pilot finding that
+fifteen already felt like many. Two mechanisms address this: no variant deals
+more than eight control cards and three modifiers at once, and the tiers form a
+curriculum sequence, with the thirteen Foundational cards alone supporting the
+first weeks of a course.
+
+% =====================================================================
+\section{Gameplay Framework}
+\label{sec:gameplay}
+
+The original toolkit describes activities but not rules. We specify six variants
+with explicit objectives, durations, and produced artifacts
+(Table~\ref{tab:variants}), ordered by cognitive demand and designed to be run
+in sequence across a semester or selected individually.
+
+\begin{table}[h]
+\centering
+\caption{Gameplay variants ordered by cognitive demand. ``Artifact'' names the
+observable product of play, which is what makes each variant assessable.}
+\label{tab:variants}
+\footnotesize
+\begin{tabularx}{\columnwidth}{@{}l X l@{}}
+\toprule
+\textbf{Variant} & \textbf{Objective / artifact} & \textbf{Time} \\
+\midrule
+V1 Threat Model Generation & Build an incident narrative from four drawn threat elements; written narrative & 8--10 m \\
+V2 Risk Matrix Placement & Estimate likelihood and severity; matrix coordinates with rationale & 10--15 m \\
+V3 Solution Ranking & Prioritize among defensible alternatives; ranked top three & 7--10 m \\
+V4 Control Mapping & Attribute an incident to the control that failed; attribution & 10 m \\
+V5 Budgeted Defense & Allocate scarce resources; purchased portfolio and rationale & 15--20 m \\
+V6 Residual Risk Loop & Recognize that controls reduce rather than remove risk; pre/post matrix delta & 20--25 m \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+V6 is the flagship and the variant we recommend for the classroom study. In
+Phase~1 each team draws one card from each original dimension, constructs a
+scenario, places the resulting threat on a $3\times3$ risk matrix (likelihood
+$\times$ severity), and records the coordinates; severity placement must be
+justified by naming the \emph{Human Impact} card in play, since novices reliably
+rate severity by how sophisticated an attack sounds rather than by who is
+harmed. In Phase~2 the team receives
+eight Solutions cards, three modifiers, and six points, purchases a portfolio,
+and states for each purchase which safeguard addresses which element of the
+threat. In Phase~3 it re-places the same threat given the controls purchased and
+states what would still get through.
+
+This does three things at once. Pedagogically, the second placement is where
+students discover that controls shift risk rather than remove it, and where the
+team that spent everything on prevention must explain how it would detect what
+it did not prevent. Mechanically, it closes the loop between risk assessment and
+control selection. Methodologically, the pre/post delta and its accompanying
+justifications are recorded artifacts scoreable against an expert key, which
+converts a discussion activity into a measurable one without adding a test.
+
+Teams of two to three play cooperatively against the scenario rather than
+against each other, following the ICAP framework \cite{chi2014icap}, which
+associates interactive engagement with deeper outcomes than merely active
+engagement. The budget supplies the friction a cooperative structure otherwise
+lacks: six points against eight cards makes it untrue that any answer will do.
+
+Four optional facilitator-played \emph{inject} cards introduce adversity after
+purchase---a grant not renewed, a vendor discontinuing a product, a key staff
+member departing---each requiring a response rather than a loss the team can only
+absorb. They are excluded from Cycle 3, since they introduce variance not held
+constant across teams.
+
+% =====================================================================
+\section{Facilitation Findings}
+\label{sec:facilitation}
+
+Cycle 1 produced practical findings about running the activity that are
+independent of the deck revision, and we report them because they transfer to
+any instructor adopting either version.
+
+\textbf{Pre-populate the risk matrix.} Placing two or three threats on the grid
+before asking participants to position the rest substantially lowers the entry
+cost of the matrix activity. A blank grid asks novices to establish a scale and
+apply it simultaneously; a partly filled grid asks only the second.
+
+\textbf{Evaluate one dimension at a time.} In ranking activities, considering
+each dimension independently rather than all cards at once reduced apparent
+cognitive load and produced more coherent discussion. This finding, from Cycle
+1, is what the tiering and bounded hand size in Section~\ref{sec:cycle2}
+generalize.
+
+\textbf{Physical cards outperform digital, but digital works.} Preliminary
+trials on a shared Zoom whiteboard indicate the activities survive the
+transition to remote instruction, though physical cards generated visibly more
+discussion. For programs teaching remotely, the activity remains viable; for
+those with a choice, the physical deck is preferable.
+
+\textbf{Facilitator expertise is not required.} Cycle 1 sessions were run by
+researchers who read a scenario aloud and kept time. Cycle 2 adjudication is more
+demanding, so the accompanying facilitator materials supply worked
+accept-and-reject examples rather than relying on facilitator judgment.
+
+\section{Cycle 3: Planned Classroom Evaluation}
+\label{sec:planned}
+
+Cycle 3 tests the Cycle 2 deck. We report its design in advance of running it,
+so that it can be criticized before rather than after data collection and so
+that the claims in this paper remain separable from the claims that study would
+license. The
+setting is an undergraduate cybersecurity clinic course during the first three
+weeks of the Fall 2026 term.
+\todo{Expected enrollment; IRB submission must precede the term.}
+
+The design is a counterbalanced within-subjects crossover. Each team plays two
+scenarios of matched difficulty: in one, teams use the four-dimension deck and
+discuss defenses without Solutions cards; in the other, the five-dimension deck
+with the budgeted V6 loop. Order and scenario--condition pairing are
+counterbalanced, so each team serves as its own control and scenario effects are
+separated from condition effects.
+
+Measures are: \textbf{M1}, control-selection appropriateness, with purchased
+portfolios scored against an expert key derived from CIS safeguard--threat
+mappings by two raters blind to condition, agreement reported as Cohen's
+$\kappa$ \cite{landis1977kappa}; \textbf{M2}, risk-matrix delta, the magnitude
+and direction of movement between placements and whether stated residual risk is
+consistent with controls purchased; \textbf{M3}, justification quality, scored
+0--3 from bare assertion to a threat-specific mechanism correctly linked to a
+safeguard; \textbf{M4}, mitigation breadth, the count of distinct measures
+raised per scenario, which directly tests whether Solutions cards expand or
+merely redirect discussion; \textbf{M5}, pre/post security self-efficacy
+\cite{bandura1997selfefficacy}; \textbf{M6}, cognitive load via short-form
+NASA-TLX \cite{hart1988nasatlx}, testing whether the expanded deck overloads
+novices; and \textbf{M7}, a card-face-to-definition matching task testing the
+icon revision.
+\todo{Select a validated self-efficacy instrument rather than authoring items.}
+
+We will use Wilcoxon signed-rank tests on M1--M4 given the expected sample size
+and ordinal measures, with descriptive reporting for M5--M7, and will report
+effect sizes and confidence intervals rather than significance alone. Four
+threats to validity are anticipated and will be reported rather than controlled
+for, since a single-course study cannot eliminate them: team size varies with
+attendance, facilitators are not blind to condition, scenario difficulty is
+matched by expert judgment rather than empirically, and novelty effects favor
+whichever condition is played second.
+
+% =====================================================================
+\section{Discussion and Limitations}
+
+The deck is an on-ramp, not a simulation. It does not carry the technical depth
+required for a real risk assessment, and a student who plays it well is not
+thereby competent to advise a client. Its function is to give a novice a
+vocabulary, a framework identifier they can look up, and practice at the
+specific cognitive move---from stated threat to proportionate, affordable
+control---that the rest of a clinic curriculum builds on.
+
+Anchoring to CIS Controls buys traceability and an externally justified cost
+model, and costs generality: a course oriented to the NIST Cybersecurity
+Framework \cite{nist_csf2} or working toward CSEC2017 knowledge areas
+\cite{csec2017} would want a different mapping on the card backs. We regard the
+mapping procedure in Section~\ref{sec:gaps} as portable even where the control
+identifiers are not. A sixth Impact dimension was considered and
+rejected: the original deck already contains one, and what was missing was not a
+category but the moment at which consequence follows from the team's own
+choices.
+
+Cycle 1 had no control condition, no pre/post measure, and a single short
+session, and it evaluated the fifteen-card deck rather than the deck described
+in Section~\ref{sec:cycle2}. Under a design-based research framing this is the
+expected role of a first cycle---to generate requirements---but it does mean no
+empirical claim in this paper attaches to the revised deck. Participants were volunteers in a research program, which
+likely selects for engagement. The icon revision is supported by facilitator
+observation only. The cost model, though derived from Implementation Groups,
+still involves judgment where a card spans tiers. And the current deck has not
+yet been played in a classroom; Section~\ref{sec:planned} is a plan, not a
+result.
+
+Three directions seem worthwhile beyond Cycle 3. A sixth dimension representing
+the \emph{defender's} resources would let scarcity vary by organization rather
+than by rule. A scenario deck of named incident types would standardize scenarios
+across sessions and remove a confound from any multi-team study. And
+\emph{standing risks}---two chronic problems the client already has, placed on
+the matrix alongside the presenting incident and competing for the same
+budget---would test something the current single-threat loop cannot: whether
+students recognize that a control touching several problems is worth more than
+one addressing only today's. That is the argument for foundational controls, and
+at present nothing in the design rewards it. All three are untested.
+
+% =====================================================================
+\section{Conclusion}
+
+The Security Cards are effective for the task they were designed for and stop
+deliberately at its boundary. In cybersecurity clinic education, where students
+must convert threat understanding into affordable recommendations for
+organizations that cannot afford much, that boundary falls in the wrong place.
+We have presented a Solutions dimension of twenty-eight cards mapped to CIS
+Controls v8.1 at safeguard level, a cost model derived from Implementation Group
+tier and calibrated so the constraint binds, a coverage analysis that identified
+and closed five foundational gaps in our own earlier deck, and a gameplay
+framework whose core loop scores residual risk before and after control
+selection. A formative evaluation established feasibility and accessibility; a
+controlled study is scheduled for September 2026 and its design is reported
+here. The deck is released openly, and we welcome its use, criticism, and
+re-tiering by other clinic programs.
+\todo{Replace with the Zenodo DOI; use an anonymous view-only link for the blind
+submission.}
+
+\section*{Generative AI Disclosure}
+\todo{Required by the CFP. State what tools were used and for what. AI tools may
+not be listed as authors.}
+
+\input{references.tex}
+
+\end{document}

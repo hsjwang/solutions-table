@@ -65,15 +65,15 @@ import {
    ============================================================ */
 const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
 const FIREBASE_CONFIG = {
-  apiKey:            env.VITE_FIREBASE_API_KEY            || "AIzaSyBg1ARm_pqEPd3XT1GKwDjBFvjujHS1K8o",
-  authDomain:        env.VITE_FIREBASE_AUTH_DOMAIN        || "cybercardgame.firebaseapp.com",
+  apiKey:            env.VITE_FIREBASE_API_KEY            || "REPLACE_ME",
+  authDomain:        env.VITE_FIREBASE_AUTH_DOMAIN        || "REPLACE_ME.firebaseapp.com",
   // Outside us-central1 this looks like
   // https://<project>-default-rtdb.<region>.firebasedatabase.app
-  databaseURL:       env.VITE_FIREBASE_DATABASE_URL       || "https://cybercardgame-default-rtdb.firebaseio.com",
-  projectId:         env.VITE_FIREBASE_PROJECT_ID         || "cybercardgame",
-  storageBucket:     env.VITE_FIREBASE_STORAGE_BUCKET     || "cybercardgame.firebasestorage.app",
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID|| "506801869669",
-  appId:             env.VITE_FIREBASE_APP_ID             || "1:506801869669:web:9f25b09524aad1b876878c",
+  databaseURL:       env.VITE_FIREBASE_DATABASE_URL       || "REPLACE_ME",
+  projectId:         env.VITE_FIREBASE_PROJECT_ID         || "REPLACE_ME",
+  storageBucket:     env.VITE_FIREBASE_STORAGE_BUCKET     || "REPLACE_ME.appspot.com",
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID|| "REPLACE_ME",
+  appId:             env.VITE_FIREBASE_APP_ID             || "REPLACE_ME",
 };
 /* ===================== STOP EDITING ========================= */
 
@@ -83,10 +83,15 @@ const missing = Object.entries(FIREBASE_CONFIG)
   .map(([k]) => k);
 
 if (missing.length) {
+  const where = env.VITE_FIREBASE_API_KEY === undefined
+    ? "No build-time config was found. Either create a .env file from .env.example, " +
+      "or paste the values straight into FIREBASE_CONFIG in src/backend.js."
+    : "A .env was found but is incomplete.";
   const msg =
     `Solutions Table: Firebase config incomplete. Still unset: ${missing.join(", ")}. ` +
-    `Open src/backend.js and fill in the PASTE YOUR VALUES HERE block. ` +
-    `Teams will not see each other until this is done.`;
+    `${where} If this is the deployed site, the values come from repository ` +
+    `secrets — Settings > Secrets and variables > Actions — and the workflow must ` +
+    `be re-run after adding them. Teams will not see each other until this is done.`;
   console.error(msg);
   document.addEventListener("DOMContentLoaded", () => {
     const bar = document.createElement("div");

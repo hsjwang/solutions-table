@@ -36,6 +36,11 @@ cd solutions-table
 npm install
 ```
 
+> **On the Firebase API key.** It is not a secret — Firebase compiles it into the
+> client bundle by design, and GitHub's secret scanner flags it anyway. See
+> [SECURITY.md](SECURITY.md) for what to do about the alert and, more
+> importantly, for the HTTP referrer restriction that actually protects the key.
+
 **Configure the database.** At [console.firebase.google.com](https://console.firebase.google.com):
 create a project, enable **Realtime Database** in test mode, *then* register a web
 app under Project settings.
@@ -54,12 +59,21 @@ Firebase generates will have no `databaseURL` — the app needs it.
 The Firebase web API key is not a secret. It identifies the project; it does not
 grant access. Access is controlled by database rules. Committing it is normal.
 
-**Before your first real class**, replace test-mode rules with the rules block at
-the bottom of `src/backend.js`. Test mode leaves the database writable by anyone
-who finds the URL, which is fine for an afternoon and not fine for a term.
+**Enable Anonymous sign-in:** Build → Authentication → Sign-in method →
+Anonymous → Enable. Nothing saves without it.
+
+**Publish the rules** in [`database.rules.json`](database.rules.json) — paste
+them into Realtime Database → Rules, or run `firebase deploy --only database`.
+They are what enforce the facilitator role and team seat ownership. Test mode
+leaves the database writable by anyone who finds the URL, and expires after 30
+days.
+
+Optionally keep the config out of git: copy `.env.example` to `.env` and fill it
+in instead of editing `src/backend.js`. For Pages, add the same names under
+Settings → Secrets and variables → Actions.
 
 ```bash
-npm run dev      # http://localhost:5173
+npm run dev      # http://localhost:5173/solutions-table/
 npm run build    # production build into dist/
 ```
 
@@ -131,8 +145,8 @@ rebuild any of them with `pdflatex <file>` run twice.
 
 | File | Pages | For |
 |---|---|---|
-| [`facilitator_quickref.pdf`](docs/facilitator_quickref.pdf) | 4 | **Start here.** Print double-sided on one folded sheet and hand it to a TA. Running the activity, when to intervene, web-version operations, and the scenario index |
-| [`facilitator_manual.pdf`](docs/facilitator_manual.pdf) | 24 | Full reference. Gameplay variants, modifier adjudication with worked examples, campaign play, assessment rubric, and ten scenarios with expert keys (Appendix C) |
+| [`facilitator_quickref.pdf`](docs/facilitator_quickref.pdf) | 4 | **Start here.** Print double-sided on one folded sheet and hand it to a TA. Running the activity, when to intervene, web and condition operations, and the scenario index |
+| [`facilitator_manual.pdf`](docs/facilitator_manual.pdf) | 27 | Full reference. Gameplay variants, modifier adjudication with worked examples, campaign play, assessment rubric, running the browser version, the controlled-study protocol, and ten scenarios with expert keys (Appendix C) |
 | [`survey_instrument.pdf`](docs/survey_instrument.pdf) | 8 | Participant and facilitator survey forms with scoring notes |
 | `docs/src/qualtrics_*.txt` | — | Import straight into Qualtrics: *Create project → Survey → From a file* |
 
@@ -142,33 +156,81 @@ Page 2 of the quick reference (**when to intervene**) and Appendix C of the
 manual (**the ten scenarios**). Facilitators who improvise a scenario, or who
 intervene too early, account for most sessions that fall flat.
 
+### Standing risks (optional)
+
+Toggle on from the facilitator panel. Each scenario carries **two problems the
+client already had**, pre-placed on the matrix and lettered A and B. Teams do not
+build them — they inherit them, which keeps Phase 1 short.
+
+The budget does not increase. Six points now cover today's incident *and* two
+chronic problems, which is the triage a clinic engagement actually involves: the
+client calls about the fire, but the fire is a symptom.
+
+This is what makes breadth pay. A control that touches several problems now
+scores better than one that only touches today's — which is why asset inventory
+and account hygiene are foundational, and something the single-threat loop could
+not teach.
+
+In campaign play, an addressed standing risk eases by one cell and an ignored one
+worsens, on the same logic as the main threat. The export gains a
+`standing_ignored` column, which over several engagements shows whether a team
+ever stopped firefighting.
+
+Recommended from mid-course. Adding two more objects to track cuts against the
+"bound the working set" requirement, so do not turn it on in week one.
+
+
 ### Campaign play across a term
 
 The same client organization returns in a later week. Use **Next engagement**,
 not *New round* — it carries the board forward instead of clearing it.
 
-On advance, for every team that played **Deferred Investment**:
+**Controls stay installed.** An organization does not forget its backups. Cards
+bought in an earlier engagement remain in place, are excluded from the new deal,
+and show as *Already in place* above the hand. Spending compounds; that
+accumulation is the visible reward for defending well.
 
-- the threat's **likelihood** moves one cell toward *Very Likely*
-- **severity never moves.** It is a property of who gets harmed, and that does
-  not change because an organization delayed
-- a threat already at *Very Likely* **realizes** instead of drifting: the attack
-  happens, and the outcome is resolved against every card the team has bought
-  across all engagements — detection, response, recovery, financial and
-  disclosure, each answered yes or no by their own purchase history, never by
-  chance
-- the team receives **10 points** next engagement, the banked budget the card
-  promised
+**Budgets refresh every engagement.** A team that spent everything in round one
+is not stranded — they get a fresh allocation. Unspent points are lost unless
+banked with Deferred Investment.
 
-Teams that did not defer carry forward unchanged. Threats, matrix positions,
-purchase history and engagement number persist; hands, purchases and modifiers
-clear. The export gains `engagement`, `drift`, `realized` and `ever_purchased`
-columns.
+| | Points next engagement |
+|---|---|
+| Normal | the session budget, usually 6 |
+| Played Deferred Investment | +4, so 10 — the \textsc{ig2} tier |
+| Suffered an incident with no Incident Response Planning | −1, floor of 3 |
 
-Realization exists to correct a structural bias: 21 of the 28 cards are
-preventive, and novices spend on prevention first. A team that never experiences
-an incident never learns why detection and recovery were worth points.
+**Threats move on coverage, and that is the feedback.** At each advance the app
+scores the portfolio against the scenario's expert key — strong cards count 2,
+partial 1:
 
+| Score | Verdict | Likelihood |
+|---|---|---|
+| 2 or more | **held** | falls one cell |
+| 1 | **partial** | unchanged |
+| 0 | **unaddressed** | rises one cell |
+
+Deferred Investment adds one cell on top, so a team that covers well *and* defers
+holds level rather than improving. That is the price of the extra points.
+
+**Severity never moves.** It is a property of who gets harmed, and that does not
+change because an organization delayed. If severity drifted too, every threat
+would march to the top-right corner and the matrix would stop distinguishing a
+stolen laptop at a shelter from a defaced page at a utility.
+
+**Realization** fires when a threat would move past *Very Likely*. The attack
+happens, and the outcome resolves against every card the team has ever
+bought — detection, response, recovery, financial, disclosure — never by chance.
+Afterwards the threat resets to *Likely*: the incident forces attention, and a
+team can climb back out rather than being pinned.
+
+Players see a verdict banner at the start of each engagement saying whether last
+year's portfolio held, helped a little, or did not address the threat. That is
+the feedback Cycle 1 participants asked for, delivered after they commit rather
+than as an answer sheet during play.
+
+The export gains `engagement`, `drift`, `realized`, `verdict` and
+`ever_purchased` columns.
 
 ### The facilitator role
 
