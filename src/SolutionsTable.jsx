@@ -24,14 +24,32 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
      into Setup before a session.
    ============================================================ */
 
-const C = {
-  slate: "#161B22", panel: "#1E252E", edge: "#2C3540",
-  paper: "#F6F4EF", ink: "#1A1F26", muted: "#8B97A6",
-  impact: "#3E7CB1", motive: "#E08A3C", resource: "#C0453B",
-  method: "#4E8C5A", solution: "#7C5FA8", brass: "#D9B45B",
-  ok: "#4E8C5A", warn: "#C0453B",
+const THEMES = {
+  /* Every foreground below clears WCAG AA (4.5:1) against both surface colours
+     in its own theme. The originals failed on five of nine. */
+  dark: {
+    name:"dark",
+    slate:"#161B22", panel:"#1E252E", edge:"#3A4653", ink:"#1A1F26",
+    paper:"#F6F4EF", muted:"#A8B4C2",
+    impact:"#6294BF", motive:"#E08A3C", resource:"#D1766F",
+    method:"#5F976A", solution:"#9A83BC", brass:"#D9B45B",
+    ok:"#5F976A", warn:"#D1766F",
+    onAccent:"#12171D",
+  },
+  light: {
+    name:"light",
+    slate:"#FBFAF7", panel:"#F0EEE8", edge:"#C6C2B8", ink:"#FBFAF7",
+    paper:"#1A1F26", muted:"#5A6270",
+    impact:"#3870A0", motive:"#955C28", resource:"#B64238",
+    method:"#407249", solution:"#765AA0", brass:"#7B6634",
+    ok:"#407249", warn:"#B64238",
+    onAccent:"#FFFFFF",
+  },
 };
-const BUILD = "2026-08-26.1658";
+let ACTIVE = THEMES.dark;
+/* Read through a proxy so the several hundred existing C.x lookups keep working
+   without touching each one. */
+const C = new Proxy({}, { get: (_t, k) => ACTIVE[k] });const BUILD = "2026-08-28.1638";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -302,13 +320,13 @@ function Tokens({total,spent}){
         const used = i < spent;
         return <div key={i} aria-hidden style={{
           width:22,height:22,borderRadius:"50%",
-          background: used ? "transparent" : `radial-gradient(circle at 34% 30%, #F0D488, ${C.brass})`,
+          background: used ? "transparent" : C.brass,
           border: used ? `1.5px dashed ${C.edge}` : `1.5px solid #A8873F`,
           boxShadow: used ? "none" : "0 1px 3px rgba(0,0,0,.45)",
           transition:"all .18s ease",
         }}/>;
       })}
-      <span style={{fontFamily:MONO,fontSize:12,color:C.muted,marginLeft:6}}>
+      <span style={{fontFamily:MONO,fontSize:13.5,color:C.muted,marginLeft:6}}>
         {total-spent} of {total} left
       </span>
     </div>
@@ -322,13 +340,13 @@ function Matrix({pre,post,onPick,interactive,compact,standing=[],addressed=[]}){
       <div style={{display:"grid",gridTemplateColumns:`auto repeat(3,${cell}px)`,gap:3}}>
         <div/>
         {SEVERITY.map(s=>(
-          <div key={s} style={{fontFamily:MONO,fontSize:9,color:C.muted,textAlign:"center",paddingBottom:3}}>
+          <div key={s} style={{fontFamily:MONO,fontSize:12.5,color:C.muted,textAlign:"center",paddingBottom:3}}>
             {compact? s.split(" ")[0] : s}
           </div>
         ))}
         {LIKELIHOOD.map((l,li)=>(
           <React.Fragment key={l}>
-            <div style={{fontFamily:MONO,fontSize:9,color:C.muted,alignSelf:"center",paddingRight:6,textAlign:"right"}}>
+            <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,alignSelf:"center",paddingRight:6,textAlign:"right"}}>
               {compact? l.split(" ")[0] : l}
             </div>
             {SEVERITY.map((s,si)=>{
@@ -341,7 +359,7 @@ function Matrix({pre,post,onPick,interactive,compact,standing=[],addressed=[]}){
                   style={{
                     width:cell,height:cell,borderRadius:3,cursor:interactive?"pointer":"default",
                     border:`1px solid ${C.edge}`,
-                    background:`rgba(192,69,59,${0.06+heat*0.20})`,
+                    background:C.name==="dark" ? `rgba(209,118,111,${0.10+heat*0.22})` : `rgba(182,66,56,${0.07+heat*0.18})`,
                     display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:0,
                   }}>
                   {standing.filter(r=>r.at.l===li && r.at.s===si).map(r=>(
@@ -366,7 +384,7 @@ function Matrix({pre,post,onPick,interactive,compact,standing=[],addressed=[]}){
         ))}
       </div>
       {!compact && (
-        <div style={{display:"flex",gap:14,marginTop:8,fontFamily:MONO,fontSize:10,color:C.muted}}>
+        <div style={{display:"flex",gap:14,marginTop:8,fontFamily:MONO,fontSize:12.5,color:C.muted}}>
           <span><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",border:`2px solid ${C.muted}`,marginRight:5}}/>before</span>
           <span><span style={{display:"inline-block",width:9,height:9,borderRadius:"50%",background:C.brass,marginRight:5}}/>after</span>
         </div>
@@ -387,19 +405,19 @@ function CardTile({c,state,onClick,disabled,note}){
         borderLeft:`3px solid ${C.solution}`, display:"block",
       }}>
       <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"baseline"}}>
-        <span style={{fontFamily:SANS,fontSize:13,color:C.paper,fontWeight:500,lineHeight:1.25}}>{c.name}</span>
-        <span style={{fontFamily:MONO,fontSize:11,color:c.cost===0?C.muted:C.brass,whiteSpace:"nowrap"}}>
+        <span style={{fontFamily:SANS,fontSize:14.5,color:C.paper,fontWeight:500,lineHeight:1.25}}>{c.name}</span>
+        <span style={{fontFamily:MONO,fontSize:13,color:c.cost===0?C.muted:C.brass,whiteSpace:"nowrap"}}>
           {c.cost===0?"free":`${c.cost} pt${c.cost>1?"s":""}`}
         </span>
       </div>
       <div title={c.ctrl
           ? "CIS Controls are a published checklist of security practices, written by a non-profit and used by real organizations. This number is where to look it up afterwards."
           : undefined}
-        style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:3,
+        style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:3,
           cursor:c.ctrl?"help":"default"}}>
         {String(c.id).padStart(2,"0")} · {c.ctrl || c.demand}
       </div>
-      {note && <div style={{fontFamily:MONO,fontSize:10,color:C.brass,marginTop:4}}>{note}</div>}
+      {note && <div style={{fontFamily:MONO,fontSize:12.5,color:C.brass,marginTop:4}}>{note}</div>}
     </button>
   );
 }
@@ -409,7 +427,7 @@ function Section({title,children,right}){
     <section style={{marginBottom:20}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",
         borderBottom:`1px solid ${C.edge}`,paddingBottom:5,marginBottom:10}}>
-        <h3 style={{fontFamily:MONO,fontSize:11,letterSpacing:".09em",textTransform:"uppercase",
+        <h3 style={{fontFamily:MONO,fontSize:13,letterSpacing:".09em",textTransform:"uppercase",
           color:C.muted,margin:0,fontWeight:500}}>{title}</h3>
         {right}
       </div>
@@ -419,10 +437,10 @@ function Section({title,children,right}){
 }
 
 const btn = (kind="ghost") => ({
-  fontFamily:MONO,fontSize:12,padding:"7px 13px",borderRadius:3,cursor:"pointer",
+  fontFamily:MONO,fontSize:13.5,padding:"7px 13px",borderRadius:3,cursor:"pointer",
   border:`1px solid ${kind==="primary"?C.brass:C.edge}`,
-  background: kind==="primary"?"rgba(217,180,91,.14)":kind==="danger"?"rgba(192,69,59,.14)":"transparent",
-  color: kind==="primary"?C.brass:kind==="danger"?"#E88C84":C.paper,
+  background: kind==="primary"?"rgba(217,180,91,.16)":kind==="danger"?"rgba(209,118,111,.16)":"transparent",
+  color: kind==="primary"?C.brass:kind==="danger"?C.warn:C.paper,
 });
 
 
@@ -472,7 +490,7 @@ function HeaderClock({end}){
   const m = Math.floor(left/60000), sec = Math.floor((left%60000)/1000);
   const low = left < 120000;
   return (
-    <div style={{fontFamily:MONO,fontSize:26,fontWeight:600,lineHeight:1,
+    <div style={{fontFamily:MONO,fontSize:27,fontWeight:600,lineHeight:1,
       fontVariantNumeric:"tabular-nums",
       color: left===0 ? C.warn : low ? C.brass : C.paper}}>
       {left===0 ? "time" : `${m}:${String(sec).padStart(2,"0")}`}
@@ -488,19 +506,19 @@ function PhaseGuide({phase}){
     <div style={{border:`1px solid ${C.solution}`,borderRadius:4,
       background:"rgba(124,95,168,.10)",padding:"11px 13px",marginBottom:18}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10}}>
-        <span style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+        <span style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
           textTransform:"uppercase",color:C.solution}}>What to do now — {g.title}</span>
-        <button onClick={()=>setOpen(o=>!o)} style={{...btn(),fontSize:10,padding:"2px 8px"}}>
+        <button onClick={()=>setOpen(o=>!o)} style={{...btn(),fontSize:12.5,padding:"2px 8px"}}>
           {open?"hide":"show"}
         </button>
       </div>
       {open && (
         <>
-          <ol style={{margin:"8px 0 0",paddingLeft:18,fontSize:12.5,lineHeight:1.65}}>
+          <ol style={{margin:"8px 0 0",paddingLeft:18,fontSize:14,lineHeight:1.65}}>
             {g.steps.map((x,i)=><li key={i} style={{marginBottom:3}}>{x}</li>)}
           </ol>
-          <div style={{fontSize:12.5,lineHeight:1.6,marginTop:8,color:C.brass}}>{g.key}</div>
-          {g.done && <div style={{fontFamily:MONO,fontSize:10.5,color:C.muted,marginTop:6}}>
+          <div style={{fontSize:14,lineHeight:1.6,marginTop:8,color:C.brass}}>{g.key}</div>
+          {g.done && <div style={{fontFamily:MONO,fontSize:13,color:C.muted,marginTop:6}}>
             Done when: {g.done}</div>}
         </>
       )}
@@ -512,15 +530,15 @@ function PhaseGuide({phase}){
 function HelpPanel({onClose}){
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:900,
-      background:"rgba(10,13,17,.82)",overflowY:"auto",padding:"28px 16px"}}>
+      background:C.name==="dark"?"rgba(10,13,17,.86)":"rgba(40,38,34,.55)",overflowY:"auto",padding:"28px 16px"}}>
       <div onClick={e=>e.stopPropagation()} style={{maxWidth:720,margin:"0 auto",
         background:C.panel,border:`1px solid ${C.edge}`,borderRadius:6,padding:"22px 26px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-          <h2 style={{margin:0,fontSize:22,fontWeight:600}}>How to play</h2>
+          <h2 style={{margin:0,fontSize:23,fontWeight:600}}>How to play</h2>
           <button onClick={onClose} style={btn()}>Close</button>
         </div>
 
-        <p style={{fontSize:13.5,lineHeight:1.65,color:"#D6D2C8"}}>
+        <p style={{fontSize:15,lineHeight:1.65,color:C.paper}}>
           You are advising an organization that cannot afford everything. Your job is to pick
           what it should do, and be able to say why. There is no single right answer — there
           are answers you can defend and answers you cannot.
@@ -530,36 +548,36 @@ function HelpPanel({onClose}){
           const g = PHASE_GUIDE[p];
           return (
             <div key={p} style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.edge}`}}>
-              <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+              <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
                 textTransform:"uppercase",color:C.solution}}>
                 {PHASES.find(x=>x.id===p)?.label}
               </div>
-              <div style={{fontSize:15,fontWeight:600,margin:"3px 0 6px"}}>{g.title}</div>
-              <ol style={{margin:0,paddingLeft:18,fontSize:12.5,lineHeight:1.65,color:"#D6D2C8"}}>
+              <div style={{fontSize:16,fontWeight:600,margin:"3px 0 6px"}}>{g.title}</div>
+              <ol style={{margin:0,paddingLeft:18,fontSize:14,lineHeight:1.65,color:C.paper}}>
                 {g.steps.map((x,i)=><li key={i}>{x}</li>)}
               </ol>
-              <div style={{fontSize:12.5,color:C.brass,marginTop:6}}>{g.key}</div>
+              <div style={{fontSize:14,color:C.brass,marginTop:6}}>{g.key}</div>
             </div>
           );
         })}
 
         <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.edge}`}}>
-          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+          <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
             textTransform:"uppercase",color:C.solution}}>What &ldquo;CIS Control 7&rdquo; means</div>
-          <p style={{fontSize:12.5,lineHeight:1.65,color:"#D6D2C8",margin:"6px 0 0"}}>
+          <p style={{fontSize:14,lineHeight:1.65,color:C.paper,margin:"6px 0 0"}}>
             The <b>CIS Critical Security Controls</b> are a published checklist of security
             practices, maintained by the Center for Internet Security, a non-profit. There are 18
             controls containing 153 specific safeguards, and real organizations are measured
             against them.
           </p>
-          <p style={{fontSize:12.5,lineHeight:1.65,color:"#D6D2C8",margin:"7px 0 0"}}>
+          <p style={{fontSize:14,lineHeight:1.65,color:C.paper,margin:"7px 0 0"}}>
             The number on a card is where that practice lives in the list. It matters for two
             reasons. It means the card is not our opinion — someone else already argued about
             what belongs on the list. And it gives you something to look up: search
             &ldquo;CIS Control 7&rdquo; after today and you will find the full detail, which
             &ldquo;keep things patched&rdquo; would not have given you.
           </p>
-          <p style={{fontSize:12.5,lineHeight:1.65,color:"#D6D2C8",margin:"7px 0 0"}}>
+          <p style={{fontSize:14,lineHeight:1.65,color:C.paper,margin:"7px 0 0"}}>
             The controls are also split into three <b>Implementation Groups</b> by how much an
             organization can realistically manage. That is where card costs come from: a
             1-point card is something a small charity can do, a 3-point card needs staff and
@@ -568,9 +586,9 @@ function HelpPanel({onClose}){
         </div>
 
         <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.edge}`}}>
-          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+          <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
             textTransform:"uppercase",color:C.solution}}>The cards</div>
-          <table style={{width:"100%",fontSize:12.5,marginTop:7,borderCollapse:"collapse"}}>
+          <table style={{width:"100%",fontSize:14,marginTop:7,borderCollapse:"collapse"}}>
             <tbody>
               {[["Foundational","1 point","Basic hygiene. Most of the deck."],
                 ["Extended","2 points","Needs someone to run it."],
@@ -578,9 +596,9 @@ function HelpPanel({onClose}){
                 ["Modifiers","free","A principle, not a control. Must be justified."]].map(r=>(
                 <tr key={r[0]}>
                   <td style={{padding:"3px 10px 3px 0",fontWeight:600,whiteSpace:"nowrap"}}>{r[0]}</td>
-                  <td style={{padding:"3px 10px 3px 0",fontFamily:MONO,fontSize:11,
+                  <td style={{padding:"3px 10px 3px 0",fontFamily:MONO,fontSize:13,
                     color:C.brass,whiteSpace:"nowrap"}}>{r[1]}</td>
-                  <td style={{padding:"3px 0",color:"#D6D2C8"}}>{r[2]}</td>
+                  <td style={{padding:"3px 0",color:C.paper}}>{r[2]}</td>
                 </tr>
               ))}
             </tbody>
@@ -588,9 +606,9 @@ function HelpPanel({onClose}){
         </div>
 
         <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.edge}`}}>
-          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+          <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
             textTransform:"uppercase",color:C.solution}}>Things teams get wrong</div>
-          <ul style={{margin:"7px 0 0",paddingLeft:18,fontSize:12.5,lineHeight:1.7,color:"#D6D2C8"}}>
+          <ul style={{margin:"7px 0 0",paddingLeft:18,fontSize:14,lineHeight:1.7,color:C.paper}}>
             <li>Rating severity by how clever the attack is. Severity is who gets hurt.</li>
             <li>Moving the threat to the bottom-left in Phase 3. Something always gets through.</li>
             <li>Buying the expensive card because it sounds serious. Cost tracks how hard a
@@ -601,7 +619,7 @@ function HelpPanel({onClose}){
           </ul>
         </div>
 
-        <p style={{fontFamily:MONO,fontSize:10.5,color:C.muted,lineHeight:1.6,marginTop:18,marginBottom:0}}>
+        <p style={{fontFamily:MONO,fontSize:13,color:C.muted,lineHeight:1.6,marginTop:18,marginBottom:0}}>
           Ask your facilitator for the full manual, or find it in the project repository
           under docs/.
         </p>
@@ -625,16 +643,16 @@ class Boundary extends React.Component {
       <div style={{minHeight:"100%",background:C.slate,color:C.paper,fontFamily:SANS,
         padding:"40px 24px"}}>
         <div style={{maxWidth:560,margin:"0 auto"}}>
-          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".16em",
+          <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".16em",
             textTransform:"uppercase",color:C.warn}}>Something broke</div>
-          <h1 style={{fontSize:24,margin:"6px 0 10px",fontWeight:600}}>
+          <h1 style={{fontSize:25,margin:"6px 0 10px",fontWeight:600}}>
             This screen could not load
           </h1>
-          <p style={{fontSize:13.5,lineHeight:1.65,color:"#D6D2C8"}}>
+          <p style={{fontSize:15,lineHeight:1.65,color:C.paper}}>
             Your team's work is saved — nothing is lost. Reload the page and you should be able
             to carry on. If it happens again, read the line below to your facilitator.
           </p>
-          <pre style={{fontFamily:MONO,fontSize:11,lineHeight:1.6,color:C.brass,
+          <pre style={{fontFamily:MONO,fontSize:13,lineHeight:1.6,color:C.brass,
             background:C.panel,border:`1px solid ${C.edge}`,borderRadius:4,
             padding:"10px 12px",whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{msg}</pre>
           <button style={{...btn("primary"),marginTop:14}}
@@ -670,6 +688,24 @@ function SolutionsTableInner(){
   const [teams,setTeams] = useState({});
   const [status,setStatus] = useState("");
   const [help,setHelp] = useState(false);
+  const [theme,setTheme] = useState("dark");
+  const [scale,setScale] = useState(1);
+  /* Personal storage, not shared — one person needing larger text should not
+     resize the board for everyone else in the room. */
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const r = await window.storage?.get("prefs", false);
+        if(r){ const p = JSON.parse(r.value);
+          if(p.theme) setTheme(p.theme); if(p.scale) setScale(p.scale); }
+      }catch{ /* nothing saved yet */ }
+    })();
+  },[]);
+  const savePrefs = (t,sc)=>{
+    setTheme(t); setScale(sc);
+    try{ window.storage?.set("prefs", JSON.stringify({theme:t,scale:sc}), false); }catch{}
+  };
+  ACTIVE = THEMES[theme] || THEMES.dark;
   const [busy,setBusy] = useState(false);
   const poll = useRef(null);
 
@@ -747,35 +783,56 @@ function SolutionsTableInner(){
   };
 
   const shell = (children)=>(
-    <div style={{minHeight:"100%",background:C.slate,color:C.paper,fontFamily:SANS,padding:"20px 18px 40px"}}>
+    <div style={{minHeight:"100%",background:C.slate,color:C.paper,fontFamily:SANS,
+      padding:"20px 18px 40px", fontSize:`${scale*100}%`, zoom:scale}}>
       <style>{`
-        button:focus-visible{outline:2px solid ${C.brass};outline-offset:2px}
-        input,textarea,select{font-family:${MONO};font-size:12px;background:${C.panel};
-          color:${C.paper};border:1px solid ${C.edge};border-radius:3px;padding:7px 9px;width:100%;box-sizing:border-box}
-        textarea{resize:vertical;min-height:56px;line-height:1.5}
+        button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible{
+          outline:3px solid ${C.brass}; outline-offset:2px}
+        input,textarea,select{font-family:${MONO};font-size:14px;background:${C.panel};
+          color:${C.paper};border:1px solid ${C.edge};border-radius:3px;padding:8px 10px;
+          width:100%;box-sizing:border-box;line-height:1.5}
+        textarea{resize:vertical;min-height:64px}
+        input::placeholder,textarea::placeholder{color:${C.muted};opacity:1}
+        select option{background:${C.panel};color:${C.paper}}
+        button:disabled,input:disabled,textarea:disabled,select:disabled{opacity:.55}
+        ::selection{background:${C.brass};color:${C.onAccent}}
         @media (prefers-reduced-motion: reduce){*{transition:none!important}}
       `}</style>
       {help && <HelpPanel onClose={()=>setHelp(false)}/>}
       <header style={{maxWidth:1100,margin:"0 auto 22px",display:"flex",
         justifyContent:"space-between",alignItems:"flex-end",gap:12,flexWrap:"wrap"}}>
         <div>
-          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".16em",color:C.solution,textTransform:"uppercase"}}>
+          <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".16em",color:C.solution,textTransform:"uppercase"}}>
             Solutions dimension
           </div>
           <div style={{display:"flex",alignItems:"baseline",gap:12}}>
-            <h1 style={{fontFamily:SANS,fontSize:26,margin:"3px 0 0",fontWeight:600,letterSpacing:"-.02em"}}>
+            <h1 style={{fontFamily:SANS,fontSize:27,margin:"3px 0 0",fontWeight:600,letterSpacing:"-.02em"}}>
               Solutions Table
             </h1>
-            <button onClick={()=>setHelp(true)} style={{...btn(),fontSize:11,padding:"3px 10px"}}>
+            <button onClick={()=>setHelp(true)} style={{...btn(),fontSize:13,padding:"3px 10px"}}>
               How to play
             </button>
             <span title="Build version — check this matches your latest deploy"
-              style={{fontFamily:MONO,fontSize:9.5,color:C.edge}}>{BUILD}</span>
+              style={{fontFamily:MONO,fontSize:12.5,color:C.muted,opacity:.6}}>{BUILD}</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:7}}>
+            <span style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Text</span>
+            {[["A",1],["A",1.15],["A",1.3]].map(([lbl,v],i)=>(
+              <button key={v} onClick={()=>savePrefs(theme,v)}
+                aria-pressed={scale===v}
+                aria-label={`Text size ${["normal","large","larger"][i]}`}
+                style={{...btn(scale===v?"primary":"ghost"),
+                  fontSize:[13,15,18][i], lineHeight:1, padding:"3px 9px"}}>{lbl}</button>
+            ))}
+            <button onClick={()=>savePrefs(theme==="dark"?"light":"dark",scale)}
+              style={{...btn(),fontSize:12.5,padding:"4px 10px",marginLeft:4}}>
+              {theme==="dark"?"Light":"Dark"}
+            </button>
           </div>
         </div>
         <div style={{display:"flex",alignItems:"flex-start",gap:18}}>
           {cfg?.timerEnd && <HeaderClock end={cfg.timerEnd}/>}
-          <div style={{fontFamily:MONO,fontSize:11,color:C.muted,textAlign:"right"}}>
+          <div style={{fontFamily:MONO,fontSize:13,color:C.muted,textAlign:"right"}}>
             {cfg?.org ? <div style={{color:C.paper}}>{cfg.org}</div> : null}
             <div>{PHASES.find(p=>p.id===(cfg?.phase||"setup"))?.label}</div>
             {status && <div style={{color:C.brass,marginTop:3}}>{status}</div>}
@@ -841,14 +898,14 @@ function SolutionsTableInner(){
 function Gate({onPlayer,onFac,onProjector,cfg}){
   return (
     <div style={{maxWidth:520}}>
-      <p style={{color:C.muted,fontSize:14,lineHeight:1.6,marginTop:0}}>
+      <p style={{color:C.muted,fontSize:15,lineHeight:1.6,marginTop:0}}>
         A shared board for the Solutions dimension. Everyone opens the same link.
         One person takes the facilitator role; everyone else joins a team.
       </p>
       {cfg?.org && (
         <div style={{background:C.panel,border:`1px solid ${C.edge}`,borderRadius:4,padding:12,marginBottom:16}}>
-          <div style={{fontFamily:MONO,fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:".08em"}}>Session in progress</div>
-          <div style={{fontSize:15,marginTop:4}}>{cfg.org}</div>
+          <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,textTransform:"uppercase",letterSpacing:".08em"}}>Session in progress</div>
+          <div style={{fontSize:16,marginTop:4}}>{cfg.org}</div>
         </div>
       )}
       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
@@ -856,7 +913,7 @@ function Gate({onPlayer,onFac,onProjector,cfg}){
         <button style={{...btn(),padding:"11px 20px"}} onClick={onFac}>Take the facilitator role</button>
         <button style={{...btn(),padding:"11px 20px"}} onClick={onProjector}>Open the projector view</button>
       </div>
-      <p style={{color:C.muted,fontSize:12,marginTop:20,lineHeight:1.6,fontFamily:MONO}}>
+      <p style={{color:C.muted,fontSize:13.5,marginTop:20,lineHeight:1.6,fontFamily:MONO}}>
         The board refreshes every few seconds. Facilitators can also open this
         with <span style={{color:C.paper}}>#facilitator</span> at the end of the URL.
       </p>
@@ -875,7 +932,7 @@ function FacGate({onClaim,onBack,cfg,clientId,authReady}){
   return (
     <div style={{maxWidth:420}}>
       <Section title="Facilitator">
-        <p style={{color:C.muted,fontSize:13,lineHeight:1.6,marginTop:0}}>
+        <p style={{color:C.muted,fontSize:14.5,lineHeight:1.6,marginTop:0}}>
           {claimed
             ? "Someone already holds this role. Enter the same code they used to take it over — useful if a browser was closed mid-session."
             : "Pick a code and share it only with co-facilitators. It is what lets you reclaim the role if your browser closes."}
@@ -883,9 +940,9 @@ function FacGate({onClaim,onBack,cfg,clientId,authReady}){
         <input value={code} onChange={e=>setCode(e.target.value)} placeholder="Facilitator code"
           disabled={waiting}
           onKeyDown={e=>{ if(e.key==="Enter"&&code.trim()&&!waiting) onClaim(code.trim()).then(setErr); }}/>
-        {waiting && <div style={{fontFamily:MONO,fontSize:10.5,color:C.muted,marginTop:8}}>
+        {waiting && <div style={{fontFamily:MONO,fontSize:13,color:C.muted,marginTop:8}}>
           Signing in…</div>}
-        {err && <div style={{color:"#E88C84",fontFamily:MONO,fontSize:11,marginTop:8}}>{err}</div>}
+        {err && <div style={{color:C.warn,fontFamily:MONO,fontSize:13,marginTop:8}}>{err}</div>}
         <div style={{display:"flex",gap:8,marginTop:12}}>
           <button style={btn("primary")} disabled={!code.trim()||waiting}
             onClick={()=>onClaim(code.trim()).then(setErr)}>Claim the role</button>
@@ -1062,7 +1119,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
     return (
       <div style={{maxWidth:460}}>
         <Section title="You no longer hold this role">
-          <p style={{color:C.muted,fontSize:13,lineHeight:1.6,marginTop:0}}>
+          <p style={{color:C.muted,fontSize:14.5,lineHeight:1.6,marginTop:0}}>
             Another device claimed the facilitator role for this session. To avoid two
             people changing the phase at once, this window has stopped.
           </p>
@@ -1102,29 +1159,29 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           </div>
           {loaded && (
             <div style={{border:`1px solid ${C.edge}`,borderRadius:4,padding:11,background:C.panel}}>
-              <div style={{fontFamily:MONO,fontSize:10,color:C.solution,textTransform:"uppercase",
+              <div style={{fontFamily:MONO,fontSize:12.5,color:C.solution,textTransform:"uppercase",
                 letterSpacing:".08em"}}>Teaching target — facilitator only</div>
-              <div style={{fontSize:12.5,lineHeight:1.55,margin:"5px 0 9px"}}>{loaded.target}</div>
+              <div style={{fontSize:14,lineHeight:1.55,margin:"5px 0 9px"}}>{loaded.target}</div>
               {loaded.care && (
-                <div style={{fontFamily:MONO,fontSize:10.5,color:C.warn,lineHeight:1.55,marginBottom:9}}>
+                <div style={{fontFamily:MONO,fontSize:13,color:C.warn,lineHeight:1.55,marginBottom:9}}>
                   May land on personal experience. Offer the redraw to the team before reading it.
                 </div>
               )}
-              <div style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Expert key</div>
-              <div style={{fontSize:11.5,lineHeight:1.6,marginTop:4}}>
+              <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Expert key</div>
+              <div style={{fontSize:13.5,lineHeight:1.6,marginTop:4}}>
                 <span style={{color:C.ok}}>Strong:</span> {loaded.strong.map(i=>card(i)?.name).join(", ")}<br/>
                 <span style={{color:C.brass}}>Partial:</span> {loaded.partial.map(i=>card(i)?.name).join(", ")}<br/>
                 <span style={{color:C.muted}}>Weak here:</span> {loaded.weak.map(i=>card(i)?.name).join(", ")}
               </div>
-              <button style={{...btn(),marginTop:10,width:"100%",fontSize:11}} disabled={busy}
+              <button style={{...btn(),marginTop:10,width:"100%",fontSize:13}} disabled={busy}
                 onClick={()=>applyDraw(loaded)}>
                 Re-deal the suggested threat model to every team
               </button>
               <div style={{display:"flex",gap:6,marginTop:7,alignItems:"center"}}>
-                <span style={{fontFamily:MONO,fontSize:10,color:C.muted,flex:1}}>
+                <span style={{fontFamily:MONO,fontSize:12.5,color:C.muted,flex:1}}>
                   Threat cards {cfg?.threatLocked?"locked":"open to teams"}
                 </span>
-                <button style={{...btn(),fontSize:10,padding:"3px 9px"}}
+                <button style={{...btn(),fontSize:12.5,padding:"3px 9px"}}
                   onClick={()=>saveCfg({threatLocked:!cfg?.threatLocked})}>
                   {cfg?.threatLocked?"Unlock":"Lock"}
                 </button>
@@ -1134,21 +1191,21 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
         </Section>
 
         <Section title="Session" right={<button style={btn()} onClick={onExit}>Leave</button>}>
-          <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Client organization</label>
+          <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Client organization</label>
           <input value={org} onChange={e=>setOrg(e.target.value)} placeholder="e.g. a volunteer-run food bank"
             onBlur={()=>saveCfg({org})} style={{marginBottom:10}}/>
-          <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Scenario read aloud</label>
+          <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Scenario read aloud</label>
           <textarea value={scenario} onChange={e=>setScenario(e.target.value)} onBlur={()=>saveCfg({scenario})}
             placeholder="One or two sentences the teams all start from."/>
           <div style={{marginTop:12}}>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Standing risks</label>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Standing risks</label>
             <div style={{display:"flex",gap:6,marginTop:6}}>
               <button onClick={()=>saveCfg({standingOn:false})}
-                style={{...btn(!cfg?.standingOn?"primary":"ghost"),fontSize:11}}>Off</button>
+                style={{...btn(!cfg?.standingOn?"primary":"ghost"),fontSize:13}}>Off</button>
               <button onClick={()=>saveCfg({standingOn:true})}
-                style={{...btn(cfg?.standingOn?"primary":"ghost"),fontSize:11}}>On — two per scenario</button>
+                style={{...btn(cfg?.standingOn?"primary":"ghost"),fontSize:13}}>On — two per scenario</button>
             </div>
-            <p style={{fontFamily:MONO,fontSize:10,color:C.muted,lineHeight:1.6,marginTop:6}}>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
               Two problems the client already had, pre-placed on the matrix. Same budget, so
               teams must choose between today's incident and the chronic ones. Recommended from
               mid-course, not week one.
@@ -1156,29 +1213,29 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           </div>
 
           <div style={{marginTop:12}}>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>
               Teams — allow about {SEATS_PER_TEAM} students each
             </label>
             <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
               {[6,8,10,12,16].map(k=>(
                 <button key={k} onClick={()=>saveCfg({teamCount:k})}
-                  style={{...btn((cfg?.teamCount??6)===k?"primary":"ghost"),fontSize:11}}>
+                  style={{...btn((cfg?.teamCount??6)===k?"primary":"ghost"),fontSize:13}}>
                   {k} · up to {k*SEATS_PER_TEAM}
                 </button>
               ))}
             </div>
-            <p style={{fontFamily:MONO,fontSize:10,color:C.muted,lineHeight:1.6,marginTop:6}}>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
               Reducing the count hides higher-numbered teams but does not delete them.
               Larger rooms refresh a little more slowly to keep request volume steady.
             </p>
           </div>
 
           <div style={{marginTop:12}}>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Budget — the organization's resource level</label>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Budget — the organization's resource level</label>
             <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
               {[[5,"No IT staff"],[6,"IG1 · default"],[10,"IG2"],[15,"IG3"]].map(([b,lbl])=>(
                 <button key={b} onClick={()=>saveCfg({budget:b})}
-                  style={{...btn(budget===b?"primary":"ghost"),fontSize:11}}>{b} · {lbl}</button>
+                  style={{...btn(budget===b?"primary":"ghost"),fontSize:13}}>{b} · {lbl}</button>
               ))}
             </div>
           </div>
@@ -1195,7 +1252,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
             Deal 8 controls + 3 modifiers to every team
           </button>
           <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.edge}`}}>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Campaign — same client, later in the term</label>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Campaign — same client, later in the term</label>
             <button style={{...btn("primary"),marginTop:6,width:"100%"}} disabled={busy}
               onClick={()=>{ if(window.confirm(
                 "Advance to the next engagement?\n\nThreats and matrix positions carry forward. "+
@@ -1204,7 +1261,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                 "are cleared. Export the CSV first.")) nextEngagement(); }}>
               Next engagement — carry the board forward
             </button>
-            <p style={{fontFamily:MONO,fontSize:10,color:C.muted,lineHeight:1.6,marginTop:6}}>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
               Use this instead of New round when the same organization returns. Severity never
               drifts; only likelihood does.{!cfg?.scenarioId && (
                 <span style={{color:C.warn}}> No scenario is loaded, so coverage cannot be
@@ -1213,7 +1270,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           </div>
 
           <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.edge}`}}>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Another scenario, same room</label>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Another scenario, same room</label>
             <button style={{...btn(),marginTop:6,width:"100%"}} disabled={busy}
               onClick={()=>{ if(window.confirm(
                 "Clear the board for another scenario?\n\nTeams keep their names and seats. "+
@@ -1224,7 +1281,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           </div>
 
           <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.edge}`}}>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>When the class is over</label>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>When the class is over</label>
             <button style={{...btn("danger"),marginTop:6,width:"100%"}} disabled={busy}
               onClick={()=>{ if(window.confirm(
                 "Clear the board for the next class?\n\nA timestamped copy is kept first, so nothing is lost. "+
@@ -1235,40 +1292,40 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           </div>
 
           <div style={{marginTop:12}}>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>
               Timer — everyone sees it, not just the projector
             </label>
             <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
-              <button style={{...btn("primary"),fontSize:11}}
+              <button style={{...btn("primary"),fontSize:13}}
                 onClick={()=>saveCfg({timerEnd:Date.now()+(PHASE_MINUTES[phase]||8)*60000})}>
                 Start {PHASE_MINUTES[phase]||8} min for this phase
               </button>
               {[5,10,15].map(m=>(
-                <button key={m} style={{...btn(),fontSize:11}}
+                <button key={m} style={{...btn(),fontSize:13}}
                   onClick={()=>saveCfg({timerEnd:Date.now()+m*60000})}>{m}</button>
               ))}
-              <button style={{...btn(),fontSize:11}} onClick={()=>saveCfg({timerEnd:null})}>Clear</button>
+              <button style={{...btn(),fontSize:13}} onClick={()=>saveCfg({timerEnd:null})}>Clear</button>
             </div>
           </div>
-          <p style={{fontFamily:MONO,fontSize:10,color:C.muted,lineHeight:1.6,marginTop:8}}>
+          <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:8}}>
             Dealing replaces any hand a team already has. Deal once, at the start of Phase 2.
           </p>
         </Section>
 
         {loaded && (cfg?.phase==="debrief"||cfg?.phase==="p3") && (
           <Section title="Debrief questions for this scenario">
-            <ol style={{margin:0,paddingLeft:18,fontSize:12.5,lineHeight:1.6}}>
+            <ol style={{margin:0,paddingLeft:18,fontSize:14,lineHeight:1.6}}>
               {loaded.debrief.map((q,i)=><li key={i} style={{marginBottom:5}}>{q}</li>)}
             </ol>
           </Section>
         )}
 
         <Section title="Facilitator role">
-          <p style={{fontFamily:MONO,fontSize:10.5,color:C.muted,lineHeight:1.6,margin:"0 0 9px"}}>
+          <p style={{fontFamily:MONO,fontSize:13,color:C.muted,lineHeight:1.6,margin:"0 0 9px"}}>
             You hold this role. Only someone with the code can take it, and only you can
             release it from here.
           </p>
-          {roleMsg && <div style={{fontFamily:MONO,fontSize:10.5,color:C.brass,marginBottom:8}}>{roleMsg}</div>}
+          {roleMsg && <div style={{fontFamily:MONO,fontSize:13,color:C.brass,marginBottom:8}}>{roleMsg}</div>}
           <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
             <button style={btn()} disabled={busy} onClick={changeCode}>Change the code</button>
             <button style={btn("danger")} disabled={busy}
@@ -1281,19 +1338,19 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           </div>
         </Section>
 
-        <Section title="Adjudication" right={<span style={{fontFamily:MONO,fontSize:11,
+        <Section title="Adjudication" right={<span style={{fontFamily:MONO,fontSize:13,
           padding:pending.length?"2px 8px":0, borderRadius:3,
           background:pending.length?C.brass:"transparent",
-          color:pending.length?"#2A1F05":C.muted}}>{pending.length} waiting</span>}>
+          color:pending.length?C.onAccent:C.muted}}>{pending.length} waiting</span>}>
           {pending.length===0
-            ? <p style={{color:C.muted,fontSize:12,margin:0,lineHeight:1.6}}>
+            ? <p style={{color:C.muted,fontSize:13.5,margin:0,lineHeight:1.6}}>
                 Nothing to judge yet. When a team plays a modifier, its justification arrives here.</p>
             : pending.map((p,k)=>(
               <div key={k} style={{border:`1px solid ${C.edge}`,borderRadius:4,padding:11,marginBottom:8,background:C.panel}}>
-                <div style={{fontFamily:MONO,fontSize:10,color:C.muted}}>{teams[p.n]?.name} · card {p.id}</div>
-                <div style={{fontSize:13,fontWeight:500,margin:"3px 0 5px"}}>{card(p.id)?.name}</div>
-                <div style={{fontSize:12.5,color:C.paper,lineHeight:1.55,fontStyle:"italic"}}>“{p.justification}”</div>
-                <div style={{fontFamily:MONO,fontSize:10,color:C.muted,margin:"7px 0"}}>Needs: {card(p.id)?.demand}</div>
+                <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>{teams[p.n]?.name} · card {p.id}</div>
+                <div style={{fontSize:14.5,fontWeight:500,margin:"3px 0 5px"}}>{card(p.id)?.name}</div>
+                <div style={{fontSize:14,color:C.paper,lineHeight:1.55,fontStyle:"italic"}}>“{p.justification}”</div>
+                <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,margin:"7px 0"}}>Needs: {card(p.id)?.demand}</div>
                 <div style={{display:"flex",gap:7}}>
                   <button style={btn("primary")} onClick={()=>{
                     const mods=[...teams[p.n].modifiers]; mods[p.i]={...mods[p.i],status:"accepted"};
@@ -1322,15 +1379,15 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
               const t = teams[n];
               if(!t?.joined) return (
                 <div key={n} style={{border:`1px dashed ${C.edge}`,borderRadius:4,padding:"10px 12px",
-                  fontFamily:MONO,fontSize:11,color:C.muted}}>Team {n} — no one here yet</div>
+                  fontFamily:MONO,fontSize:13,color:C.muted}}>Team {n} — no one here yet</div>
               );
               const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
               return (
                 <div key={n} style={{border:`1px solid ${C.edge}`,borderRadius:4,padding:12,background:C.panel,
                   display:"grid",gridTemplateColumns:"1fr auto",gap:12,alignItems:"start"}}>
                   <div style={{minWidth:0}}>
-                    <div style={{fontWeight:600,fontSize:14}}>{t.name}</div>
-                    <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:2}}>
+                    <div style={{fontWeight:600,fontSize:15}}>{t.name}</div>
+                    <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:2}}>
                       {t.members||"—"}
                       {(t.engagement||1)>1 && ` · engagement ${t.engagement}`}
                       {(t.drift||0)>0 && ` · drifted ${t.drift}`}
@@ -1344,12 +1401,12 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                     </div>
                     <div style={{display:"flex",gap:5,flexWrap:"wrap",margin:"7px 0"}}>
                       {Object.entries(DIM_META).map(([k,m])=> t.threat[k] ? (
-                        <span key={k} style={{fontFamily:MONO,fontSize:9.5,padding:"2px 6px",borderRadius:2,
+                        <span key={k} style={{fontFamily:MONO,fontSize:12.5,padding:"2px 6px",borderRadius:2,
                           border:`1px solid ${m.color}`,color:m.color}}>{t.threat[k]}</span>
                       ):null)}
                     </div>
                     <Tokens total={budget} spent={spent}/>
-                    <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:6,lineHeight:1.5}}>
+                    <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:6,lineHeight:1.5}}>
                       {(t.purchases||[]).length
                         ? (t.purchases||[]).map(id=>card(id)?.name).join(" · ")
                         : "nothing bought yet"}
@@ -1358,7 +1415,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                   <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
                     <Matrix pre={t.pre} post={t.post} compact/>
                     {t.ownerUid && (
-                      <button style={{...btn(),fontSize:10,padding:"4px 8px"}} disabled={busy}
+                      <button style={{...btn(),fontSize:12.5,padding:"4px 8px"}} disabled={busy}
                         onClick={()=>{ if(window.confirm(
                           `Release ${t.name}'s seat?\n\nTheir board is untouched. The next device to `+
                           `open this team takes it over. Use this when a laptop has died or a student `+
@@ -1388,27 +1445,27 @@ function OverlayMatrix({teams,ids,size=118}){
     <div style={{display:"grid",gridTemplateColumns:`auto repeat(3,${size}px)`,gap:6}}>
       <div/>
       {SEVERITY.map(s=>(
-        <div key={s} style={{fontFamily:MONO,fontSize:13,color:C.muted,textAlign:"center",paddingBottom:5}}>{s}</div>
+        <div key={s} style={{fontFamily:MONO,fontSize:14.5,color:C.muted,textAlign:"center",paddingBottom:5}}>{s}</div>
       ))}
       {LIKELIHOOD.map((l,li)=>(
         <React.Fragment key={l}>
-          <div style={{fontFamily:MONO,fontSize:13,color:C.muted,alignSelf:"center",
+          <div style={{fontFamily:MONO,fontSize:14.5,color:C.muted,alignSelf:"center",
             paddingRight:10,textAlign:"right"}}>{l}</div>
           {SEVERITY.map((sv,si)=>{
             const heat=(li+si)/4;
             const pre=at(li,si,"pre"), post=at(li,si,"post");
             return (
               <div key={sv} style={{width:size,height:size,borderRadius:5,
-                border:`1px solid ${C.edge}`,background:`rgba(192,69,59,${0.06+heat*0.22})`,
+                border:`1px solid ${C.edge}`,background:C.name==="dark" ? `rgba(209,118,111,${0.10+heat*0.22})` : `rgba(182,66,56,${0.07+heat*0.18})`,
                 padding:7,display:"flex",flexWrap:"wrap",gap:5,alignContent:"flex-start"}}>
                 {pre.map(n=>(
                   <span key={`b${n}`} title={`${teams[n]?.name} before`} style={{width:26,height:26,borderRadius:"50%",
-                    border:`2px solid ${C.muted}`,color:C.muted,fontFamily:MONO,fontSize:12,
+                    border:`2px solid ${C.muted}`,color:C.muted,fontFamily:MONO,fontSize:13.5,
                     display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>
                 ))}
                 {post.map(n=>(
                   <span key={`a${n}`} title={`${teams[n]?.name} after`} style={{width:26,height:26,borderRadius:"50%",
-                    background:C.brass,color:"#2A1F05",fontFamily:MONO,fontSize:12,fontWeight:700,
+                    background:C.brass,color:C.onAccent,fontFamily:MONO,fontSize:13.5,fontWeight:700,
                     display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>
                 ))}
               </div>
@@ -1428,7 +1485,7 @@ function Countdown({end}){
   const m = Math.floor(left/60000), sec = Math.floor((left%60000)/1000);
   const low = left < 120000;
   return (
-    <div style={{fontFamily:MONO,fontSize:52,fontWeight:600,lineHeight:1,
+    <div style={{fontFamily:MONO,fontSize:54,fontWeight:600,lineHeight:1,
       color: left===0 ? C.warn : low ? C.brass : C.paper,
       fontVariantNumeric:"tabular-nums"}}>
       {left===0 ? "time" : `${m}:${String(sec).padStart(2,"0")}`}
@@ -1449,38 +1506,38 @@ function Projector({cfg,teams,ids,onExit}){
       <header style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
         gap:24,borderBottom:`1px solid ${C.edge}`,paddingBottom:16,marginBottom:22}}>
         <div style={{minWidth:0}}>
-          <div style={{fontFamily:MONO,fontSize:13,letterSpacing:".18em",textTransform:"uppercase",color:C.solution}}>
+          <div style={{fontFamily:MONO,fontSize:14.5,letterSpacing:".18em",textTransform:"uppercase",color:C.solution}}>
             {phase?.label}
           </div>
-          <h1 style={{fontSize:40,margin:"6px 0 0",fontWeight:600,letterSpacing:"-.025em"}}>
+          <h1 style={{fontSize:42,margin:"6px 0 0",fontWeight:600,letterSpacing:"-.025em"}}>
             {cfg?.org || "Solutions Table"}
           </h1>
           {cfg?.scenario && (
-            <p style={{fontSize:19,lineHeight:1.5,color:"#D6D2C8",maxWidth:820,margin:"10px 0 0"}}>
+            <p style={{fontSize:20,lineHeight:1.5,color:C.paper,maxWidth:820,margin:"10px 0 0"}}>
               {cfg.scenario}
             </p>
           )}
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <Countdown end={cfg?.timerEnd}/>
-          <div style={{fontFamily:MONO,fontSize:14,color:C.muted,marginTop:8}}>
+          <div style={{fontFamily:MONO,fontSize:15,color:C.muted,marginTop:8}}>
             budget {budget} · {active.length} team{active.length===1?"":"s"}
           </div>
           {pending>0 && (
-            <div style={{fontFamily:MONO,fontSize:14,color:C.brass,marginTop:4}}>
+            <div style={{fontFamily:MONO,fontSize:15,color:C.brass,marginTop:4}}>
               {pending} justification{pending===1?"":"s"} waiting
             </div>
           )}
-          <button onClick={onExit} style={{...btn(),marginTop:12,fontSize:11,opacity:.5}}>Exit</button>
+          <button onClick={onExit} style={{...btn(),marginTop:12,fontSize:13,opacity:.5}}>Exit</button>
         </div>
       </header>
 
       <div style={{display:"grid",gridTemplateColumns:"minmax(400px,auto) 1fr",gap:36,alignItems:"start"}}>
         <div>
-          <div style={{fontFamily:MONO,fontSize:12,letterSpacing:".1em",textTransform:"uppercase",
+          <div style={{fontFamily:MONO,fontSize:13.5,letterSpacing:".1em",textTransform:"uppercase",
             color:C.muted,marginBottom:12}}>The room, on one grid</div>
           <OverlayMatrix teams={teams} ids={ids}/>
-          <div style={{display:"flex",gap:22,marginTop:14,fontFamily:MONO,fontSize:13,color:C.muted}}>
+          <div style={{display:"flex",gap:22,marginTop:14,fontFamily:MONO,fontSize:14.5,color:C.muted}}>
             <span><span style={{display:"inline-block",width:14,height:14,borderRadius:"50%",
               border:`2px solid ${C.muted}`,marginRight:7,verticalAlign:"-2px"}}/>before controls</span>
             <span><span style={{display:"inline-block",width:15,height:15,borderRadius:"50%",
@@ -1489,10 +1546,10 @@ function Projector({cfg,teams,ids,onExit}){
         </div>
 
         <div>
-          <div style={{fontFamily:MONO,fontSize:12,letterSpacing:".1em",textTransform:"uppercase",
+          <div style={{fontFamily:MONO,fontSize:13.5,letterSpacing:".1em",textTransform:"uppercase",
             color:C.muted,marginBottom:12}}>What each team bought</div>
           {active.length===0 ? (
-            <p style={{color:C.muted,fontSize:18}}>No teams have joined yet.</p>
+            <p style={{color:C.muted,fontSize:19}}>No teams have joined yet.</p>
           ) : (
             <div style={{display:"grid",gap:10}}>
               {active.map(n=>{
@@ -1502,34 +1559,34 @@ function Projector({cfg,teams,ids,onExit}){
                   <div key={n} style={{border:`1px solid ${C.edge}`,borderRadius:5,padding:"13px 16px",
                     background:C.panel,display:"grid",gridTemplateColumns:"34px 1fr auto",gap:14,alignItems:"start"}}>
                     <div style={{width:30,height:30,borderRadius:"50%",background:C.edge,color:C.paper,
-                      fontFamily:MONO,fontSize:15,fontWeight:700,display:"flex",
+                      fontFamily:MONO,fontSize:16,fontWeight:700,display:"flex",
                       alignItems:"center",justifyContent:"center"}}>{n}</div>
                     <div style={{minWidth:0}}>
-                      <div style={{fontSize:19,fontWeight:600}}>{t.name}</div>
+                      <div style={{fontSize:20,fontWeight:600}}>{t.name}</div>
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",margin:"7px 0 8px"}}>
                         {Object.entries(DIM_META).map(([k,m])=> t.threat[k] ? (
-                          <span key={k} style={{fontFamily:MONO,fontSize:12,padding:"2px 8px",borderRadius:3,
+                          <span key={k} style={{fontFamily:MONO,fontSize:13.5,padding:"2px 8px",borderRadius:3,
                             border:`1px solid ${m.color}`,color:m.color}}>{t.threat[k]}</span>
                         ):null)}
                       </div>
-                      <div style={{fontSize:15,color:"#D6D2C8",lineHeight:1.5}}>
+                      <div style={{fontSize:16,color:C.paper,lineHeight:1.5}}>
                         {(t.purchases||[]).length
                           ? (t.purchases||[]).map(id=>card(id)?.name).join(" · ")
                           : <span style={{color:C.muted}}>nothing bought yet</span>}
                       </div>
                       {(t.modifiers||[]).filter(m=>m.status==="accepted").length>0 && (
-                        <div style={{fontFamily:MONO,fontSize:12,color:C.solution,marginTop:6}}>
+                        <div style={{fontFamily:MONO,fontSize:13.5,color:C.solution,marginTop:6}}>
                           + {(t.modifiers||[]).filter(m=>m.status==="accepted")
                               .map(m=>card(m.id)?.name).join(" · ")}
                         </div>
                       )}
                     </div>
                     <div style={{textAlign:"right"}}>
-                      <div style={{fontFamily:MONO,fontSize:26,fontWeight:600,
+                      <div style={{fontFamily:MONO,fontSize:27,fontWeight:600,
                         color: spent>=budget ? C.brass : C.paper, fontVariantNumeric:"tabular-nums"}}>
                         {budget-spent}
                       </div>
-                      <div style={{fontFamily:MONO,fontSize:11,color:C.muted}}>left</div>
+                      <div style={{fontFamily:MONO,fontSize:13,color:C.muted}}>left</div>
                     </div>
                   </div>
                 );
@@ -1592,8 +1649,8 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                   if(!t?.ownerUid) await saveTeam(n,{...(t||blankTeam(n)),joined:true,ownerUid:clientId});
                 }}
                 style={{...btn(taken?"ghost":"primary"),padding:"14px 10px",textAlign:"left"}}>
-                <div style={{fontSize:14,color:C.paper,fontWeight:600}}>{teams[n]?.name||`Team ${n}`}</div>
-                <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:3}}>
+                <div style={{fontSize:15,color:C.paper,fontWeight:600}}>{teams[n]?.name||`Team ${n}`}</div>
+                <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:3}}>
                   {!teams[n]?.ownerUid ? "open"
                     : teams[n].ownerUid===clientId ? "yours"
                     : `taken${teams[n]?.members? ` · ${teams[n].members}`:""} — watch only`}
@@ -1644,12 +1701,12 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         </div>}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:10}}>
           <div>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Team name</label>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Team name</label>
             <input value={t.name} disabled={!isOwner}
               onChange={e=>saveTeam(teamN,{name:e.target.value})}/>
           </div>
           <div>
-            <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>Who is playing</label>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Who is playing</label>
             <input value={t.members} placeholder="first names" disabled={!isOwner}
               onChange={e=>saveTeam(teamN,{members:e.target.value})}/>
           </div>
@@ -1657,22 +1714,22 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         {t.realized && (phase==="setup"||phase==="p1") && (
           <div style={{marginTop:12,padding:"12px 14px",borderRadius:4,
             border:`1px solid ${C.warn}`,background:"rgba(192,69,59,.10)"}}>
-            <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+            <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
               textTransform:"uppercase",color:C.warn}}>It happened</div>
-            <p style={{fontSize:13,lineHeight:1.6,margin:"6px 0 9px"}}>
+            <p style={{fontSize:14.5,lineHeight:1.6,margin:"6px 0 9px"}}>
               You left this at <b>Very Likely</b> and deferred again. The attack succeeded.
               What follows is decided by what you have bought across every engagement, not by chance.
             </p>
             <div style={{display:"grid",gap:4}}>
               {(t.realized?.outcome||[]).map((o,i)=>(
-                <div key={i} style={{display:"flex",gap:9,fontSize:12.5,lineHeight:1.5}}>
-                  <span style={{fontFamily:MONO,fontSize:10.5,minWidth:76,
+                <div key={i} style={{display:"flex",gap:9,fontSize:14,lineHeight:1.5}}>
+                  <span style={{fontFamily:MONO,fontSize:13,minWidth:76,
                     color:o.had?C.ok:C.warn}}>{o.q}</span>
                   <span style={{color:o.had?C.paper:"#E8A9A3"}}>{o.text}</span>
                 </div>
               ))}
             </div>
-            <p style={{fontFamily:MONO,fontSize:10.5,color:C.muted,lineHeight:1.6,marginBottom:0,marginTop:9}}>
+            <p style={{fontFamily:MONO,fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:0,marginTop:9}}>
               Tell the room what happened in the client's words, using your Human Impact card.
             </p>
           </div>
@@ -1682,12 +1739,12 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
             border:`1px solid ${t.lastVerdict==="held"?C.ok:t.lastVerdict==="partial"?C.brass:C.warn}`,
             background: t.lastVerdict==="held" ? "rgba(78,140,90,.12)"
                       : t.lastVerdict==="partial" ? "rgba(217,180,91,.10)" : "rgba(192,69,59,.10)"}}>
-            <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",textTransform:"uppercase",
+            <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",textTransform:"uppercase",
               color: t.lastVerdict==="held"?C.ok:t.lastVerdict==="partial"?C.brass:C.warn}}>
               Engagement {t.engagement} · last year's portfolio {t.lastVerdict==="held"?"held"
                 : t.lastVerdict==="partial"?"helped a little":"did not address this"}
             </div>
-            <p style={{fontSize:12.5,lineHeight:1.6,margin:"5px 0 0",color:"#D6D2C8"}}>
+            <p style={{fontSize:14,lineHeight:1.6,margin:"5px 0 0",color:C.paper}}>
               {t.lastVerdict==="held"
                 ? "What you bought addressed this threat directly, so it is less likely than it was. Severity is unchanged — it always is."
                 : t.lastVerdict==="partial"
@@ -1699,7 +1756,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         {!t.realized && (t.drift||0)>0 && (phase==="setup"||phase==="p1") && (
           <div style={{marginTop:12,padding:"9px 12px",borderRadius:4,
             border:`1px solid ${C.brass}`,background:"rgba(217,180,91,.10)",
-            fontFamily:MONO,fontSize:11,color:C.brass,lineHeight:1.6}}>
+            fontFamily:MONO,fontSize:13,color:C.brass,lineHeight:1.6}}>
             Engagement {t.engagement}. This threat has drifted {t.drift} cell{(t.drift||0)===1?"":"s"} toward
             Very Likely while you waited. Severity has not moved — it never does.
           </div>
@@ -1707,7 +1764,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         {!isOwner && (
           <div style={{marginTop:12,padding:"9px 12px",borderRadius:4,
             border:`1px solid ${C.brass}`,background:"rgba(217,180,91,.10)",
-            fontFamily:MONO,fontSize:11,color:C.brass,lineHeight:1.6}}>
+            fontFamily:MONO,fontSize:13,color:C.brass,lineHeight:1.6}}>
             Another device holds this team. You can follow along, but changes are made
             there. If that device is gone, ask the facilitator to release the seat.
           </div>
@@ -1715,7 +1772,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         {useStanding && (
           <div style={{marginTop:12,border:`1px solid ${C.edge}`,borderRadius:4,
             background:C.panel,padding:"11px 13px"}}>
-            <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+            <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
               textTransform:"uppercase",color:C.muted}}>
               Already true of this organization
             </div>
@@ -1725,17 +1782,17 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 return (
                   <div key={r.id} style={{display:"flex",gap:9,alignItems:"flex-start"}}>
                     <span style={{width:17,height:17,borderRadius:2,flexShrink:0,marginTop:1,
-                      fontFamily:MONO,fontSize:9.5,display:"flex",alignItems:"center",
+                      fontFamily:MONO,fontSize:12.5,display:"flex",alignItems:"center",
                       justifyContent:"center",
                       background:done?C.ok:"transparent",
                       border:`1.5px solid ${done?C.ok:C.muted}`,
-                      color:done?"#0E1A12":C.muted}}>
+                      color:done?C.onAccent:C.muted}}>
                       {String.fromCharCode(64+r.id)}
                     </span>
                     <div style={{minWidth:0}}>
-                      <div style={{fontSize:12.5,lineHeight:1.5,
+                      <div style={{fontSize:14,lineHeight:1.5,
                         color:done?"#D6D2C8":C.paper}}>{r.text}</div>
-                      <div style={{fontFamily:MONO,fontSize:9.5,color:done?C.ok:C.muted,marginTop:2}}>
+                      <div style={{fontFamily:MONO,fontSize:12.5,color:done?C.ok:C.muted,marginTop:2}}>
                         {LIKELIHOOD[r.at.l]} · {SEVERITY[r.at.s]}
                         {done && " · addressed by what you have bought"}
                       </div>
@@ -1744,14 +1801,14 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 );
               })}
             </div>
-            <p style={{fontFamily:MONO,fontSize:10,color:C.muted,lineHeight:1.6,margin:"9px 0 0"}}>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,margin:"9px 0 0"}}>
               These were here before today's incident. Your budget covers all of it or none of it.
             </p>
           </div>
         )}
         {cfg?.scenario && (
           <div style={{marginTop:12,padding:12,borderLeft:`3px solid ${C.brass}`,background:C.panel,
-            borderRadius:"0 4px 4px 0",fontSize:13.5,lineHeight:1.6}}>{cfg.scenario}</div>
+            borderRadius:"0 4px 4px 0",fontSize:15,lineHeight:1.6}}>{cfg.scenario}</div>
         )}
       </Section>
 
@@ -1764,31 +1821,31 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
             resource:sample(dims.resource,1)[0], motive:sample(dims.motive,1)[0]}})}>
             Roll for cards
           </button>}
-          {locked && <span style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+          {locked && <span style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>
             set by the scenario</span>}
         </>}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:9,marginBottom:16}}>
             {Object.entries(DIM_META).map(([k,m])=>(
               <div key={k} style={{border:`1px solid ${C.edge}`,borderLeft:`3px solid ${m.color}`,
                 borderRadius:4,padding:"10px 12px",background:C.panel,minHeight:62}}>
-                <div style={{fontFamily:MONO,fontSize:9.5,letterSpacing:".08em",textTransform:"uppercase",color:m.color}}>{m.label}</div>
+                <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",textTransform:"uppercase",color:m.color}}>{m.label}</div>
                 <select value={threat[k]||""} disabled={!isOwner || locked}
                   onChange={e=>saveTeam(teamN,{threat:{...t.threat,[k]:e.target.value}})}
                   style={{marginTop:6,border:"none",background:"transparent",padding:"2px 0",
-                    fontFamily:SANS,fontSize:13.5,color:C.paper}}>
+                    fontFamily:SANS,fontSize:15,color:C.paper}}>
                   <option value="">choose…</option>
                   {(dims[k]||[]).map(v=><option key={v} value={v} style={{background:C.panel}}>{v}</option>)}
                 </select>
               </div>
             ))}
           </div>
-          <p style={{fontFamily:MONO,fontSize:10.5,color:C.muted,lineHeight:1.6,margin:"0 0 14px"}}>
+          <p style={{fontFamily:MONO,fontSize:13,color:C.muted,lineHeight:1.6,margin:"0 0 14px"}}>
             The roll randomizes which cards you draw. It never decides how an attack turns out —
             that follows from what you buy.
           </p>
           <div style={{display:"flex",gap:26,flexWrap:"wrap",alignItems:"flex-start"}}>
             <div>
-              <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginBottom:7}}>
+              <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginBottom:7}}>
                 Place the threat. Justify severity by naming who the Human Impact card harms.
               </div>
               <Matrix pre={t.pre} post={t.post} standing={standing} addressed={addressedIds}
@@ -1802,22 +1859,22 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         <Section title="Phase 2 — buy your defense"
           right={<Tokens total={budget} spent={spent}/>}>
           {deferred && (
-            <div style={{fontFamily:MONO,fontSize:11,color:C.brass,marginBottom:10}}>
+            <div style={{fontFamily:MONO,fontSize:13,color:C.brass,marginBottom:10}}>
               Deferred Investment accepted — your spend is capped at 4 this round.
             </div>
           )}
           {(t.everBought||[]).length>0 && (
             <div style={{marginBottom:14,padding:"9px 12px",borderRadius:4,
               border:`1px solid ${C.edge}`,background:C.panel}}>
-              <div style={{fontFamily:MONO,fontSize:10,color:C.ok,textTransform:"uppercase",
+              <div style={{fontFamily:MONO,fontSize:12.5,color:C.ok,textTransform:"uppercase",
                 letterSpacing:".08em"}}>Already in place — no need to buy again</div>
-              <div style={{fontSize:12.5,lineHeight:1.6,marginTop:4,color:"#D6D2C8"}}>
+              <div style={{fontSize:14,lineHeight:1.6,marginTop:4,color:C.paper}}>
                 {(t.everBought||[]).map(id=>card(id)?.name).join(" · ")}
               </div>
             </div>
           )}
           {!(t.hand||[]).length ? (
-            <p style={{color:C.muted,fontSize:13,margin:0}}>Waiting for the facilitator to deal.</p>
+            <p style={{color:C.muted,fontSize:14.5,margin:0}}>Waiting for the facilitator to deal.</p>
           ) : (
             <>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(215px,1fr))",gap:8,marginBottom:20}}>
@@ -1832,30 +1889,30 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
 
               <div style={{border:`1px solid ${C.solution}`,borderRadius:4,
                 background:"rgba(124,95,168,.08)",padding:"10px 12px",marginBottom:10}}>
-                <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+                <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
                   textTransform:"uppercase",color:C.solution}}>What modifiers are</div>
-                <p style={{fontSize:12.5,lineHeight:1.6,margin:"5px 0 7px"}}>
+                <p style={{fontSize:14,lineHeight:1.6,margin:"5px 0 7px"}}>
                   They cost nothing, but they are not free points. Each one asks you to make a
                   claim about <b>your</b> organization and <b>your</b> threat. Type it, send it,
                   and the facilitator decides whether it is specific enough. Vague answers come
                   back and the card returns to the deck.
                 </p>
-                <div style={{fontSize:12,lineHeight:1.6,fontFamily:MONO}}>
+                <div style={{fontSize:13.5,lineHeight:1.6,fontFamily:MONO}}>
                   <div style={{color:C.warn}}>✗ &ldquo;People are the weakest link.&rdquo;</div>
                   <div style={{color:C.ok}}>✓ &ldquo;Staff will share the one MFA phone at the front
                     desk, so we would need per-person enrolment.&rdquo;</div>
                 </div>
-                <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:7}}>
+                <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:7}}>
                   Name a person, a system, or a way something breaks. At most two per round.
                 </div>
               </div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",
                 gap:10,marginBottom:8,flexWrap:"wrap"}}>
-                <span style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+                <span style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>
                   {2-modsPlayed} modifier{2-modsPlayed===1?"":"s"} left to play
                 </span>
                 {((t.purchases||[]).length>0 || modsPlayed>0) && (
-                  <button style={{...btn(),fontSize:11}} disabled={busy||!isOwner}
+                  <button style={{...btn(),fontSize:13}} disabled={busy||!isOwner}
                     onClick={()=>{ if(window.confirm(
                       "Clear this team's purchases and modifiers?\n\nYour hand and your threat stay as they are — "+
                       "only the picks are undone.")) saveTeam(teamN,{purchases:[],modifiers:[]}); }}>
@@ -1879,14 +1936,14 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                     <div key={id} style={{border:`1px solid ${played?C.solution:C.edge}`,borderRadius:4,
                       padding:11,background:C.panel}}>
                       <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"baseline"}}>
-                        <span style={{fontSize:13.5,fontWeight:500}}>{m.name}</span>
-                        <span style={{fontFamily:MONO,fontSize:10,color:played
+                        <span style={{fontSize:15,fontWeight:500}}>{m.name}</span>
+                        <span style={{fontFamily:MONO,fontSize:12.5,color:played
                           ? (played.status==="accepted"?C.ok:C.brass) : C.muted}}>
                           {played? (played.status==="accepted"?"accepted":"waiting on facilitator") : "free"}
                         </span>
                       </div>
-                      <div style={{fontFamily:MONO,fontSize:10,color:C.muted,margin:"4px 0 7px"}}>{m.demand}</div>
-                      {blocked && <div style={{fontFamily:MONO,fontSize:10.5,color:C.warn,
+                      <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,margin:"4px 0 7px"}}>{m.demand}</div>
+                      {blocked && <div style={{fontFamily:MONO,fontSize:13,color:C.warn,
                         margin:"0 0 7px",lineHeight:1.55}}>{blockMsg}</div>}
                       {!played && (
                         <>
@@ -1897,7 +1954,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                           <button style={{...btn("primary"),marginTop:7}}
                             disabled={blocked||modsPlayed>=2||!isOwner||(just[id]||"").trim().length<12}
                             onClick={()=>playModifier(id)}>Send to facilitator</button>
-                          {sendMsg && <div style={{fontFamily:MONO,fontSize:10.5,marginTop:6,
+                          {sendMsg && <div style={{fontFamily:MONO,fontSize:13,marginTop:6,
                             color: sendMsg.startsWith("Sent") ? C.ok
                                  : sendMsg.startsWith("Sending") ? C.muted : C.warn}}>{sendMsg}</div>}
                         </>
@@ -1913,7 +1970,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
 
       {phase==="debrief" && scen && (
         <Section title="Debrief">
-          <p style={{fontSize:12.5,color:C.muted,lineHeight:1.6,margin:"0 0 14px"}}>
+          <p style={{fontSize:14,color:C.muted,lineHeight:1.6,margin:"0 0 14px"}}>
             One sentence each. Write what your team actually decided, not what sounds right —
             these are the answers you will be asked to defend out loud.
           </p>
@@ -1924,10 +1981,10 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 <div style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:5}}>
                   <span style={{width:19,height:19,borderRadius:"50%",flexShrink:0,marginTop:1,
                     background:(t.debriefAnswers||{})[i]?.trim() ? C.ok : C.edge,
-                    color:(t.debriefAnswers||{})[i]?.trim() ? "#0E1A12" : C.muted,
-                    fontFamily:MONO,fontSize:10.5,display:"flex",
+                    color:(t.debriefAnswers||{})[i]?.trim() ? C.onAccent : C.muted,
+                    fontFamily:MONO,fontSize:13,display:"flex",
                     alignItems:"center",justifyContent:"center"}}>{i+1}</span>
-                  <span style={{fontSize:13.5,lineHeight:1.55}}>{q}</span>
+                  <span style={{fontSize:15,lineHeight:1.55}}>{q}</span>
                 </div>
                 <textarea value={(t.debriefAnswers||{})[i]||""} disabled={!isOwner}
                   style={{minHeight:44}} placeholder="One sentence."
@@ -1937,9 +1994,9 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
           </div>
 
           <div style={{marginTop:20,paddingTop:16,borderTop:`1px solid ${C.edge}`}}>
-            <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+            <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
               textTransform:"uppercase",color:C.brass}}>And then the one that matters</div>
-            <label style={{fontFamily:MONO,fontSize:11,color:C.muted,display:"block",
+            <label style={{fontFamily:MONO,fontSize:13,color:C.muted,display:"block",
               margin:"7px 0 5px",lineHeight:1.6}}>
               If you could tell this organization one thing, what would it be? Say it in their
               words, not in card names — &ldquo;turn on multi-factor authentication&rdquo; is a card;
@@ -1949,7 +2006,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
             <textarea value={t.recommendation||""} disabled={!isOwner}
               placeholder="Nobody should be able to move money on the strength of an email, even from the director."
               onChange={e=>saveTeam(teamN,{recommendation:e.target.value})}/>
-            <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:6,lineHeight:1.6}}>
+            <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:6,lineHeight:1.6}}>
               Keep this. You will be handed it back later in the course, when you write the real
               thing for a real client.
             </div>
@@ -1962,16 +2019,16 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
           {scen && (
             <div style={{marginBottom:16,border:`1px solid ${C.edge}`,borderRadius:4,
               background:C.panel,padding:"12px 14px"}}>
-              <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+              <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
                 textTransform:"uppercase",color:C.solution}}>
                 How each purchase matches the threat
               </div>
 
-              <div style={{fontSize:14,fontWeight:600,margin:"7px 0 3px"}}>{scen.title}</div>
-              <div style={{fontSize:12.5,color:C.muted,lineHeight:1.5}}>{cfg?.org}</div>
+              <div style={{fontSize:15,fontWeight:600,margin:"7px 0 3px"}}>{scen.title}</div>
+              <div style={{fontSize:14,color:C.muted,lineHeight:1.5}}>{cfg?.org}</div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap",margin:"8px 0 12px"}}>
                 {Object.entries(DIM_META).map(([k,m])=> threat[k] ? (
-                  <span key={k} style={{fontFamily:MONO,fontSize:10,padding:"2px 7px",
+                  <span key={k} style={{fontFamily:MONO,fontSize:12.5,padding:"2px 7px",
                     borderRadius:2,border:`1px solid ${m.color}`,color:m.color}}>{threat[k]}</span>
                 ):null)}
               </div>
@@ -1986,7 +2043,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                   off:{t:"does not apply to this threat", c:C.muted},
                 };
                 if(!bp.length) return (
-                  <div style={{fontSize:12.5,color:C.muted}}>You bought nothing this round.</div>
+                  <div style={{fontSize:14,color:C.muted}}>You bought nothing this round.</div>
                 );
                 const anyStrong = bp.some(id=>verdictOf(id)==="strong");
                 const anyPartial = bp.some(id=>verdictOf(id)==="partial");
@@ -1998,13 +2055,13 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                         return (
                           <div key={id} style={{display:"flex",gap:10,alignItems:"baseline",
                             flexWrap:"wrap"}}>
-                            <span style={{fontSize:13,minWidth:190}}>{card(id)?.name}</span>
-                            <span style={{fontFamily:MONO,fontSize:10.5,color:v.c}}>{v.t}</span>
+                            <span style={{fontSize:14.5,minWidth:190}}>{card(id)?.name}</span>
+                            <span style={{fontFamily:MONO,fontSize:13,color:v.c}}>{v.t}</span>
                           </div>
                         );
                       })}
                     </div>
-                    <div style={{fontSize:12.5,lineHeight:1.6,marginTop:11,
+                    <div style={{fontSize:14,lineHeight:1.6,marginTop:11,
                       color: anyStrong ? C.ok : anyPartial ? C.brass : C.warn}}>
                       {anyStrong
                         ? "At least one purchase works directly against this threat, so it should be less likely than when you placed it. Move the marker left."
@@ -2012,7 +2069,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                         ? "Nothing you bought works directly against this threat, though something is adjacent. Likelihood probably sits where it is."
                         : "Nothing you bought works against this threat. It is as likely now as it was before you spent anything."}
                     </div>
-                    <div style={{fontFamily:MONO,fontSize:10.5,color:C.muted,marginTop:7,lineHeight:1.6}}>
+                    <div style={{fontFamily:MONO,fontSize:13,color:C.muted,marginTop:7,lineHeight:1.6}}>
                       Severity does not move — controls change how often something happens, not who
                       gets hurt when it does. Do you want to move the marker now that you can see this?
                     </div>
@@ -2022,7 +2079,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
 
               {useStanding && standing.length>0 && (
                 <div style={{marginTop:13,paddingTop:11,borderTop:`1px solid ${C.edge}`}}>
-                  <div style={{fontFamily:MONO,fontSize:10,letterSpacing:".08em",
+                  <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
                     textTransform:"uppercase",color:C.solution}}>
                     The problems this client already had
                   </div>
@@ -2033,13 +2090,13 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                       return (
                         <div key={r.id} style={{display:"flex",gap:9,alignItems:"flex-start"}}>
                           <span style={{width:17,height:17,borderRadius:2,flexShrink:0,marginTop:1,
-                            fontFamily:MONO,fontSize:9.5,display:"flex",alignItems:"center",
+                            fontFamily:MONO,fontSize:12.5,display:"flex",alignItems:"center",
                             justifyContent:"center",background:done?C.ok:"transparent",
                             border:`1.5px solid ${done?C.ok:C.warn}`,
-                            color:done?"#0E1A12":C.warn}}>{String.fromCharCode(64+r.id)}</span>
+                            color:done?C.onAccent:C.warn}}>{String.fromCharCode(64+r.id)}</span>
                           <div>
-                            <div style={{fontSize:12.5,lineHeight:1.5}}>{r.text}</div>
-                            <div style={{fontFamily:MONO,fontSize:10.5,marginTop:2,
+                            <div style={{fontSize:14,lineHeight:1.5}}>{r.text}</div>
+                            <div style={{fontFamily:MONO,fontSize:13,marginTop:2,
                               color:done?C.ok:C.warn}}>
                               {done
                                 ? `covered by ${by.map(c=>card(c)?.name).join(" and ")}`
@@ -2057,20 +2114,20 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
 
           <div style={{display:"flex",gap:28,flexWrap:"wrap",alignItems:"flex-start"}}>
             <div>
-              <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginBottom:7}}>
+              <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginBottom:7}}>
                 Same threat, re-placed with your controls in place.
               </div>
               <Matrix pre={t.pre} post={t.post} standing={standing} addressed={addressedIds}
                 interactive={isOwner} onPick={(l,s)=>saveTeam(teamN,{post:{l,s}})}/>
             </div>
             <div style={{flex:"1 1 260px",minWidth:240}}>
-              <label style={{fontFamily:MONO,fontSize:10,color:C.muted}}>
+              <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>
                 Something still gets through. What is it?
               </label>
               <textarea value={t.residual} disabled={!isOwner}
                 onChange={e=>saveTeam(teamN,{residual:e.target.value})}
                 placeholder="What an attacker could still do, given what you bought."/>
-              <div style={{fontFamily:MONO,fontSize:10,color:C.muted,marginTop:10,lineHeight:1.6}}>
+              <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:10,lineHeight:1.6}}>
                 Bought: {(t.purchases||[]).map(id=>card(id)?.name).join(" · ")||"nothing"}
               </div>
             </div>
