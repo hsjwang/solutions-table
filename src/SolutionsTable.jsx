@@ -49,7 +49,15 @@ const THEMES = {
 let ACTIVE = THEMES.dark;
 /* Read through a proxy so the several hundred existing C.x lookups keep working
    without touching each one. */
-const C = new Proxy({}, { get: (_t, k) => ACTIVE[k] });const BUILD = "2026-08-28.1638";
+const C = new Proxy({}, { get: (_t, k) => ACTIVE[k] });/* ?condition=control seeds the control arm when a facilitator first claims a
+   session. It is stored in the session, not read per client, so a student
+   cannot switch arms by editing their URL. */
+const URL_CONDITION = (()=>{
+  try{ return new URLSearchParams(window.location.search).get("condition")==="control"
+    ? "control" : null; }catch{ return null; }
+})();
+
+const BUILD = "2026-08-28.1849";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -293,7 +301,7 @@ const blankTeam = (n) => ({
   n, name:`Team ${n}`, members:"", joined:false,
   threat:{method:"",impact:"",resource:"",motive:""},
   pre:null, post:null, hand:[], modHand:[], purchases:[],
-  modifiers:[], residual:"", debriefAnswers:{}, recommendation:"", ownerUid:null,
+  modifiers:[], residual:"", measures:[], debriefAnswers:{}, recommendation:"", ownerUid:null,
   engagement:1, everBought:[], drift:0, realized:null, lastVerdict:null,
   standingPos:{}, standingIgnored:0, budgetOverride:null,
   updatedAt:0,
@@ -861,6 +869,7 @@ function SolutionsTableInner(){
       const fresh = !c?.org && !c?.scenario;   // nothing set up yet
       const claimHash = await hashCode(code);
       const wrote = await sSet(CFG_KEY, {...(c||{}), facilitatorId:clientId, claimHash, claimCode:null,
+        condition: c?.condition || URL_CONDITION || "solutions",
         phase:c?.phase||"setup", dims:c?.dims||DEFAULT_DIMS,
         teamCount:c?.teamCount??DEFAULT_TEAMS,
         scenarioId:c?.scenarioId ?? (fresh ? s1.id : undefined),
@@ -960,6 +969,17 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   const [scenario,setScenario] = useState(cfg?.scenario||"");
   const [pick,setPick] = useState(1);
   const [roleMsg,setStatusLocal] = useState("");
+  // once any team has acted, the arm is fixed for the rest of the session
+  const started = ids.some(n=>{
+    const t = teams[n];
+    return t?.joined && ((t.purchases||[]).length || (t.measures||[]).length || t.pre);
+  });
+  const joinUrl = (()=>{
+    try{
+      const u = new URL(window.location.href); u.hash = "";
+      return u.toString().replace(/[?&]condition=[^&]*/,"");
+    }catch{ return ""; }
+  })();
   const loaded = scenarioById(cfg?.scenarioId);
 
   const loadScenario = async (id)=>{
@@ -1086,13 +1106,14 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   };
 
   const exportData = ()=>{
-    const rows = [["team","org","scenario","engagement","drift","realized","threat_method","threat_impact",
+    const rows = [["team","org","scenario","condition","measures_count","measures","engagement","drift","realized","threat_method","threat_impact",
       "verdict","standing_ignored","threat_resource","threat_motive","pre_likelihood","pre_severity","post_likelihood",
       "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","debrief_1","debrief_2","debrief_3","recommendation"]];
     ids.forEach(n=>{
       const t=teams[n]; if(!t?.joined) return;
       const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
-      rows.push([t.name,cfg?.org||"",scenarioById(cfg?.scenarioId)?.title||"",t.engagement||1,t.drift||0,t.realized?"yes":"no",
+      rows.push([t.name,cfg?.org||"",scenarioById(cfg?.scenarioId)?.title||"",
+        cfg?.condition||"solutions",(t.measures||[]).length,(t.measures||[]).join("; "),t.engagement||1,t.drift||0,t.realized?"yes":"no",
         t.lastVerdict||"",t.standingIgnored??"",t.threat.method,t.threat.impact,t.threat.resource,t.threat.motive,
         t.pre?LIKELIHOOD[t.pre.l]:"",t.pre?SEVERITY[t.pre.s]:"",
         t.post?LIKELIHOOD[t.post.l]:"",t.post?SEVERITY[t.post.s]:"",
@@ -1146,6 +1167,37 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   return (
     <div style={{display:"grid",gridTemplateColumns:"minmax(280px,1fr) minmax(300px,1.3fr)",gap:26,alignItems:"start"}}>
       <div>
+        <Section title="Condition">
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+            {[["solutions","Solutions deck"],["control","Control — no Solutions cards"]].map(([v,lbl])=>(
+              <button key={v} disabled={busy || started}
+                onClick={()=>saveCfg({condition:v})}
+                style={{...btn((cfg?.condition||"solutions")===v?"primary":"ghost"),fontSize:13}}>
+                {lbl}
+              </button>
+            ))}
+          </div>
+          <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:7}}>
+            {started
+              ? "Locked — teams have started. Changing arms mid-session would invalidate the data."
+              : (cfg?.condition==="control"
+                  ? "Teams place the threat and list the measures they would recommend, with no cards and no budget. Guidance, timing and interface are identical to the other arm."
+                  : "Teams place the threat, then buy controls against a budget. Both arms also list the measures they raised, so breadth is comparable.")}
+          </p>
+          <div style={{marginTop:10,paddingTop:9,borderTop:`1px solid ${C.edge}`}}>
+            <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginBottom:5}}>Links to share</div>
+            {[["Players",joinUrl],["Projector",joinUrl+"#projector"]].map(([lbl,u])=>(
+              <div key={lbl} style={{display:"flex",gap:7,alignItems:"center",marginBottom:5}}>
+                <span style={{fontFamily:MONO,fontSize:12.5,color:C.muted,minWidth:64}}>{lbl}</span>
+                <input readOnly value={u} onFocus={e=>e.target.select()} style={{flex:1}}/>
+              </div>
+            ))}
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:4}}>
+              The arm is stored in the session, so students cannot switch it from their URL.
+            </p>
+          </div>
+        </Section>
+
         <Section title="Scenario">
           <div style={{display:"flex",gap:7,marginBottom:8,flexWrap:"wrap"}}>
             <select value={pick} onChange={e=>setPick(Number(e.target.value))} style={{flex:"1 1 180px"}}>
@@ -1629,6 +1681,8 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   const addressedIds = reveal ? addressedIdsTrue : [];
   // Banking last engagement buys a bigger budget this one
   const budget = t?.budgetOverride ?? (cfg?.budget??6);
+  const control = cfg?.condition === "control";
+  const [measureDraft,setMeasureDraft] = useState("");
   useEffect(()=>{
     if(!locked || !isOwner || !teamN) return;
     const cur = t?.threat || {};
@@ -1856,14 +1910,55 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
       )}
 
       {phase==="p2" && (
-        <Section title="Phase 2 — buy your defense"
-          right={<Tokens total={budget} spent={spent}/>}>
-          {deferred && (
+        <Section title={control ? "Phase 2 — what should they do?" : "Phase 2 — buy your defense"}
+          right={control ? null : <Tokens total={budget} spent={spent}/>}>
+
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
+              textTransform:"uppercase",color:C.solution}}>
+              Measures your team would recommend
+            </div>
+            <p style={{fontSize:14,lineHeight:1.6,color:C.muted,margin:"5px 0 9px"}}>
+              {control
+                ? "List everything you would tell this organization to do. Add them one at a time. There is no budget — say what you actually think they need."
+                : "List everything your team raised, including anything you could not afford. This is separate from what you buy below."}
+            </p>
+            <div style={{display:"flex",gap:7,marginBottom:8}}>
+              <input value={measureDraft} disabled={!isOwner}
+                placeholder="One measure, in your own words"
+                onChange={e=>setMeasureDraft(e.target.value)}
+                onKeyDown={e=>{
+                  if(e.key==="Enter" && measureDraft.trim()){
+                    saveTeam(teamN,{measures:[...(t.measures||[]),measureDraft.trim()]});
+                    setMeasureDraft("");
+                  }
+                }}/>
+              <button style={btn("primary")} disabled={!isOwner||!measureDraft.trim()}
+                onClick={()=>{ saveTeam(teamN,{measures:[...(t.measures||[]),measureDraft.trim()]});
+                  setMeasureDraft(""); }}>Add</button>
+            </div>
+            {(t.measures||[]).length>0 ? (
+              <ol style={{margin:0,paddingLeft:20,fontSize:14,lineHeight:1.7}}>
+                {(t.measures||[]).map((m,i)=>(
+                  <li key={i} style={{marginBottom:2}}>
+                    {m}
+                    {isOwner && <button
+                      onClick={()=>saveTeam(teamN,{measures:(t.measures||[]).filter((_,k)=>k!==i)})}
+                      style={{...btn(),fontSize:12,padding:"1px 7px",marginLeft:9}}>remove</button>}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Nothing listed yet.</div>
+            )}
+          </div>
+
+          {!control && deferred && (
             <div style={{fontFamily:MONO,fontSize:13,color:C.brass,marginBottom:10}}>
               Deferred Investment accepted — your spend is capped at 4 this round.
             </div>
           )}
-          {(t.everBought||[]).length>0 && (
+          {!control && (t.everBought||[]).length>0 && (
             <div style={{marginBottom:14,padding:"9px 12px",borderRadius:4,
               border:`1px solid ${C.edge}`,background:C.panel}}>
               <div style={{fontFamily:MONO,fontSize:12.5,color:C.ok,textTransform:"uppercase",
@@ -1873,7 +1968,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               </div>
             </div>
           )}
-          {!(t.hand||[]).length ? (
+          {control ? null : !(t.hand||[]).length ? (
             <p style={{color:C.muted,fontSize:14.5,margin:0}}>Waiting for the facilitator to deal.</p>
           ) : (
             <>
@@ -2033,7 +2128,23 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 ):null)}
               </div>
 
-              {(()=>{
+              {control ? (
+                <>
+                  <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginBottom:6}}>
+                    What your team recommended
+                  </div>
+                  {(t.measures||[]).length ? (
+                    <ol style={{margin:0,paddingLeft:20,fontSize:14,lineHeight:1.7}}>
+                      {(t.measures||[]).map((m,i)=><li key={i}>{m}</li>)}
+                    </ol>
+                  ) : <div style={{fontSize:14,color:C.muted}}>Nothing was listed.</div>}
+                  <div style={{fontSize:14,lineHeight:1.6,marginTop:11,color:C.brass}}>
+                    Decide together whether these would actually make this threat less likely,
+                    then move the marker. Severity does not move — controls change how often
+                    something happens, not who gets hurt when it does.
+                  </div>
+                </>
+              ) : (()=>{
                 const bp = t.purchases||[];
                 const verdictOf = (id)=> (scen.strong||[]).includes(id) ? "strong"
                                        : (scen.partial||[]).includes(id) ? "partial" : "off";
