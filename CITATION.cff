@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+title: "Solutions Table: a CIS-grounded Solutions dimension for the Security Cards"
+message: "If you use this deck, the materials, or the application, please cite it."
+type: software
+authors:
+  - given-names: Hsiao An
+    family-names: Wang
+    affiliation: Northeastern University
+    orcid: "https://orcid.org/0009-0008-6967-3904"
+repository-code: "https://github.com/hsjwang/solutions-table"
+abstract: >-
+  A fifth dimension for the University of Washington Security Cards. Twenty-one
+  defensive control cards mapped to the CIS Critical Security Controls v8.1 at
+  safeguard level, seven zero-cost modifier cards carrying architectural and
+  risk-treatment principles, ten scenarios with expert keys, facilitator
+  materials, and a browser implementation that exports the artifacts a study
+  scores. Card cost is derived from CIS Implementation Group tier rather than
+  designer judgment, and the budget is calibrated so that trade-offs are forced
+  rather than nominal.
+keywords:
+  - cybersecurity education
+  - game-based learning
+  - serious games
+  - CIS Controls
+  - cybersecurity clinics
+  - risk assessment
+license: MIT
+version: 1.0.0
+date-released: "2026-08-28"
