@@ -57,7 +57,7 @@ const URL_CONDITION = (()=>{
     ? "control" : null; }catch{ return null; }
 })();
 
-const BUILD = "2026-08-28.1849";
+const BUILD = "2026-08-28.2046";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -86,15 +86,47 @@ const SOLUTIONS = [
   [21,"Cyber Insurance & Risk Transfer",3,"A","Risk transfer"],
 ].map(([id,name,cost,tier,ctrl])=>({id,name,cost,tier,ctrl}));
 
+/* Each modifier needs three different things said about it. `demand` is the
+   one-line rule, short enough for a card face and for the facilitator's
+   adjudication queue. `ask` is the question a student actually answers, in
+   plain language. `frame` is a sentence skeleton, not a model answer — a
+   worked answer in the box gets copied; a skeleton has to be filled in. */
 const MODIFIERS = [
-  [22,"Defense in Depth","Name two purchases that fail by different means."],
-  [23,"Fail Safe Defaults","Name the state a purchased control fails into."],
-  [24,"Least Privilege","Needs Identity & Access Management or Account Lifecycle Management in place. Name one person whose access you would cut, and what they would lose."],
-  [25,"Human Factors","Name a purchase staff will circumvent, and how."],
-  [26,"Risk Acceptance","Played instead of a purchase. Name the risk and its owner."],
-  [27,"Compensating Control","Name what you cannot afford and what the substitute misses."],
-  [28,"Deferred Investment","Cap spend at 4, bank 2. Name your exposure and for how long."],
-].map(([id,name,demand])=>({id,name,demand,cost:0}));
+  [22,"Defense in Depth",
+   "Two purchases that fail in different ways.",
+   "Name two things you bought where, if the first one fails, the second still catches the attack. They have to fail for different reasons — two locks on the same door is one control bought twice.",
+   "We bought ______ and ______. The first stops it by ______. If that fails, the second still ______."],
+
+  [23,"Fail Safe Defaults",
+   "What happens the moment a control stops working.",
+   "Pick one thing you bought. If it broke right now — power cut, licence expired, server down — does the organization end up locked or wide open? A badge reader that unlocks every door when the power fails is protecting nobody.",
+   "If ______ stopped working, then ______. That leaves us ______ , and we would change it by ______."],
+
+  [24,"Least Privilege",
+   "One access you would cut, and what breaks.",
+   "Everyone should have the least access that still lets them do their job. Name one person in this scenario who has more than that, say what you would take away, and say what they would no longer be able to do.",
+   "______ can currently ______. We would remove ______. They would lose ______, which matters because ______."],
+
+  [25,"Human Factors",
+   "A purchase staff will work around, and how.",
+   "A control people find unworkable gets bypassed, and a bypassed control protects nothing. Name one thing you bought that staff will get around, say exactly how they will do it, and say what you would do instead.",
+   "Staff will get around ______ by ______, because ______. Instead we would ______."],
+
+  [26,"Risk Acceptance",
+   "A named risk, and the person who owns it. Played instead of a purchase.",
+   "Sometimes the right answer is to decide, on purpose and in writing, not to fix something. Name the risk you are accepting, say why that is reasonable here, and name the person in the organization who owns that decision. A risk nobody owns has not been accepted — it has been ignored.",
+   "We accept ______ because ______. ______ owns this decision and will revisit it in ______."],
+
+  [27,"Compensating Control",
+   "What you cannot afford, and what the substitute misses.",
+   "When you cannot afford the right answer, you do something cheaper that covers part of the same ground — and you tell the client what it does not cover. Name all three.",
+   "We cannot afford ______. Instead we will ______. That does not cover ______, and we would tell the client so."],
+
+  [28,"Deferred Investment",
+   "Cap spend at 4, bank 2. Name the exposure and its duration.",
+   "You are underspending now so the organization can afford something bigger next year. Name what it is exposed to while it waits, and for how long. This is borrowing against next year's budget, and the interest is paid in risk.",
+   "We are deferring so we can afford ______ next engagement. Meanwhile we are exposed to ______ for about ______."],
+].map(([id,name,demand,ask,frame])=>({id,name,demand,ask,frame,cost:0}));
 
 
 /* ---- Scenario library. Mirrors Appendix C of the facilitator manual.
@@ -107,7 +139,8 @@ const SCENARIOS = [
    draw:{method:"Manipulation or Coercion",impact:"Financial Wellbeing",resource:"Artificial Intelligence",motive:"Personal Gain"},
    strong:[2,3,12], partial:[5,13], weak:[14,18,19],
    standing:[{id:1, text:"Four volunteers share one login for the donation platform.", pos:{l:2,s:1}, cards:[5,7]}, {id:2, text:"Nobody has a list of which laptops belong to the organization.", pos:{l:1,s:1}, cards:[9,10]}],
-   debrief:["The attack was technically trivial and you rated it Very Severe. What made it severe, and would it be severe at a different organization?",
+   why:{2:"the bookkeeper is the control that failed; training is what changes her response", 3:"the confirming voicemail was cloned, which is exactly what this card names", 12:"DNS filtering can refuse the lookalike domain before anyone reads the message", 5:"MFA does not stop a redirected payment, but limits what the stolen password reaches", 13:"does not prevent it; decides who is called once the money has left"},
+   debrief:["The attack was technically trivial. Most teams still place it as Very Severe. What makes it severe, and would it be severe at a larger organization?",
             "Nobody can buy a callback rule. Which purchase would you trade for one sentence in a written procedure?",
             "The voice on the phone was cloned. Does awareness training still work when familiarity stops being evidence?"]},
 
@@ -118,9 +151,10 @@ const SCENARIOS = [
    draw:{method:"Technological Attack",impact:"Physical Wellbeing",resource:"Money",motive:"Personal Gain"},
    strong:[6,13,16], partial:[1,12,21], weak:[19],
    standing:[{id:1, text:"The scheduling software has not been updated in two years.", pos:{l:2,s:2}, cards:[1,10]}, {id:2, text:"Nobody has checked whether the anti-malware is still running.", pos:{l:1,s:2}, cards:[16,9]}],
+   why:{6:"an isolated copy is the only thing that gets the scheduling system back", 13:"decides who is called on Monday morning instead of improvising", 16:"behaviour-based detection can isolate a machine mid-encryption", 1:"closes the hole it probably came through, but not after it has happened", 12:"most ransomware arrives by mail; this reduces the chance, not the damage", 21:"covers recovery cost; restores no patient record"},
    debrief:["The backup existed and was useless. What is the difference between having a backup and having a recovery?",
             "Impact is Physical Wellbeing, not Financial. What does a clinic without scheduling do to a patient?",
-            "If you bought only prevention, describe your Monday."]},
+            "The attack has already happened — it is Monday morning and the files are encrypted. If everything you bought was meant to stop it happening, what do you actually do today?"]},
 
   {id:3, care:true, budget:6, title:"A Laptop Leaves the Building",
    org:"Wilder House — a twelve-bed shelter",
@@ -129,6 +163,7 @@ const SCENARIOS = [
    draw:{method:"Physical Attack",impact:"Physical Wellbeing",resource:"Entitlement",motive:"Curiosity"},
    strong:[14,8,4], partial:[9,13], weak:[15,18],
    standing:[{id:1, text:"Staff use personal phones for client contact.", pos:{l:2,s:2}, cards:[4,14]}, {id:2, text:"The room holding paper intake files is left unlocked.", pos:{l:1,s:2}, cards:[8]}],
+   why:{14:"full-disk encryption turns a disclosure into a lost piece of hardware", 8:"the laptop was taken from a car; this is about where devices are kept", 4:"an offline copy existed because nobody controlled who could export it", 9:"you cannot say what was on a laptop nobody had listed", 13:"eleven families must be told; this decides who does that, and how fast"},
    debrief:["A login password and full-disk encryption feel similar to a non-specialist. What is the actual difference to whoever has the laptop now?",
             "The spreadsheet was a convenience copy. Which control stops one existing, and what does the caseworker lose when it does?",
             "Who has to be told, how quickly, and what do you say to eleven families?"]},
@@ -140,7 +175,8 @@ const SCENARIOS = [
    draw:{method:"Processes",impact:"Financial Wellbeing",resource:"Entitlement",motive:"Personal Gain"},
    strong:[7,4], partial:[9,10,15], weak:[2],
    standing:[{id:1, text:"The website was built by a volunteer who has since left.", pos:{l:1,s:1}, cards:[10,17]}, {id:2, text:"Nobody has opened the backup system in over a year.", pos:{l:1,s:2}, cards:[6]}],
-   debrief:["Nobody attacked this organization. Is this a security incident?",
+   why:{7:"the volunteer"s login should have been disabled the week she left", 4:"a documented grant-and-revoke process is what makes that happen reliably", 9:"you cannot revoke access to a platform nobody has listed", 10:"the donation platform is unmanaged software nobody owns", 15:"the two-hundred-dollar test would have shown in a log someone read"},
+   debrief:["Nobody attacked this organization — a door was left open. Is that a security incident?",
             "The right answer costs one point and takes an afternoon. Why is it the one nobody does?",
             "How would this organization even produce a list of who has access?"]},
 
@@ -151,6 +187,7 @@ const SCENARIOS = [
    draw:{method:"Indirect Attack",impact:"Relationships",resource:"Technical Expertise",motive:"Personal Gain"},
    strong:[17,13], partial:[9,21], weak:[1,11,16,18],
    standing:[{id:1, text:"Nobody has a list of the cloud services the district uses.", pos:{l:2,s:1}, cards:[17,9]}, {id:2, text:"Teacher accounts stay active after they leave.", pos:{l:2,s:1}, cards:[7]}],
+   why:{17:"the only control that existed here was a contract clause written a year earlier", 13:"the superintendent heard from a reporter; this decides who speaks and when", 9:"extended to data: knowing which outside services hold student records", 21:"transfers part of a cost the district did not cause"},
    debrief:["Half your deck is useless here. What does that say about where a small organization's real risk lives?",
             "The superintendent learned from a reporter. What clause would have changed that, and when would it have had to be written?",
             "Bus stop times plus home addresses. Which Human Impact card is this really?"]},
@@ -162,7 +199,8 @@ const SCENARIOS = [
    draw:{method:"Processes",impact:"Relationships",resource:"Technical Expertise",motive:"Politics"},
    strong:[11,4], partial:[19,10,17], weak:[2,6],
    standing:[{id:1, text:"The office network and the control network are the same network.", pos:{l:1,s:2}, cards:[18]}, {id:2, text:"The public site runs on a server nobody patches.", pos:{l:2,s:1}, cards:[1,10]}],
-   debrief:["You had ten points. What is the cheapest purchase that actually closes this?",
+   why:{11:"debug mode left on in production is a configuration failure, precisely this card", 4:"an administrative page with no login is an access-control failure too", 19:"would have found it, at three points and a year late", 10:"nobody knew what the contractor left running", 17:"the contractor built it and walked away with no handover"},
+   debrief:["You had ten points and the fix costs one. What did the rest buy you?",
             "Penetration testing would have found it. Was it worth three points here, and what would have to be true first?",
             "A utility can post public notices. What is the worst version of this that does not involve stealing anything?"]},
 
@@ -173,6 +211,7 @@ const SCENARIOS = [
    draw:{method:"Processes",impact:"Emotional Wellbeing",resource:"Entitlement",motive:"Desire or Obsession"},
    strong:[15,4,20], partial:[13,17], weak:[12,14,1],
    standing:[{id:1, text:"Staff email client files to personal accounts to work at home.", pos:{l:2,s:2}, cards:[12,14]}, {id:2, text:"Two former staff still have building keys.", pos:{l:1,s:1}, cards:[8,7]}],
+   why:{15:"who opened which file, and when, is the only answerable question here", 4:"case files readable by all staff is the access decision that allowed this", 20:"someone actually reviewing those logs, which this office cannot staff", 13:"a client has been harmed; this decides how that is handled", 17:"employment and confidentiality terms are the other lever available"},
    debrief:["Which of your purchases would have stopped this? If none, what do you tell the client you can offer instead?",
             "Logging tells you afterward. Is a control that only works afterward worth two of ten points?",
             "Least Privilege has a cost not measured in points. What does the paralegal lose, and is the trade right?"]},
@@ -184,6 +223,7 @@ const SCENARIOS = [
    draw:{method:"Technological Attack",impact:"Relationships",resource:"Technical Expertise",motive:"Curiosity"},
    strong:[9,18,11], partial:[10,15], weak:[2,6],
    standing:[{id:1, text:"The public wifi password has not changed since 2019.", pos:{l:2,s:0}, cards:[5,11]}, {id:2, text:"Nobody knows who to call if something goes wrong at eight at night.", pos:{l:1,s:1}, cards:[13]}],
+   why:{9:"the device is unidentifiable because nothing lists what is on the network", 18:"a camera on its own segment cannot reach the circulation desk", 11:"2016 default credentials are almost certainly how it was taken", 10:"firmware nobody has updated in a decade", 15:"traffic at three in the morning was noticed once; logging makes that routine"},
    debrief:["At six points, segmentation may be out of reach. What do you buy first, and what do you tell the board about the rest?",
             "The camera has been there a decade. Which control would have caught it in year one, and what does it cost?",
             "Patron borrowing records are legally protected in many states. Does that change your ranking?"]},
@@ -195,7 +235,8 @@ const SCENARIOS = [
    draw:{method:"Technological Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
    strong:[10,28,6], partial:[18,27,26], weak:[1],
    standing:[{id:1, text:"Donor data is exported to a spreadsheet on a personal laptop.", pos:{l:2,s:2}, cards:[14,4]}, {id:2, text:"There is no backup of the website.", pos:{l:1,s:1}, cards:[6]}],
-   debrief:["Someone bought Software Updates. What happens when the vendor has stopped shipping them?",
+   why:{10:"knowing the version stopped being supported in 2022 is the whole finding", 28:"the migration costs four thousand dollars they do not have; this names the wait", 6:"if the unsupported database fails, this is what gets the donors back", 18:"isolate the unsupported system so it cannot reach anything else", 27:"what you do instead when the right fix is unaffordable", 26:"deciding in writing to live with it, with a named owner"},
+   debrief:["If anyone bought Software Updates: what does patching achieve once the vendor has stopped shipping patches?",
             "If you deferred, name the exposure and say for how long. Would you put that in writing to the board?",
             "Revisit this later and drift the threat. Was deferring still the right call?"]},
 
@@ -206,6 +247,7 @@ const SCENARIOS = [
    draw:{method:"Manipulation or Coercion",impact:"Financial Wellbeing",resource:"Money",motive:"Personal Gain"},
    strong:[5,7,13], partial:[12,15,21], weak:[18,16],
    standing:[{id:1, text:"Volunteer accounts are never removed.", pos:{l:2,s:1}, cards:[7]}, {id:2, text:"There is no record of who changes the donation page.", pos:{l:1,s:1}, cards:[15,11]}],
+   why:{5:"six people sharing one password with no second factor is the whole story", 7:"volunteer accounts that are never removed", 13:"four thousand donors have to be told something", 12:"reduces how the credentials were phished in the first place", 15:"who sent what, from where, and when", 21:"covers notification cost, not the donor who stops giving"},
    debrief:["Six people share one password because it is genuinely convenient. What do you replace it with that they will actually use?",
             "Which of your purchases helps you tell four thousand donors what happened?",
             "Insurance may cover the cost. Does it cover the donor who stops giving?"]},
@@ -301,7 +343,8 @@ const blankTeam = (n) => ({
   n, name:`Team ${n}`, members:"", joined:false,
   threat:{method:"",impact:"",resource:"",motive:""},
   pre:null, post:null, hand:[], modHand:[], purchases:[],
-  modifiers:[], residual:"", measures:[], debriefAnswers:{}, recommendation:"", ownerUid:null,
+  modifiers:[], residual:"", measures:[], debriefAnswers:{}, carryAnswer:"",
+  recommendation:"", ownerUid:null,
   engagement:1, everBought:[], drift:0, realized:null, lastVerdict:null,
   standingPos:{}, standingIgnored:0, budgetOverride:null,
   updatedAt:0,
@@ -460,7 +503,7 @@ const PHASE_GUIDE = {
     steps:[
       "Read the scenario together before touching anything.",
       "Four cards make the model: the method, who it harms, what the attacker has, and why. Say the story out loud in one sentence.",
-      "Put the threat on the grid. Across is how bad it would be. Down is how often it could happen.",
+      "Put the threat on the grid. Across is how bad it would be if it happened. Down is how often it could happen — the further down, the more likely.",
     ],
     key:"Judge severity by the Human Impact card — who gets hurt — not by how clever the attack sounds.",
     done:"One marker on the grid, and you can name the person who gets hurt." },
@@ -475,10 +518,10 @@ const PHASE_GUIDE = {
   p3:{ title:"What still gets through",
     steps:[
       "Move the same threat to where it sits now, given what you bought.",
-      "Likelihood usually falls. Severity usually does not move — controls rarely change who gets hurt.",
+      "Likelihood usually falls, which means moving up a row. Severity usually does not move at all — controls rarely change who gets hurt.",
       "Write one sentence naming what an attacker could still do.",
     ],
-    key:"If you moved it to the bottom-left corner, you have over-credited yourselves. Something always gets through.",
+    key:"Likelihood runs down the grid, so reducing it means moving up a row. Severity runs across and rarely moves. If you landed in the top-left corner you have over-credited yourselves — something always gets through.",
     done:"The marker has moved and there is a sentence in the box." },
   debrief:{ title:"Compare and explain",
     steps:[
@@ -618,7 +661,7 @@ function HelpPanel({onClose}){
             textTransform:"uppercase",color:C.solution}}>Things teams get wrong</div>
           <ul style={{margin:"7px 0 0",paddingLeft:18,fontSize:14,lineHeight:1.7,color:C.paper}}>
             <li>Rating severity by how clever the attack is. Severity is who gets hurt.</li>
-            <li>Moving the threat to the bottom-left in Phase 3. Something always gets through.</li>
+            <li>Moving the threat to the top-left corner in Phase 3. Something always gets through.</li>
             <li>Buying the expensive card because it sounds serious. Cost tracks how hard a
               control is to run, not how much it helps you.</li>
             <li>Writing &ldquo;people are the weakest link&rdquo; as a justification. Name a person,
@@ -1005,15 +1048,44 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   const phase = cfg?.phase||"setup";
   const budget = cfg?.budget??6;
 
+  /* A hand containing nothing that addresses the drawn threat punishes a team for
+     the deal rather than for its reasoning, and across teams it makes deal luck an
+     uncontrolled variable. So every hand is guaranteed at least one strong and one
+     partial card for the loaded scenario, and by default every team is dealt the
+     same eight — which is what "standardized deal composition" has to mean if the
+     two arms are to be compared. */
+  const buildHand = (owned, scen)=>{
+    const free = (tier)=>SOLUTIONS.filter(c=>c.tier===tier && !owned.includes(c.id)).map(c=>c.id);
+    const must = [];
+    if (scen){
+      const s1 = (scen.strong||[]).filter(id=>!owned.includes(id));
+      const p1 = (scen.partial||[]).filter(id=>!owned.includes(id));
+      if (s1.length) must.push(sample(s1,1)[0]);
+      if (p1.length) must.push(sample(p1,1)[0]);
+    }
+    const pool = (tier)=>free(tier).filter(id=>!must.includes(id));
+    const rest = [...sample(pool("F"), Math.max(0,6-must.length)),
+                  ...sample(pool("E"),1), ...sample(pool("A"),1)];
+    return [...must, ...rest].slice(0,8);
+  };
+
   const dealAll = async ()=>{
+    const scen = scenarioById(cfg?.scenarioId);
+    const shared = cfg?.sameDeal !== false;
+    const commonHand = shared ? buildHand([], scen) : null;
+    const commonMods = shared ? sample(MODIFIERS.map(m=>m.id),3) : null;
     for (const n of ids){
       const t = teams[n]; if(!t?.joined) continue;
       const owned = t.everBought||[];
-      const free = (tier)=>SOLUTIONS.filter(c=>c.tier===tier && !owned.includes(c.id)).map(c=>c.id);
-      const found = free("F"), ext = free("E"), adv = free("A");
-      const hand = [...sample(found,6),...sample(ext,1),...sample(adv,1)];
-      await saveTeam(n,{hand, modHand:sample(MODIFIERS.map(m=>m.id),3), purchases:[], modifiers:[]});
+      // an identical deal still has to skip cards a team already installed
+      const hand = shared
+        ? (owned.length ? buildHand(owned, scen) : commonHand)
+        : buildHand(owned, scen);
+      await saveTeam(n,{hand, modHand: shared ? commonMods : sample(MODIFIERS.map(m=>m.id),3),
+        purchases:[], modifiers:[]});
     }
+    setStatus(shared ? "Dealt — every team has the same eight cards."
+                     : "Dealt — hands vary by team.");
   };
   const pending = [];
   ids.forEach(n=>{ (teams[n]?.modifiers||[]).forEach((m,i)=>{ if(m.status==="pending") pending.push({n,i,...m}); }); });
@@ -1033,6 +1105,21 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
      clearing it, which is the difference between a new round and a next
      engagement. Drift applies only where a team played Deferred Investment,
      because that card is the promise the drift is the price of. */
+  /* Who would realize if we advanced now. The facilitator needs this before
+     pressing the button, because realization is a moment to run aloud, not a
+     red box a team discovers on its own. */
+  const willRealize = (()=>{
+    const scen = scenarioById(cfg?.scenarioId);
+    if(!scen) return [];
+    return ids.filter(n=>{
+      const t = teams[n]; if(!t?.joined) return false;
+      const pos = t.post || t.pre; if(!pos) return false;
+      const deferred = (t.modifiers||[]).some(m=>m.id===28 && m.status==="accepted");
+      const cov = coverage(t.purchases||[], scen);
+      return pos.l + cov.move + (deferred?1:0) > LIKELIHOOD.length-1;
+    });
+  })();
+
   const nextEngagement = async ()=>{
     const scen = scenarioById(cfg?.scenarioId);
     const base = cfg?.budget ?? 6;
@@ -1108,7 +1195,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   const exportData = ()=>{
     const rows = [["team","org","scenario","condition","measures_count","measures","engagement","drift","realized","threat_method","threat_impact",
       "verdict","standing_ignored","threat_resource","threat_motive","pre_likelihood","pre_severity","post_likelihood",
-      "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","debrief_1","debrief_2","debrief_3","recommendation"]];
+      "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","debrief_1","debrief_2","debrief_3","carry_forward","recommendation"]];
     ids.forEach(n=>{
       const t=teams[n]; if(!t?.joined) return;
       const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
@@ -1125,6 +1212,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
         ((t.debriefAnswers||{})[0]||"").replace(/\n/g," "),
         ((t.debriefAnswers||{})[1]||"").replace(/\n/g," "),
         ((t.debriefAnswers||{})[2]||"").replace(/\n/g," "),
+        (t.carryAnswer||"").replace(/\n/g," "),
         (t.recommendation||"").replace(/\n/g," ")]);
     });
     const csv = rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -1303,8 +1391,33 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           <button style={{...btn(),marginTop:10,width:"100%"}} disabled={busy} onClick={dealAll}>
             Deal 8 controls + 3 modifiers to every team
           </button>
+          <div style={{display:"flex",gap:6,marginTop:7,flexWrap:"wrap"}}>
+            {[[true,"Same deal for all"],[false,"Vary by team"]].map(([v,lbl])=>(
+              <button key={String(v)} onClick={()=>saveCfg({sameDeal:v})}
+                style={{...btn((cfg?.sameDeal!==false)===v?"primary":"ghost"),fontSize:12.5}}>
+                {lbl}</button>
+            ))}
+          </div>
+          <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
+            Every hand is guaranteed at least one card that addresses the drawn threat, so no
+            team is punished for its deal. Keep <b>same deal</b> when collecting data.
+          </p>
           <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.edge}`}}>
             <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Campaign — same client, later in the term</label>
+            {willRealize.length>0 && (
+              <div style={{marginTop:7,padding:"9px 11px",borderRadius:4,
+                border:`1px solid ${C.warn}`,background:"rgba(209,118,111,.10)"}}>
+                <div style={{fontFamily:MONO,fontSize:12.5,color:C.warn,letterSpacing:".06em",
+                  textTransform:"uppercase"}}>Advancing will realize a threat</div>
+                <div style={{fontSize:13,lineHeight:1.55,marginTop:4}}>
+                  {willRealize.map(n=>teams[n]?.name).join(", ")}
+                </div>
+                <div style={{fontFamily:MONO,fontSize:12,color:C.muted,marginTop:5,lineHeight:1.6}}>
+                  Say it aloud before they read it. Frame it as consequence, not failure, and ask
+                  them to narrate what happened in the client's words.
+                </div>
+              </div>
+            )}
             <button style={{...btn("primary"),marginTop:6,width:"100%"}} disabled={busy}
               onClick={()=>{ if(window.confirm(
                 "Advance to the next engagement?\n\nThreats and matrix positions carry forward. "+
@@ -1402,7 +1515,8 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                 <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>{teams[p.n]?.name} · card {p.id}</div>
                 <div style={{fontSize:14.5,fontWeight:500,margin:"3px 0 5px"}}>{card(p.id)?.name}</div>
                 <div style={{fontSize:14,color:C.paper,lineHeight:1.55,fontStyle:"italic"}}>“{p.justification}”</div>
-                <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,margin:"7px 0"}}>Needs: {card(p.id)?.demand}</div>
+                <div style={{fontSize:12.5,color:C.muted,margin:"7px 0",lineHeight:1.5}}>
+                  <b>Needs:</b> {card(p.id)?.demand}</div>
                 <div style={{display:"flex",gap:7}}>
                   <button style={btn("primary")} onClick={()=>{
                     const mods=[...teams[p.n].modifiers]; mods[p.i]={...mods[p.i],status:"accepted"};
@@ -1443,7 +1557,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                       {t.members||"—"}
                       {(t.engagement||1)>1 && ` · engagement ${t.engagement}`}
                       {(t.drift||0)>0 && ` · drifted ${t.drift}`}
-                      {t.realized && <span style={{color:C.warn}}> · realized</span>}
+                      {t.realized && <span style={{color:C.warn,fontWeight:700}}> · THREAT REALIZED</span>}
                       {!t.realized && t.lastVerdict && t.lastVerdict!=="unscored" &&
                         <span style={{color:t.lastVerdict==="held"?C.ok:t.lastVerdict==="partial"?C.brass:C.warn}}>
                           {" "}· {t.lastVerdict}</span>}
@@ -1992,13 +2106,14 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                   and the facilitator decides whether it is specific enough. Vague answers come
                   back and the card returns to the deck.
                 </p>
-                <div style={{fontSize:13.5,lineHeight:1.6,fontFamily:MONO}}>
-                  <div style={{color:C.warn}}>✗ &ldquo;People are the weakest link.&rdquo;</div>
-                  <div style={{color:C.ok}}>✓ &ldquo;Staff will share the one MFA phone at the front
-                    desk, so we would need per-person enrolment.&rdquo;</div>
+                <div style={{fontSize:13,lineHeight:1.6}}>
+                  <div style={{color:C.warn}}>✗ &ldquo;People are the weakest link.&rdquo; True of
+                    everywhere, so it says nothing about here.</div>
+                  <div style={{color:C.ok,marginTop:3}}>✓ &ldquo;Staff will share the one MFA phone
+                    at the front desk, so we would need per-person enrolment.&rdquo;</div>
                 </div>
                 <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:7}}>
-                  Name a person, a system, or a way something breaks. At most two per round.
+                  Each card asks its own question and gives you a sentence to fill in.
                 </div>
               </div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",
@@ -2037,14 +2152,15 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                           {played? (played.status==="accepted"?"accepted":"waiting on facilitator") : "free"}
                         </span>
                       </div>
-                      <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,margin:"4px 0 7px"}}>{m.demand}</div>
+                      <div style={{fontSize:13.5,lineHeight:1.55,color:C.paper,
+                        margin:"5px 0 7px"}}>{m.ask || m.demand}</div>
                       {blocked && <div style={{fontFamily:MONO,fontSize:13,color:C.warn,
                         margin:"0 0 7px",lineHeight:1.55}}>{blockMsg}</div>}
                       {!played && (
                         <>
                           <textarea value={just[id]||""} onChange={e=>setJust(j=>({...j,[id]:e.target.value}))}
                             placeholder={blocked ? blockMsg
-                              : "Answer the question above, naming a person, a system, or how something breaks."}
+                              : (m.frame || "Answer the question above with something specific.")}
                             disabled={blocked||modsPlayed>=2||!isOwner}/>
                           <button style={{...btn("primary"),marginTop:7}}
                             disabled={blocked||modsPlayed>=2||!isOwner||(just[id]||"").trim().length<12}
@@ -2069,6 +2185,24 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
             One sentence each. Write what your team actually decided, not what sounds right —
             these are the answers you will be asked to defend out loud.
           </p>
+
+          {(t.engagement||1)>1 && (
+            <div style={{marginBottom:14,paddingBottom:12,borderBottom:`1px solid ${C.edge}`}}>
+              <div style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:5}}>
+                <span style={{width:19,height:19,borderRadius:"50%",flexShrink:0,marginTop:1,
+                  background:(t.carryAnswer||"").trim() ? C.ok : C.edge,
+                  color:(t.carryAnswer||"").trim() ? C.onAccent : C.muted,
+                  fontFamily:MONO,fontSize:12.5,display:"flex",
+                  alignItems:"center",justifyContent:"center"}}>↻</span>
+                <span style={{fontSize:14.5,lineHeight:1.55}}>
+                  Asked every engagement: what would you do differently from last time, and why?
+                </span>
+              </div>
+              <textarea value={t.carryAnswer||""} disabled={!isOwner} style={{minHeight:44}}
+                placeholder="One sentence."
+                onChange={e=>saveTeam(teamN,{carryAnswer:e.target.value})}/>
+            </div>
+          )}
 
           <div style={{display:"grid",gap:14}}>
             {(scen.debrief||[]).map((q,i)=>(
@@ -2116,7 +2250,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               background:C.panel,padding:"12px 14px"}}>
               <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
                 textTransform:"uppercase",color:C.solution}}>
-                How each purchase matches the threat
+                The new threat — how each purchase matches it
               </div>
 
               <div style={{fontSize:15,fontWeight:600,margin:"7px 0 3px"}}>{scen.title}</div>
@@ -2149,9 +2283,9 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 const verdictOf = (id)=> (scen.strong||[]).includes(id) ? "strong"
                                        : (scen.partial||[]).includes(id) ? "partial" : "off";
                 const LBL = {
-                  strong:{t:"addresses this threat", c:C.ok},
+                  strong:{t:"addresses it", c:C.ok},
                   partial:{t:"helps, but not squarely", c:C.brass},
-                  off:{t:"does not apply to this threat", c:C.muted},
+                  off:{t:"not this threat", c:C.muted},
                 };
                 if(!bp.length) return (
                   <div style={{fontSize:14,color:C.muted}}>You bought nothing this round.</div>
@@ -2160,14 +2294,26 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 const anyPartial = bp.some(id=>verdictOf(id)==="partial");
                 return (
                   <>
-                    <div style={{display:"grid",gap:5}}>
+                    <div style={{display:"grid",gap:9}}>
                       {bp.map(id=>{
-                        const v = LBL[verdictOf(id)];
+                        const k = verdictOf(id);
+                        const v = LBL[k];
+                        const why = (scen.why||{})[id];
                         return (
-                          <div key={id} style={{display:"flex",gap:10,alignItems:"baseline",
-                            flexWrap:"wrap"}}>
-                            <span style={{fontSize:14.5,minWidth:190}}>{card(id)?.name}</span>
-                            <span style={{fontFamily:MONO,fontSize:13,color:v.c}}>{v.t}</span>
+                          <div key={id} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                            <span style={{width:9,height:9,borderRadius:"50%",flexShrink:0,
+                              marginTop:6,background:v.c}}/>
+                            <div style={{minWidth:0}}>
+                              <div style={{display:"flex",gap:9,alignItems:"baseline",flexWrap:"wrap"}}>
+                                <span style={{fontSize:14.5,fontWeight:600}}>{card(id)?.name}</span>
+                                <span style={{fontFamily:MONO,fontSize:13,color:v.c}}>{v.t}</span>
+                              </div>
+                              <div style={{fontSize:13.5,lineHeight:1.5,color:C.muted,marginTop:2}}>
+                                {why || (k==="off"
+                                  ? "nothing in this scenario turns on it, which does not make it a bad purchase in general"
+                                  : "relevant here, though the key does not record why")}
+                              </div>
+                            </div>
                           </div>
                         );
                       })}
@@ -2175,10 +2321,10 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                     <div style={{fontSize:14,lineHeight:1.6,marginTop:11,
                       color: anyStrong ? C.ok : anyPartial ? C.brass : C.warn}}>
                       {anyStrong
-                        ? "At least one purchase works directly against this threat, so it should be less likely than when you placed it. Move the marker left."
+                        ? `At least one purchase works directly against ${scen.title.toLowerCase()}, so it should be less likely than when you placed it. Likelihood runs down the grid — move the marker up a row.`
                         : anyPartial
-                        ? "Nothing you bought works directly against this threat, though something is adjacent. Likelihood probably sits where it is."
-                        : "Nothing you bought works against this threat. It is as likely now as it was before you spent anything."}
+                        ? `Nothing you bought works directly against ${scen.title.toLowerCase()}, though something is adjacent. Likelihood probably sits where it is.`
+                        : `Nothing you bought works against ${scen.title.toLowerCase()}. It is as likely now as it was before you spent anything.`}
                     </div>
                     <div style={{fontFamily:MONO,fontSize:13,color:C.muted,marginTop:7,lineHeight:1.6}}>
                       Severity does not move — controls change how often something happens, not who
@@ -2192,7 +2338,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 <div style={{marginTop:13,paddingTop:11,borderTop:`1px solid ${C.edge}`}}>
                   <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
                     textTransform:"uppercase",color:C.solution}}>
-                    The problems this client already had
+                    Separately: the problems this client already had
                   </div>
                   <div style={{display:"grid",gap:7,marginTop:8}}>
                     {standing.map(r=>{
