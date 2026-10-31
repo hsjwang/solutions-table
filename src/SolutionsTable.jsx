@@ -57,7 +57,7 @@ const URL_CONDITION = (()=>{
     ? "control" : null; }catch{ return null; }
 })();
 
-const BUILD = "2026-10-30.bsides";
+const BUILD = "2026-10-30.expansion";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -85,7 +85,22 @@ const SOLUTIONS = [
   [20,"Managed Detection & Response",3,"A","CIS 8, 13, 17"],
   [21,"Cyber Insurance & Risk Transfer",3,"A","Risk transfer"],
 ].map(([id,name,cost,tier,ctrl])=>({id,name,cost,tier,ctrl}));
-const isControl = (id) => SOLUTIONS.some(c=>c.id===id);
+
+/* Expansion deck. Off unless the facilitator switches it on, so the 21-card
+   base deck — the study instrument — never changes underneath a session.
+   Each card fills a gap the practitioner scenarios exposed: CIS 16 had no card
+   at all, data protection was only Encryption, and privileged access was folded
+   into Identity & Access Management. Ids continue after the modifiers. */
+const EXP_SOLUTIONS = [
+  [29,"Application & Pipeline Security",2,"E","CIS 16 (16.1, 16.4, 16.12)"],
+  [30,"Data Inventory & Loss Prevention",2,"E","CIS 3 (3.1–3.3, 3.13)"],
+  [31,"Privileged Access Management",2,"E","CIS 5, 6 (5.4, 6.5, 6.8)"],
+  [32,"Vulnerability Scanning",2,"E","CIS 7 (7.5–7.7)"],
+  [33,"Incident Response Exercises",1,"F","CIS 17 (17.7, 17.8)"],
+  [34,"Application Allowlisting",2,"E","CIS 2 (2.5–2.7)"],
+  [35,"Zero Trust Remote Access",3,"A","CIS 12, 13 (12.7, 13.5)"],
+].map(([id,name,cost,tier,ctrl])=>({id,name,cost,tier,ctrl,exp:true}));
+const isControl = (id) => SOLUTIONS.some(c=>c.id===id) || EXP_SOLUTIONS.some(c=>c.id===id);
 
 /* Where a beginner can read the control before buying it. One public page per
    CIS Control (all checked 2026-10-30); the two cards with no dedicated control
@@ -167,6 +182,20 @@ const MODIFIERS = [
    "You are underspending now so the organization can afford something bigger next year. Name what it is exposed to while it waits, and for how long. This is borrowing against next year's budget, and the interest is paid in risk.",
    "We are deferring so we can afford ______ next engagement. Meanwhile we are exposed to ______ for about ______."],
 ].map(([id,name,demand,ask,frame])=>({id,name,demand,ask,frame,cost:0}));
+
+/* Expansion modifiers. Both are claims practitioners make daily and students
+   rarely hear named. */
+const EXP_MODIFIERS = [
+  [36,"Separation of Duties",
+   "One task one person can do alone, and the second person it should need.",
+   "Some actions are too consequential for one person to complete alone, however trusted. Name one thing a single person in this organization can do end to end today, say who the second person should be, and say what that costs in speed.",
+   "Today ______ can ______ alone. It should also need ______, which slows ______ by about ______."],
+
+  [37,"Shared Responsibility",
+   "A control the provider owns, and how you would know it is working.",
+   "Every cloud service or outsourced function splits the work: some controls are the provider's, some stay yours. Name one control in this scenario that belongs to a provider, name the one next to it that is still yours, and say what evidence would tell you the provider's half is actually being done.",
+   "______ is the provider's job; ______ is still ours. We would know theirs is working because ______."],
+].map(([id,name,demand,ask,frame])=>({id,name,demand,ask,frame,cost:0,exp:true}));
 
 
 /* ---- Scenario library. Mirrors Appendix C of the facilitator manual.
@@ -514,8 +543,117 @@ const SCENARIOS = [
      draw:{method:"Indirect Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
      strong:[11,4], partial:[15,10],
      why:{11:"if user consent is still open, the first incident changed nothing", 4:"tenant-wide file read for a recording app is an access decision someone should have had to make", 15:"nine consents to the same unknown app is an obvious alert", 10:"OAuth apps are software in your environment; inventory them like any other"}}},
+
+  /* ---- Expansion scenarios. `exp` hides them from the dropdown unless the
+     expansion deck is on, and loading one turns the deck on for the session,
+     because their keys are written around expansion cards. */
+  {id:15, exp:true, pro:true, care:false, budget:10, title:"The Poisoned Dependency",
+   org:"Tidewater Payments — 120 staff, card-present payment SaaS for 3,000 merchants",
+   target:"Nothing was misconfigured in production. The attack arrived through the build, which is the one place the base deck has no card for.",
+   text:"An open-source logging library used in Tidewater's build pipeline publishes a new minor version. The maintainer's account had been taken over a week earlier, and the release adds a postinstall script that reads environment variables and posts them to a paste site. Tidewater's CI runners install dependencies fresh on every build. Over four days the script collects the signing key for the merchant terminal update channel and a database URL with credentials for the transaction reporting replica.",
+   env:["Builds run on self-hosted GitHub Actions runners that are persistent virtual machines, not ephemeral. Every job shares one service identity.",
+        "Dependency versions use caret ranges, and there is no lockfile in the reporting service. No dependency is pinned or reviewed when it changes.",
+        "Every repository secret is exposed to every workflow, including the terminal firmware signing key.",
+        "Software composition analysis runs weekly and reports known CVEs only. A new malicious release with no CVE is invisible to it.",
+        "The reporting replica holds 18 months of transactions, with the PAN truncated but merchant bank details in full. It accepts connections from the CI subnet.",
+        "Runners have unrestricted outbound internet access. No egress allowlist exists.",
+        "PCI DSS v4.0 assessment is due in five months. Requirement 6.3.2 asks for an inventory of bespoke and third-party software components."],
+   draw:{method:"Indirect Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+   strong:[29,10,4], partial:[34,18,15,30], weak:[2,3,21],
+   standing:[{id:1, text:"Former contractors still have write access to two repositories.", pos:{l:1,s:1}, cards:[7,31]},
+             {id:2, text:"Terminal firmware updates are signed but terminals do not check revocation.", pos:{l:1,s:2}, cards:[11,29]}],
+   why:{29:"pinned versions, reviewed dependency changes and secrets scoped per workflow are what CIS 16 means for a build", 10:"a component inventory would have shown which build pulled the new version, and when", 4:"one identity for every job, and every secret visible to every workflow, turned one bad package into the signing key", 34:"allowlisting what runners may execute catches a postinstall script nobody expected", 18:"a CI subnet that cannot reach the reporting replica limits what stolen credentials are worth", 15:"outbound posts to a paste site from a build runner are loggable and unusual", 30:"knowing which systems hold merchant bank details is the first question the assessor and the merchants will ask"},
+   debrief:["Your software composition analysis was green the whole time. What is it actually for, and what was this?",
+            "The signing key was reachable from a logging library's install step. Whose decision was that, and when was it made?",
+            "Three thousand merchants receive firmware signed with a key you no longer control. What do you tell them, and in what order?"],
+   inject:{title:"The Signed Update",
+     text:"Three weeks later a firmware update appears on the terminal update channel that Tidewater did not publish. It is signed with the stolen key. Forty merchants have installed it before anyone notices.",
+     draw:{method:"Multi-phase Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+     strong:[13,33], partial:[15,17],
+     why:{13:"revoking a signing key across 3,000 terminals is a plan decision, not an improvisation", 33:"a team that has rehearsed key compromise knows who rotates it and how terminals learn", 15:"the publish event was logged; nothing compared it with a release", 17:"the merchant agreements decide what Tidewater owes them now"}}},
+
+  {id:16, exp:true, pro:true, care:true, budget:10, title:"The Research Export",
+   org:"Coastal State University Health Research Institute — 60 researchers, 14 active studies",
+   target:"No attacker, no exploit. The data was shared on purpose by someone allowed to see it, so the controls that matter are knowing where data is and what may leave.",
+   text:"A postdoctoral researcher at the institute uploads a 'de-identified' dataset to a public code repository so a collaborator at another university can reproduce an analysis. The file contains ZIP codes, exact dates of clinic visits and free-text notes. A journalist working on a story about the study's community notices that three participants can be identified by combining it with local news coverage. One of them is a minor.",
+   env:["Study data lives on a shared research drive with folder-level access. Every member of a lab can read every study in that lab.",
+        "The institute has no data inventory. The IRB protocol lists where data 'will be stored', and nobody checks it against where data actually is.",
+        "De-identification is done by each lab with its own script. Nobody reviews the output before export.",
+        "Researchers have local administrator rights and personal GitHub accounts. Nothing restricts uploads to code-hosting or file-sharing sites.",
+        "The data use agreement with the partner health system requires notice within 5 business days of any unauthorized disclosure.",
+        "University IT runs email and identity. The institute is responsible for everything else."],
+   draw:{method:"Processes",impact:"Emotional Wellbeing",resource:"Entitlement",motive:"Curiosity"},
+   strong:[30,4,2], partial:[13,17,12], weak:[16,32,35],
+   standing:[{id:1, text:"Graduated students' accounts keep access to the research drive.", pos:{l:2,s:1}, cards:[7,4]},
+             {id:2, text:"A study laptop with raw interview recordings has been 'on loan' for a year.", pos:{l:1,s:2}, cards:[9,14]}],
+   why:{30:"knowing where identifiable data lives, and blocking it from leaving to public sites, is this card exactly", 4:"every lab member reading every study is more access than any one project needs", 2:"the researcher believed the file was de-identified; training on re-identification risk changes that judgement", 13:"five business days under the data use agreement starts now", 17:"the data use agreement is what defines the institute's obligation to the partner", 12:"upload controls can flag known file-sharing destinations, imperfectly"},
+   debrief:["The researcher was authorized to see this data. Was this an incident, a mistake, or both, and does the label change your response?",
+            "Who in the institute could have said, on any given day, where every copy of this dataset was?",
+            "A minor can be identified. Who calls the family, and what do they say?"],
+   inject:{title:"The Cached Copy",
+     text:"The repository is deleted within hours, but a dataset search engine had already indexed and cached the file. A data broker's crawler retrieved it the same afternoon.",
+     draw:{method:"Indirect Attack",impact:"Emotional Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+     strong:[13,17], partial:[30],
+     why:{13:"takedown requests, partner notice and participant notice all run on the clock now", 17:"the data use agreement may oblige the partner to act alongside you", 30:"knowing exactly which fields left is what makes a takedown request specific enough to work"}}},
+
+  {id:17, exp:true, pro:true, care:false, budget:10, title:"Remote Access to the Line",
+   org:"Riverbend Cold Storage — 220 staff, ammonia-refrigerated food warehouse",
+   target:"The control that failed was a vendor's convenience. Segmentation and brokered remote access are what stand between an office phish and an ammonia release.",
+   text:"Riverbend's refrigeration contractor supports the plant's ammonia compressor controls through a remote desktop tool installed on the engineering workstation next to the HMI. On Sunday night an operator watches the cursor move on its own: someone has opened the setpoint screen for the blast freezers. The session closes when he unplugs the network cable. The contractor says none of its technicians were connected.",
+   env:["The engineering workstation runs Windows 10 with the remote tool set to unattended access. Its password has been the same since installation in 2021, and the contractor shares it among eleven technicians.",
+        "The plant network and the office network are one flat VLAN. The PLCs answer to anyone on it.",
+        "There is no list of which remote access tools are installed where. A scan later finds three different ones.",
+        "The office was phished last month. One user's credentials were used to sign in from abroad, and the password was reset.",
+        "Ammonia refrigeration falls under OSHA Process Safety Management and EPA Risk Management Program rules. A release has to be reported, and the plant sits 400 metres from a primary school.",
+        "Safety interlocks are hard-wired and independent of the PLCs. The setpoints are not."],
+   draw:{method:"Indirect Attack",impact:"Physical Wellbeing",resource:"Technical Expertise",motive:"Politics"},
+   strong:[35,18,31], partial:[34,17,33,10], weak:[2,14,6],
+   standing:[{id:1, text:"PLC firmware has never been updated; the vendor says updates void support.", pos:{l:1,s:2}, cards:[32,17]},
+             {id:2, text:"The engineering workstation is also used to check personal email.", pos:{l:2,s:1}, cards:[34,12]}],
+   why:{35:"brokered, per-person, session-recorded remote access replaces a shared always-on tool", 18:"PLCs that only the control segment can reach do not care what happens in the office", 31:"one shared credential for eleven technicians is privileged access with no owner", 34:"an allowlist would have refused the two remote tools nobody approved", 17:"the contractor's remote-access practice should have been a contract term", 33:"the operator improvised the right move; an exercise makes the next one deliberate", 10:"three remote access tools nobody listed is a software inventory finding"},
+   debrief:["The safety interlocks are hard-wired. Does that make this a Not Severe threat, or does severity depend on what the setpoints can do before an interlock trips?",
+            "The contractor's tool was convenient for everyone. What would you replace it with that they will actually use at 2 a.m.?",
+            "Who at Riverbend can decide to take the plant offline, and did the operator have that authority when he pulled the cable?"],
+   inject:{title:"The Vendor's Other Customers",
+     text:"The contractor discloses that its technician password vault was breached. It services 140 refrigeration sites across the region, and Riverbend's credentials were in it.",
+     draw:{method:"Indirect Attack",impact:"Physical Wellbeing",resource:"Money",motive:"Personal Gain"},
+     strong:[31,17], partial:[35,13],
+     why:{31:"credentials rotated per person, under your control, are not in the contractor's vault", 17:"breach notice and credential handling are what the contract should have specified", 35:"brokered access means a stolen vendor credential alone does not open a session", 13:"someone must decide tonight whether remote access stays off"}}},
 ];
 const scenarioById = (id) => SCENARIOS.find(x=>x.id===id);
+
+/* How the expansion cards score against the base library when the expansion
+   is on. Keyed by scenario id or delayed-threat id, merged into the base key
+   by withExpansion. Written so that no base strong card is demoted: the
+   expansion adds options, it does not change the right answer. */
+const EXPANSION_KEYS = {
+  1:{partial:[33], weak:[35,32], why:{33:"a callback rule only becomes habit once the bookkeeper has rehearsed refusing a familiar voice"}},
+  2:{partial:[34,33], weak:[32,29], why:{34:"an allowlist would have refused the shortcut inside the ISO, though that is prevention after the fact", 33:"a restore nobody has rehearsed is a hope, not a recovery"}},
+  3:{strong:[30], weak:[29,35], why:{30:"the convenience copy existed because nothing tracked or limited where intake data could be exported"}},
+  4:{partial:[31], weak:[29], why:{31:"the owner role is a privileged account and nobody managed it as one"}},
+  5:{partial:[30,33], weak:[32,34], why:{30:"knowing which services hold student data is a data inventory, not an asset list", 33:"the superintendent improvising with a reporter is what an exercise would have replaced"}},
+  6:{strong:[29], partial:[32], weak:[34], why:{29:"debug left on and a parameter that skips login are application security failures, precisely CIS 16", 32:"an external scan would have flagged the end-of-life framework and the exposed debug page"}},
+  7:{partial:[30], weak:[31,32], why:{30:"loss-prevention rules can flag a paralegal opening matters she does not work on"}},
+  8:{partial:[32], weak:[29,31], why:{32:"a network scan finds devices nobody listed and the telnet ports they leave open"}},
+  9:{partial:[32], weak:[29], why:{32:"scanning would have shown the donor portal facing the internet long before anyone else found it"}},
+  10:{partial:[30], weak:[29,34], why:{30:"212 scanned cheques sat in a mailbox because nothing said what data belonged there or for how long"}},
+  11:{strong:[31], partial:[35,33], weak:[29,32], why:{31:"the AD group that owns the hypervisors is privileged access, and nothing gated who could join it", 35:"a VPN that checked the connecting device would have refused the attacker's laptop", 33:"a help-desk reset pretext is exactly what a tabletop exercise rehearses"}},
+  12:{strong:[29], partial:[30,31], weak:[34,35], why:{29:"secret scanning and push protection on the repository are CIS 16; this is the card the base deck lacked", 30:"the raw-reprocess bucket is a data inventory failure", 31:"a CI user with AdministratorAccess is an unmanaged privileged identity"}},
+  13:{partial:[32,35,33,31], why:{32:"external scanning tells you that you are exposed; it does not patch anything", 35:"replacing the appliance with brokered access is the long fix, not this week's", 33:"an emergency change path that has never been exercised is not a path", 31:"thirty-one Domain Admins is a privileged-access finding before it is anything else"}},
+  14:{partial:[30], weak:[35,34,29], why:{30:"member loan files reachable by any consented app is a data-protection gap"}},
+  s2:{partial:[30], why:{30:"you cannot say which referrals were in the sample without knowing what lived where"}},
+  s4:{partial:[32], why:{32:"a scan would have found the abandoned plugin before the defacer did"}},
+  s6:{partial:[31], why:{31:"a hosting panel held by one outsider is privileged access nobody managed"}},
+  s7:{strong:[30], why:{30:"blocking client files from leaving to personal mail is what data loss prevention is for"}},
+  s8:{partial:[34], why:{34:"an allowlisted circulation PC refuses an encryptor it has never seen"}},
+  s9:{strong:[32], why:{32:"an external scan finds the portal and its version banner before the internet does"}},
+  s11:{partial:[30], why:{30:"knowing where driver HR files lived would scope what was taken"}},
+  s12:{partial:[31], why:{31:"privileged identities created outside a managed process are what PAM tooling surfaces"}},
+  s13:{strong:[33], why:{33:"paper-card dispatch works when it has been rehearsed; this card is the rehearsal"}},
+  g1:{strong:[32], why:{32:"scanning tells you which firmware is exposed the day the advisory lands"}},
+  g3:{partial:[31,35], why:{31:"a supplier's standing login is privileged access you can broker and revoke", 35:"per-session supplier access ends when the session does"}},
+  g4:{strong:[30], why:{30:"outbound data-loss rules catch a spreadsheet of client records going to an unknown address"}},
+};
 
 /* Delayed threats for later engagements, once a scenario's own has landed.
    Generic enough to fit any client in the library. */
@@ -541,18 +679,52 @@ const GENERIC_INJECTS = [
    strong:[12,14], partial:[2,13],
    why:{12:"outbound data-loss rules and external-recipient warnings exist for this", 14:"an encrypted attachment sent to the wrong person stays closed", 2:"slowing down before hitting send is a habit training can build", 13:"whether this is a notifiable breach is a decision someone has to own"}},
 ];
+/* Joins the pool after the base four when the expansion is on. */
+const EXP_GENERIC_INJECTS = [
+  {id:"x1", title:"The Browser Extension",
+   text:"A popular PDF-converter browser extension installed by a third of the staff is sold to a new owner, whose first update reads every page staff open, including the finance portal.",
+   draw:{method:"Indirect Attack",impact:"Financial Wellbeing",resource:"Money",motive:"Personal Gain"},
+   strong:[34,12], partial:[10,2],
+   why:{34:"an extension allowlist means nobody installs one the organization has not approved", 12:"managed browser policy can block or remove extensions centrally", 10:"you cannot remove an extension nobody knew was installed", 2:"staff installed it because it was useful; that is the conversation to have"}},
+  {id:"x2", title:"The Leaked Repository",
+   text:"A former intern's personal code repository turns out to contain a copy of an internal tool, with a working database password in its configuration file.",
+   draw:{method:"Processes",impact:"Relationships",resource:"Entitlement",motive:"Curiosity"},
+   strong:[29,7], partial:[30,5],
+   why:{29:"secret scanning finds credentials in code wherever the code ends up", 7:"the intern's access should have ended, and with it the password's usefulness", 30:"knowing what data that database holds sets how serious this is", 5:"a password that is unique and rotated is worth less in someone else's repository"}},
+];
 /* Scenario injects are keyed s<scenario id>; the generic pool keeps its own ids. */
 const injectById = (id) => {
   if (typeof id==="string" && id.startsWith("s")){
     const x = scenarioById(Number(id.slice(1)));
     return x?.inject ? {...x.inject, id} : null;
   }
-  return GENERIC_INJECTS.find(g=>g.id===id) || null;
+  return GENERIC_INJECTS.find(g=>g.id===id) || EXP_GENERIC_INJECTS.find(g=>g.id===id) || null;
+};
+
+/* The expansion is on when the facilitator says so, or when the loaded
+   scenario was written for it. */
+const expansionOn = (cfg) => !!(cfg?.expansion || scenarioById(cfg?.scenarioId)?.exp);
+const deckOf = (cfg) => expansionOn(cfg) ? [...SOLUTIONS, ...EXP_SOLUTIONS] : SOLUTIONS;
+const modsOf = (cfg) => expansionOn(cfg) ? [...MODIFIERS, ...EXP_MODIFIERS] : MODIFIERS;
+const withExpansion = (key, extra) => !key || !extra ? key : {...key,
+  strong:[...key.strong, ...(extra.strong||[])],
+  partial:[...key.partial, ...(extra.partial||[])],
+  weak:[...(key.weak||[]), ...(extra.weak||[])],
+  why:{...(key.why||{}), ...(extra.why||{})}};
+/* Every place that scores or deals reads keys through these two. */
+const scenFor = (cfg) => {
+  const s = scenarioById(cfg?.scenarioId);
+  return expansionOn(cfg) ? withExpansion(s, EXPANSION_KEYS[s?.id]) : s;
+};
+const injectFor = (id, cfg) => {
+  const x = injectById(id);
+  return expansionOn(cfg) ? withExpansion(x, EXPANSION_KEYS[id]) : x;
 };
 /* The next delayed threat for a team: the scenario's own first, then the pool
    in order, so every team in the room gets the same one. */
-const nextInjectFor = (scen, have=[]) => {
-  const ids = [...(scen?.inject ? [`s${scen.id}`] : []), ...GENERIC_INJECTS.map(g=>g.id)];
+const nextInjectFor = (scen, have=[], cfg) => {
+  const pool = [...GENERIC_INJECTS, ...(expansionOn(cfg) ? EXP_GENERIC_INJECTS : [])];
+  const ids = [...(scen?.inject ? [`s${scen.id}`] : []), ...pool.map(g=>g.id)];
   return ids.find(id=>!have.includes(id)) || null;
 };
 
@@ -649,11 +821,16 @@ const SEATS_PER_TEAM = 4;
    constraint and only the budget is. */
 const DEAL_SIZES = [8,10,12,14];
 const TIER_MIX = {8:{F:6,E:1,A:1}, 10:{F:7,E:2,A:1}, 12:{F:8,E:2,A:2}, 14:{F:9,E:3,A:2}};
+/* The expansion deck is 14 Foundational, 10 Extended, 4 Advanced. */
+const TIER_MIX_EXP = {8:{F:5,E:2,A:1}, 10:{F:6,E:3,A:1}, 12:{F:7,E:3,A:2}, 14:{F:8,E:4,A:2}};
 /* Delayed threats stack, but a budget cannot stretch over more than this. */
 const MAX_INJECTS = 3;
 const CFG_KEY = "game:config";
 const teamKey = (n) => `game:team:${n}`;
-const card = (id) => SOLUTIONS.find(c=>c.id===id) || MODIFIERS.find(c=>c.id===id);
+/* Expansion cards always resolve, so a saved hand still renders after the
+   facilitator switches the expansion off. */
+const card = (id) => SOLUTIONS.find(c=>c.id===id) || EXP_SOLUTIONS.find(c=>c.id===id)
+  || MODIFIERS.find(c=>c.id===id) || EXP_MODIFIERS.find(c=>c.id===id);
 
 /* The claim code is stored as a SHA-256 hash so reading the shared database
    does not reveal it. The database rules are what actually enforce the role;
@@ -1399,7 +1576,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
       return u.toString().replace(/[?&]condition=[^&]*/,"");
     }catch{ return ""; }
   })();
-  const loaded = scenarioById(cfg?.scenarioId);
+  const loaded = scenFor(cfg);
 
   const loadScenario = async (id)=>{
     const x = scenarioById(id); if(!x) return;
@@ -1438,10 +1615,12 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
      guarantee can come up short; `short` reports that rather than hiding it.
      The hand is shuffled — the guaranteed cards used to be dealt first, which
      told an observant team where the answers were. */
+  const deck = deckOf(cfg);
+  const inDeck = (id)=>deck.some(c=>c.id===id);
   const buildHand = (owned, scen, size=8, injects=[])=>{
     const must = [];
     const take = (ids,k)=>{
-      const got = sample((ids||[]).filter(id=>isControl(id) && !owned.includes(id) && !must.includes(id)), k);
+      const got = sample((ids||[]).filter(id=>inDeck(id) && !owned.includes(id) && !must.includes(id)), k);
       must.push(...got);
       return got.length;
     };
@@ -1453,14 +1632,14 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
       if (p<need) short.push(`${p} of ${need} partial`);
     }
     injects.forEach(x=>take(x?.strong,1));
-    const quota = {...(TIER_MIX[size] || {F:size-2,E:1,A:1})};
+    const quota = {...((expansionOn(cfg) ? TIER_MIX_EXP : TIER_MIX)[size] || {F:size-2,E:1,A:1})};
     must.forEach(id=>{ const tr = card(id).tier; quota[tr] = Math.max(0, quota[tr]-1); });
-    const pool = (tier)=>SOLUTIONS.filter(c=>c.tier===tier && !owned.includes(c.id) && !must.includes(c.id)).map(c=>c.id);
+    const pool = (tier)=>deck.filter(c=>c.tier===tier && !owned.includes(c.id) && !must.includes(c.id)).map(c=>c.id);
     let rest = [...sample(pool("F"),quota.F), ...sample(pool("E"),quota.E), ...sample(pool("A"),quota.A)];
     // a tier that ran dry is topped up from whatever is left in the deck
     const gap = size - must.length - rest.length;
     if (gap>0){
-      const left = SOLUTIONS.map(c=>c.id).filter(id=>!owned.includes(id) && !must.includes(id) && !rest.includes(id));
+      const left = deck.map(c=>c.id).filter(id=>!owned.includes(id) && !must.includes(id) && !rest.includes(id));
       rest = [...rest, ...sample(left, gap)];
     }
     const all = [...must, ...rest].slice(0,size);
@@ -1468,14 +1647,14 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   };
 
   const dealAll = async ()=>{
-    const scen = scenarioById(cfg?.scenarioId);
+    const scen = scenFor(cfg);
     const shared = cfg?.sameDeal !== false;
-    const injectsOf = (t)=>(t?.injects||[]).map(x=>injectById(x.id)).filter(Boolean);
+    const injectsOf = (t)=>(t?.injects||[]).map(x=>injectFor(x.id, cfg)).filter(Boolean);
     // Teams advance together, so they share delayed threats; use the union.
     const roomInjects = Array.from(new Set(ids.flatMap(n=>teams[n]?.joined ? (teams[n].injects||[]).map(x=>x.id) : [])))
       .map(injectById).filter(Boolean);
     const common = shared ? buildHand([], scen, dealSize, roomInjects) : null;
-    const commonMods = shared ? sample(MODIFIERS.map(m=>m.id),3) : null;
+    const commonMods = shared ? sample(modsOf(cfg).map(m=>m.id),3) : null;
     const shortBy = [];
     for (const n of ids){
       const t = teams[n]; if(!t?.joined) continue;
@@ -1483,7 +1662,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
       // an identical deal still has to skip cards a team already installed
       const dealt = shared && !owned.length ? common : buildHand(owned, scen, dealSize, injectsOf(t));
       if (dealt.short.length) shortBy.push(`${t.name} (${dealt.short.join(", ")})`);
-      await saveTeam(n,{hand:dealt.hand, modHand: shared ? commonMods : sample(MODIFIERS.map(m=>m.id),3),
+      await saveTeam(n,{hand:dealt.hand, modHand: shared ? commonMods : sample(modsOf(cfg).map(m=>m.id),3),
         purchases:[], modifiers:[]});
     }
     setStatus((shared ? `Dealt — every team has the same ${dealSize} cards.`
@@ -1512,7 +1691,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
      pressing the button, because realization is a moment to run aloud, not a
      red box a team discovers on its own. */
   const willRealize = (()=>{
-    const scen = scenarioById(cfg?.scenarioId);
+    const scen = scenFor(cfg);
     if(!scen) return [];
     const top = grid.n-1;
     return ids.filter(n=>{
@@ -1524,22 +1703,22 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
       const installed = [...(t.everBought||[]), ...(t.purchases||[])];
       return (t.injects||[]).some(x=>{
         const p = x.post || x.pre;
-        return p && p.l + coverage(installed, injectById(x.id), grid).move + extra > top;
+        return p && p.l + coverage(installed, injectFor(x.id, cfg), grid).move + extra > top;
       });
     });
   })();
   const injectsOn = cfg?.injectsOn !== false;
   const upcomingInject = (()=>{
-    const scen = scenarioById(cfg?.scenarioId);
+    const scen = scenFor(cfg);
     const seated = ids.map(n=>teams[n]).filter(t=>t?.joined);
     if (!injectsOn || !scen || !seated.length) return null;
     const t = seated[0];
     if ((t.injects||[]).length >= MAX_INJECTS) return null;
-    return injectById(nextInjectFor(scen, (t.injects||[]).map(x=>x.id)));
+    return injectFor(nextInjectFor(scen, (t.injects||[]).map(x=>x.id), cfg), cfg);
   })();
 
   const nextEngagement = async ()=>{
-    const scen = scenarioById(cfg?.scenarioId);
+    const scen = scenFor(cfg);
     const base = cfg?.budget ?? 6;
     const top = grid.n-1;
     for (const n of ids){
@@ -1575,7 +1754,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
          scored against everything installed, not just this round's purchases:
          a new threat meets every control the organization already has. */
       const injects = (t.injects||[]).map(x=>{
-        const def = injectById(x.id);
+        const def = injectFor(x.id, cfg);
         const r = step(x.post || x.pre || null, coverage(installed, def, grid).move);
         if (r.realized) hit.push(def?.title || "A new threat");
         return {...x, pre:r.pos, post:null};
@@ -1583,7 +1762,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
       // And, if the facilitator has them on, a new one lands on top.
       let arrived = null;
       if (injectsOn && scen && injects.length < MAX_INJECTS){
-        const id = nextInjectFor(scen, injects.map(x=>x.id));
+        const id = nextInjectFor(scen, injects.map(x=>x.id), cfg);
         if (id){ injects.push({id, since:(t.engagement||1)+1, pre:null, post:null}); arrived = id; }
       }
       const realized = hit.length
@@ -1640,7 +1819,8 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
     const rows = [["team","org","scenario","condition","measures_count","measures","engagement","drift","realized",
       "verdict","standing_ignored","threat_method","threat_impact","threat_resource","threat_motive","pre_likelihood","pre_severity","post_likelihood",
       "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","debrief_1","debrief_2","debrief_3","carry_forward","recommendation",
-      "grid_size","deal_size","detail","hand","pre_why","post_why","new_threats","new_threat_positions","realized_threats"]];
+      "grid_size","deal_size","detail","hand","pre_why","post_why","new_threats","new_threat_positions","realized_threats",
+      "expansion"]];
     ids.forEach(n=>{
       const t=teams[n]; if(!t?.joined) return;
       const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
@@ -1664,7 +1844,8 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
         (t.preWhy||"").replace(/\n/g," "), (t.postWhy||"").replace(/\n/g," "),
         (t.injects||[]).map(x=>injectById(x.id)?.title||x.id).join("; "),
         (t.injects||[]).map(x=>`${injectById(x.id)?.title||x.id}: ${at(x.pre)||"unplaced"} -> ${at(x.post)||"unplaced"}`).join("; "),
-        (t.realized?.threats||[]).join("; ")]);
+        (t.realized?.threats||[]).join("; "),
+        expansionOn(cfg) ? "on" : "off"]);
     });
     const csv = rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
@@ -1738,11 +1919,28 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
         </Section>
 
         <Section title="Scenario">
+          <div style={{marginBottom:11}}>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Expansion deck</label>
+            <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+              {[[false,"Off — base 21 cards"],[true,`On — +${EXP_SOLUTIONS.length} controls, +${EXP_MODIFIERS.length} modifiers`]].map(([v,lbl])=>(
+                <button key={String(v)} disabled={busy} onClick={()=>saveCfg({expansion:v})}
+                  style={{...btn(!!cfg?.expansion===v?"primary":"ghost"),fontSize:13}}>{lbl}</button>
+              ))}
+            </div>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
+              {expansionOn(cfg)
+                ? <>Adds {EXP_SOLUTIONS.map(c=>c.name).join(", ")}; the modifiers {EXP_MODIFIERS.map(m=>m.name).join(" and ")};
+                    three scenarios (15–17); and two more delayed threats. Every base scenario's key scores
+                    the new cards. Applies from the next deal.
+                    {!cfg?.expansion && <span style={{color:C.brass}}> On because the loaded scenario needs it.</span>}</>
+                : "Off keeps the deck identical to earlier sessions. Turn it on for practitioner rooms."}
+            </p>
+          </div>
           <div style={{display:"flex",gap:7,marginBottom:8,flexWrap:"wrap"}}>
             <select value={pick} onChange={e=>setPick(Number(e.target.value))} style={{flex:"1 1 180px"}}>
-              {SCENARIOS.map(x=>(
+              {SCENARIOS.filter(x=>!x.exp || expansionOn(cfg)).map(x=>(
                 <option key={x.id} value={x.id} style={{background:C.panel}}>
-                  {x.id}. {x.title}{x.care?" (care)":""}{x.pro?" (practitioner)":""}
+                  {x.id}. {x.title}{x.care?" (care)":""}{x.exp?" (expansion)":x.pro?" (practitioner)":""}
                 </option>
               ))}
             </select>
@@ -2237,7 +2435,7 @@ function Projector({cfg,teams,ids,onExit}){
   const phase = PHASES.find(p=>p.id===(cfg?.phase||"setup"));
   const active = ids.filter(n=>teams[n]?.joined);
   const pending = active.reduce((a,n)=>a+(teams[n]?.modifiers||[]).filter(m=>m.status==="pending").length,0);
-  const scen = scenarioById(cfg?.scenarioId);
+  const scen = scenFor(cfg);
   const grid = gridOf(cfg);
 
   return (
@@ -2361,7 +2559,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   /* The database refuses writes from anyone but the seat holder, so the
      interface disables them rather than letting a click fail. */
   const isOwner = !t?.ownerUid || t.ownerUid===clientId;
-  const scen = scenarioById(cfg?.scenarioId);
+  const scen = scenFor(cfg);
   const useStanding = cfg?.standingOn && scen?.standing?.length;
   /* When the scenario supplies the threat model, show it from the scenario
      rather than from team state — otherwise a team that joins after the
@@ -2377,7 +2575,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   /* Delayed threats ride on the same matrix as numbered squares. Which one a
      click places is local to this screen; it is not worth a shared write. */
   const injects = (t?.injects||[]).map((x,i)=>{
-    const def = injectById(x.id);
+    const def = injectFor(x.id, cfg);
     return {...x, def, label:String(i+1), title:def?.title||"New threat"};
   }).filter(x=>x.def);
   const [placing,setPlacing] = useState("main");

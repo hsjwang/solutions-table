@@ -336,10 +336,35 @@ purchase moved the marker and by how much. Both are exported.
 
 **Export changes.** New columns are appended at the end of each row so
 position-indexed scripts keep working: `grid_size`, `deal_size`, `detail`, `hand`,
-`pre_why`, `post_why`, `new_threats`, `new_threat_positions`, `realized_threats`.
+`pre_why`, `post_why`, `new_threats`, `new_threat_positions`, `realized_threats`,
+`expansion`.
 The header previously listed `threat_method, threat_impact` before
 `verdict, standing_ignored` while the rows wrote them after; the header now matches
 the rows. **CSVs exported before this change have those four columns mislabeled.**
+
+### Expansion deck (optional)
+
+A separate toggle in the facilitator's *Scenario* section. **Off by default**, and
+off leaves the deck, keys, modifiers and delayed threats identical to earlier
+sessions — use it off whenever the data must compare with the study.
+
+When on, it adds:
+
+| | |
+|---|---|
+| **7 controls** | Application & Pipeline Security (CIS 16) · Data Inventory & Loss Prevention (CIS 3) · Privileged Access Management (CIS 5, 6) · Vulnerability Scanning (CIS 7.5–7.7) · Incident Response Exercises (CIS 17.7–17.8) · Application Allowlisting (CIS 2.5–2.7) · Zero Trust Remote Access (CIS 12.7, 13.5) |
+| **2 modifiers** | Separation of Duties · Shared Responsibility |
+| **3 scenarios** | 15 *The Poisoned Dependency* (a compromised build dependency steals a signing key) · 16 *The Research Export* (an authorized researcher publishes re-identifiable data; marked *care*) · 17 *Remote Access to the Line* (a vendor remote-access tool on an ammonia-refrigeration plant's controls) |
+| **2 delayed threats** | *The Browser Extension* and *The Leaked Repository*, after the base four |
+
+Every base scenario and delayed threat has an expansion key (`EXPANSION_KEYS` in
+the source) that scores the new cards. It only adds: no base strong card is
+demoted, so the right answers you already know still hold. Expansion scenarios
+appear in the dropdown only while the toggle is on, and loading one keeps the
+expansion active for the session even if the toggle is later switched off, because
+their keys depend on it. The deck becomes 14 Foundational, 10 Extended and
+4 Advanced cards, and the tier mix of each deal shifts to match. The export gains an
+`expansion` column.
 
 The PDFs in `docs/` still describe the 3×3 matrix and ten scenarios and have not
 been rebuilt.
