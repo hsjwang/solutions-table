@@ -281,7 +281,7 @@ incognito or clears storage gets a new uid and loses the seat. That is what
 
 ### Scenarios in the app
 
-The ten scenarios from Appendix C are built into the interface. Claiming the
+The ten scenarios from Appendix C, plus four practitioner scenarios (below), are built into the interface. Claiming the
 facilitator role on a fresh session loads Scenario 1 automatically; the dropdown
 switches between the rest. Loading one sets the organization, the read-aloud
 text, the budget, and moves play to Phase 1.
@@ -294,6 +294,55 @@ shown to players.
 Scenarios marked $\bullet$ may land on a participant's personal experience.
 Offer the redraw described on page 2 of the quick reference **before** reading
 them, addressed to the team rather than to any individual.
+
+### Practitioner options (added after BSides PNW, October 2026)
+
+Practitioners who played the demo at a BSides Pacific Northwest gathering found the
+board too coarse, the scenarios too thin to argue a purchase from, and the hand too
+small. Each change below is a facilitator setting, so classroom and study sessions
+can still run the way they always have.
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Audience** | — | One click: *Students* is 8 cards and story-only scenarios; *Practitioners* is 12 cards and the technical brief. |
+| **Scenario detail** | Standard | *Technical* shows each scenario's environment brief (systems, configuration, contracts, regulatory clocks) to every team and on the projector. Phase 1's timer default rises from 7 to 10 minutes. |
+| **Cards dealt** | 8 | 8, 10, 12 or 14. Above 8, every hand holds at least **two strong and two partial** cards for the scenario instead of one of each. |
+| **Risk matrix** | 5×5 for new sessions | *Rare → Very Likely* by *Minimal → Very Severe*. 3×3 remains for data that must compare with earlier sessions. Locked once teams have placed a threat. |
+| **Learn-more links** | On | Each card links to its CIS Control page in a new tab (Physical Security and Cyber Insurance, which have no CIS Control, link to CISA and NIST). |
+| **Delayed threats** | On | Each **Next engagement** lands a new threat on top of the existing ones, up to three. |
+
+**Four practitioner scenarios** (11–14, marked *practitioner* in the dropdown) are
+set in mid-sized organizations with an IT function: a help-desk MFA reset that
+reaches the hypervisors, a leaked CI key in a cloud account, an exploited VPN
+appliance on a county domain that also runs 911 dispatch, and an OAuth consent grant
+at a credit union. The ten original scenarios each gained a technical brief written
+against their existing expert keys, so the keys did not change.
+
+**Delayed threats.** Each scenario has its own follow-on threat (shown to the
+facilitator under the expert key), followed by a generic pool. Teams place the new
+threat on the same matrix as a numbered square, beside the original circle. The
+budget does not grow, so one portfolio must cover every threat on the board or the
+team must say which one it is leaving. A delayed threat is scored against
+everything the organization has installed, not just this round's purchases. It
+moves and realizes on the same rules as the main threat, and every deal includes
+at least one strong card for each delayed threat in play.
+
+**On 5×5**, a portfolio that scores 4 or more against the key (two strong cards)
+moves a threat down two rows instead of one. Realization still fires past
+*Very Likely*, and resets to the middle row (*Possible*).
+
+**Justification fields.** Phase 1 asks *why this cell?* and Phase 3 asks which
+purchase moved the marker and by how much. Both are exported.
+
+**Export changes.** New columns are appended at the end of each row so
+position-indexed scripts keep working: `grid_size`, `deal_size`, `detail`, `hand`,
+`pre_why`, `post_why`, `new_threats`, `new_threat_positions`, `realized_threats`.
+The header previously listed `threat_method, threat_impact` before
+`verdict, standing_ignored` while the rows wrote them after; the header now matches
+the rows. **CSVs exported before this change have those four columns mislabeled.**
+
+The PDFs in `docs/` still describe the 3×3 matrix and ten scenarios and have not
+been rebuilt.
 
 ---
 

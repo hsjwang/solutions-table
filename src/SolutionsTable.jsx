@@ -57,7 +57,7 @@ const URL_CONDITION = (()=>{
     ? "control" : null; }catch{ return null; }
 })();
 
-const BUILD = "2026-08-28.2054";
+const BUILD = "2026-10-30.bsides";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -85,6 +85,46 @@ const SOLUTIONS = [
   [20,"Managed Detection & Response",3,"A","CIS 8, 13, 17"],
   [21,"Cyber Insurance & Risk Transfer",3,"A","Risk transfer"],
 ].map(([id,name,cost,tier,ctrl])=>({id,name,cost,tier,ctrl}));
+const isControl = (id) => SOLUTIONS.some(c=>c.id===id);
+
+/* Where a beginner can read the control before buying it. One public page per
+   CIS Control (all checked 2026-10-30); the two cards with no dedicated control
+   point at a government explainer instead. Links open in a new tab, so a team
+   loses nothing on the board by following one. */
+const CIS_PAGES = [null,
+  ["inventory-and-control-of-enterprise-assets","Inventory and Control of Enterprise Assets"],
+  ["inventory-and-control-of-software-assets","Inventory and Control of Software Assets"],
+  ["data-protection","Data Protection"],
+  ["secure-configuration-of-enterprise-assets-and-software","Secure Configuration of Enterprise Assets and Software"],
+  ["account-management","Account Management"],
+  ["access-control-management","Access Control Management"],
+  ["continuous-vulnerability-management","Continuous Vulnerability Management"],
+  ["audit-log-management","Audit Log Management"],
+  ["email-and-web-browser-protections","Email and Web Browser Protections"],
+  ["malware-defenses","Malware Defenses"],
+  ["data-recovery","Data Recovery"],
+  ["network-infrastructure-management","Network Infrastructure Management"],
+  ["network-monitoring-and-defense","Network Monitoring and Defense"],
+  ["security-awareness-and-skills-training","Security Awareness and Skills Training"],
+  ["service-provider-management","Service Provider Management"],
+  ["application-software-security","Application Software Security"],
+  ["incident-response-management","Incident Response Management"],
+  ["penetration-testing","Penetration Testing"],
+];
+const OTHER_LINKS = {
+  8:[{label:"CISA · Physical security", title:"No CIS Control covers this; CISA's overview instead",
+      href:"https://www.cisa.gov/topics/physical-security"}],
+  21:[{label:"NIST · Cyber insurance", title:"No CIS Control covers this; NIST's small-business guide instead",
+      href:"https://www.nist.gov/itl/smallbusinesscyber/guidance-topic/cyber-insurance"}],
+};
+const cardLinks = (c) => {
+  if (OTHER_LINKS[c.id]) return OTHER_LINKS[c.id];
+  const m = /^CIS ([\d, ]+)/.exec(c.ctrl||"");
+  if (!m) return [];
+  return m[1].split(",").map(s=>Number(s.trim())).filter(n=>CIS_PAGES[n]).map(n=>({
+    label:`CIS ${n}`, title:`CIS Control ${n}: ${CIS_PAGES[n][1]}`,
+    href:`https://www.cisecurity.org/controls/${CIS_PAGES[n][0]}`}));
+};
 
 /* Each modifier needs three different things said about it. `demand` is the
    one-line rule, short enough for a card face and for the facilitator's
@@ -130,9 +170,31 @@ const MODIFIERS = [
 
 
 /* ---- Scenario library. Mirrors Appendix C of the facilitator manual.
-   Expert keys are shown to the facilitator only, never to players. ---- */
+   Expert keys are shown to the facilitator only, never to players.
+
+   `env` is the technical brief, shown to teams only when the facilitator sets
+   the detail level to Technical. Practitioners at BSides PNW found the prose
+   alone too thin to argue a purchase from. Every line was written against the
+   existing expert key: it adds evidence for the strong and partial cards and
+   names no control that the key scores as off, so the keys are unchanged.
+
+   `inject` is the delayed threat that lands on top of this one when the
+   facilitator advances to the next engagement with delayed threats on.
+   `pro` marks scenarios written for practitioner audiences. ---- */
 const SCENARIOS = [
   {id:1, care:false, budget:6, title:"Payroll Redirection",
+   env:["Email is Google Workspace for Nonprofits on harborviewfb.org. SPF is published, DKIM was never turned on, and DMARC is p=none with no reporting address.",
+        "The request came from harborview-fb.org, registered nine days earlier, with the treasurer's display name. No external-sender banner is configured.",
+        "The payroll provider lets the bookkeeper change bank details with her password alone; the confirmation link goes to the same inbox the attacker is writing to.",
+        "The voicemail came from a spoofed caller ID. The treasurer's voice is on a recorded fundraising webinar posted publicly last spring.",
+        "The bookkeeper works on her personal Windows 11 laptop, which saves the payroll password in the browser.",
+        "There is no written callback rule for payment changes, and the treasurer answers email only on weekdays.",
+        "No account has MFA except the bank portal, which uses SMS codes."],
+   inject:{title:"The Donation Platform Payout",
+     text:"Three weeks later the donation platform's payout account changes to a bank nobody recognizes. The login is the one four volunteers share; its password turns up in an infostealer log alongside one volunteer's home computer name.",
+     draw:{method:"Technological Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+     strong:[5,7], partial:[9,15],
+     why:{5:"a shared password with no second factor is what the infostealer log was worth", 7:"one login per person, removed when they leave, ends the sharing", 9:"the home computer was never an organization asset, and nobody knew it held the password", 15:"the payout change would show in a log someone reviewed"}},
    org:"Harborview Food Bank — 3 staff, 40 volunteers, no IT",
    target:"Severity is who gets harmed, not how clever the attack was. The strongest control here is free and procedural.",
    text:"Harborview Food Bank has three paid staff and about forty volunteers. The bookkeeper works two days a week from home. Last Tuesday she received an email that appeared to come from the board treasurer, in his usual phrasing, asking her to update the payroll provider's bank details before Friday's run. A follow-up voicemail in his voice confirmed it. Friday's payroll is eighteen thousand dollars, roughly a month of operating cash.",
@@ -145,6 +207,18 @@ const SCENARIOS = [
             "The voice on the phone was cloned. Does awareness training still work when familiarity stops being evidence?"]},
 
   {id:2, care:false, budget:6, title:"Ransomware",
+   env:["One on-premises Windows Server 2012 R2 machine (out of support since October 2023) runs the domain, the file shares and the scheduling database.",
+        "On Friday afternoon a front-desk workstation opened an emailed 'fax' that was an ISO image containing a shortcut file. Microsoft 365 Business Basic filtering let it through.",
+        "Eleven Windows 10 workstations run Defender only; on three of them signatures are seventy days old. Every user is a local administrator.",
+        "The backup is a USB drive attached to the server, written nightly by a scheduled script through a mapped drive letter. It was encrypted along with everything else.",
+        "The electronic health record is cloud-hosted and still works. Scheduling, billing exports and scanned referrals were on the local server.",
+        "The IT contractor works business hours only. Nobody at the clinic knows whether there is an after-hours number.",
+        "The clinic has no cyber insurance policy and no incident response retainer."],
+   inject:{title:"The Leak Site",
+     text:"Ten days after the encryption, the gang posts a sample of scanned referrals on its leak site and gives the clinic a week before it publishes the rest. Some referrals include behavioural health notes.",
+     draw:{method:"Multi-phase Attack",impact:"Emotional Wellbeing",resource:"Money",motive:"Personal Gain"},
+     strong:[13,21], partial:[15,18],
+     why:{13:"notification, regulators and what to tell patients are decisions a plan makes in advance", 21:"breach coaches and notification costs are what a policy actually buys", 15:"you cannot say what left without a record of what was touched", 18:"a file server that workstations cannot reach wholesale limits what can be taken"}},
    org:"Cedar Ridge Health Clinic — 2 providers, 900 patients",
    target:"Once it has happened, prevention cards are worth nothing and recovery cards are worth everything.",
    text:"Cedar Ridge is a two-provider clinic serving about nine hundred patients in a county with no other primary care. On Monday morning the front desk cannot open the scheduling system. Every file on the shared drive has a new extension, and a text file on the desktop asks for payment in cryptocurrency. The practice manager thinks there is a backup, but it is on a drive plugged into the same server, and nobody has ever restored from it.",
@@ -157,6 +231,17 @@ const SCENARIOS = [
             "The attack has already happened — it is Monday morning and the files are encrypted. If everything you bought was meant to stop it happening, what do you actually do today?"]},
 
   {id:3, care:true, budget:6, title:"A Laptop Leaves the Building",
+   env:["The laptop is a donated Windows 11 Home machine. It signs in with a local account and a six-digit PIN, so device encryption was never switched on.",
+        "It had been asleep, not shut down, when it was taken. There is no auto-lock policy.",
+        "Intake records live in a SharePoint list on a donated Microsoft 365 tenant. Any staff member can export the list to Excel, and downloads are allowed on any device.",
+        "No device is managed. Nothing can be located or wiped remotely, and nobody recorded serial numbers.",
+        "The bag was on the back seat in plain view for about twenty minutes.",
+        "Several families hold protection orders. Staff believe at least two abusers are actively looking for them."],
+   inject:{title:"The Call to the Front Desk",
+     text:"A week after the theft, someone calls the front desk claiming to be a school counsellor and asks, by name, whether one of the children is still staying at Wilder House. The caller knows the child's date of birth.",
+     draw:{method:"Manipulation or Coercion",impact:"Physical Wellbeing",resource:"Entitlement",motive:"Desire or Obsession"},
+     strong:[2,13], partial:[4],
+     why:{2:"the front desk is the control now; a script for refusing to confirm residence is what protects the child", 13:"a caller who already knows a date of birth means the disclosure is being used, and someone must decide what happens next", 4:"fewer people able to see who is in residence means fewer people a caller can work on"}},
    org:"Wilder House — a twelve-bed shelter",
    target:"When Human Impact is physical safety, ordinary controls carry stakes students have not attached to them before.",
    text:"Wilder House is a twelve-bed shelter. A caseworker's laptop was taken from her car in a grocery store parking lot on Saturday. It holds an offline copy of the intake spreadsheet: names, dates of birth, the schools children attend, and current addresses for eleven families. The laptop has a login password. Nothing else.",
@@ -169,6 +254,17 @@ const SCENARIOS = [
             "Who has to be told, how quickly, and what do you say to eleven families?"]},
 
   {id:4, care:false, budget:5, title:"The Volunteer Who Left in 2021",
+   env:["The hosted donation platform has seven administrator logins. The director can name four of the people behind them.",
+        "The former volunteer's login holds the owner role, the only role that can remove other administrators or change the payout bank account.",
+        "Her login uses her personal Gmail address, so password resets go to her. Two-factor sign-in is available and switched off.",
+        "The platform keeps an audit log for ninety days. It shows a sign-in from a residential address in another state two days before the test transaction. Nobody has opened it.",
+        "The trust also uses Google Workspace, an email newsletter service, online bookkeeping and a WordPress site. Nobody keeps a list of them, and they are billed to three different cards.",
+        "There is no offboarding checklist. Whoever is asked adds a new volunteer."],
+   inject:{title:"The Website Defaced",
+     text:"The trust's WordPress site starts showing a fake listing selling one of its protected parcels for development. The only administrator account belongs to the volunteer who built the site and left, and a plugin on it has not been updated in three years.",
+     draw:{method:"Technological Attack",impact:"Relationships",resource:"Technical Expertise",motive:"Politics"},
+     strong:[7,1], partial:[10,6],
+     why:{7:"the builder's administrator account should have been handed over and closed", 1:"an unpatched plugin is the usual way into a WordPress site", 10:"nobody knew which plugins were installed, so nobody knew one was abandoned", 6:"a clean copy of the site is what gets the real listing back"}},
    org:"Fairmount Land Trust — 2 staff, rotating volunteers",
    target:"The strongest answer is the least interesting card in the deck. Teams overlook it and buy something exciting.",
    text:"Fairmount Land Trust has two staff and a rotating pool of volunteers. A volunteer who managed the donation platform in 2021 moved out of state and stopped responding. Last month a two-hundred-dollar test transaction appeared, then reversed. The executive director does not know how many people still have logins, and the platform bills annually to a credit card nobody can locate the statement for.",
@@ -181,6 +277,17 @@ const SCENARIOS = [
             "How would this organization even produce a list of who has access?"]},
 
   {id:5, care:false, budget:10, title:"The Vendor's Breach",
+   env:["The routing platform is SaaS. Each night it receives a full roster export from the student information system: names, home addresses, guardian phone numbers, and transport flags drawn from IEPs.",
+        "The 2023 contract is the vendor's click-through terms. There is no breach-notification window, no right to audit, no data-deletion clause, and no SOC 2 report was ever requested.",
+        "About forty education apps receive roster data, many through an automated rostering sync. Nobody can produce the list.",
+        "The vendor's status page says it is investigating a security incident affecting a subset of customers.",
+        "State law requires the district to notify parents of a student-data breach. There is no template, and the superintendent is the only authorised spokesperson.",
+        "The district is in a state risk pool whose cyber rider requires notice within seventy-two hours of discovery."],
+   inject:{title:"The Texts to Parents",
+     text:"Two weeks later, parents start receiving texts that appear to come from the district transportation office, asking them to confirm their child's new bus stop at a link. The texts use the child's name and current stop.",
+     draw:{method:"Manipulation or Coercion",impact:"Relationships",resource:"Entitlement",motive:"Personal Gain"},
+     strong:[13,2], partial:[12],
+     why:{13:"the district has to warn parents faster than the texts spread, which means a plan for who says what and through which channel", 2:"parents and staff are the targets now; telling them what the district will never ask for is the control", 12:"filtering helps staff, not parents on their own phones"}},
    org:"Northbridge School District — four rural schools",
    target:"Nothing you buy internally helps. The only real control was written a year earlier in a contract.",
    text:"Northbridge is a rural district of four schools. Their bus routing and student scheduling run on a hosted platform used by two hundred districts. On Thursday a reporter calls the superintendent for comment on a breach at that vendor. The district has had no notification. The vendor's support line has a recorded message. The data includes student names, home addresses, and bus stop times.",
@@ -193,6 +300,17 @@ const SCENARIOS = [
             "Bus stop times plus home addresses. Which Human Impact card is this really?"]},
 
   {id:6, care:false, budget:10, title:"Debug Mode in Production",
+   env:["The public site is a Django 2.2 application (end of life April 2022) on a single Ubuntu 18.04 virtual machine at a regional host.",
+        "DEBUG is True in production. Any error page prints the settings file, including the database password, the secret key and an SMS provider API key.",
+        "A ?view=admin parameter skips the login decorator. The contractor added it for testing and never removed it.",
+        "The post notice button publishes to the homepage and sends an SMS alert to about 6,200 enrolled residents.",
+        "Card payments are handed off to a third-party processor. The site itself stores account numbers, service addresses and last payment amounts.",
+        "No staff member has server access. The contractor holds the only SSH key, and the hosting account is in his name."],
+   inject:{title:"The Contractor's Credentials",
+     text:"Before the fix ships, a threat-intelligence feed shows the former contractor's email password and hosting-panel session cookie for sale in an infostealer log. The hosting account is still in his name.",
+     draw:{method:"Indirect Attack",impact:"Relationships",resource:"Money",motive:"Politics"},
+     strong:[17,7], partial:[5,15],
+     why:{17:"ownership of the hosting account was never transferred; that is a handover the contract should have required", 7:"his access should have been revoked when the engagement ended", 5:"a second factor on the hosting panel would make a stolen password worth less, though not a stolen session", 15:"logins to the hosting panel from somewhere new would at least be seen"}},
    org:"Millbrook Water Authority — 11,000 residents",
    target:"A one-point Foundational card beats every expensive option. Teams with ten points overspend here.",
    text:"Millbrook Water Authority serves eleven thousand residents. Their public site posts water quality reports and lets residents pay bills. A contractor built it four years ago and moved on. A resident emails to say that adding a parameter to a URL shows an administrative page listing every account and a button labelled post notice. The page has no login.",
@@ -205,6 +323,17 @@ const SCENARIOS = [
             "A utility can post public notices. What is the worst version of this that does not involve stealing anything?"]},
 
   {id:7, care:true, budget:10, title:"The Trusted Paralegal",
+   env:["Case management is a cloud legal practice platform on its entry tier. Every staff role can open every matter. Matter-level permissions exist and have never been used.",
+        "On this tier the platform keeps document-view history for thirty days. The filing in question was drafted six weeks ago.",
+        "Email is Microsoft 365 Business Standard. Audit logging is on, but nobody holds the role needed to search it, and nothing alerts.",
+        "Staff: nine attorneys, four paralegals, two intake workers. This paralegal works immigration matters, not this client's housing case.",
+        "She signed a confidentiality agreement at hire in 2019. There is no annual re-acknowledgement, and the handbook says nothing about relationships with opposing parties.",
+        "There is no IT staff. A managed service provider fixes laptops when they break and does no monitoring."],
+   inject:{title:"Files in a Personal Inbox",
+     text:"A staff attorney's personal webmail account is taken over through a reused password. Its sent folder holds two years of client files she forwarded to herself to work from home, including asylum declarations.",
+     draw:{method:"Indirect Attack",impact:"Emotional Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+     strong:[12,14], partial:[4,2],
+     why:{12:"blocking auto-forwarding and uploads to personal mail is the control that stops files leaving this way", 14:"files encrypted to the organization are unreadable in a stranger's inbox", 4:"if she could not export whole matters, the inbox would hold less", 2:"she believed working from home this way was diligence, not risk"}},
    org:"Eastgate Legal Aid — housing and immigration",
    target:"Every preventive control fails, because the access was authorized. Detection is the only lever left.",
    text:"Eastgate Legal Aid handles housing and immigration matters. A paralegal of six years has legitimate access to the case system. A client reports that her landlord seems to know the contents of a filing that has not been served. The paralegal and the landlord attend the same church. There is no evidence of an intrusion, and nothing in the system is broken.",
@@ -217,6 +346,17 @@ const SCENARIOS = [
             "Least Privilege has a cost not measured in points. What does the paralegal lose, and is the trade right?"]},
 
   {id:8, care:false, budget:6, title:"The Camera Nobody Remembered",
+   env:["One consumer router serves a single 192.168.1.0/24 network. Public wifi, staff PCs, the circulation desk, self-checkout and the cameras are all on it. The router cannot do VLANs.",
+        "The cameras are budget IP models running 2017 firmware with the factory administrator account. UPnP is on, and the router has opened port forwards to them by itself.",
+        "The 3 a.m. traffic is outbound TCP to random addresses on ports 23 and 2323, the pattern of a Mirai-style botnet scanning for more devices.",
+        "The cameras record to a video recorder under the reference desk. Nobody knows its password.",
+        "The circulation desk PC stays signed in to the hosted library system all day, shared by every shift.",
+        "The county contractor's firewall logs are the only visibility, kept for fourteen days."],
+   inject:{title:"Ransomware at the Circulation Desk",
+     text:"A month later the circulation desk PC and the self-checkout kiosks are encrypted overnight. The intrusion is traced to the same flat network, entered this time through a patron laptop on the public wifi.",
+     draw:{method:"Multi-phase Attack",impact:"Relationships",resource:"Technical Expertise",motive:"Personal Gain"},
+     strong:[18,6], partial:[16,13],
+     why:{18:"patron wifi that cannot reach the circulation desk ends this attack path", 6:"a restorable image of the desk PC and kiosks is what reopens the library", 16:"behaviour-based detection on the desk PC could stop encryption partway through", 13:"the library needs to know who calls whom at eight at night"}},
    org:"Delridge Public Library",
    target:"Asset inventory is a precondition for everything else. Teams cannot defend what they have not enumerated.",
    text:"Delridge Public Library has public wifi, twenty patron computers, a self-checkout system, and four security cameras installed by a since-dissolved vendor in 2016. The county IT contractor reports that traffic is leaving the library network at three in the morning, and traces it to a device nobody on staff can identify. The network is flat: everything is on the same wifi, including the circulation desk.",
@@ -229,6 +369,16 @@ const SCENARIOS = [
             "Patron borrowing records are legally protected in many states. Does that change your ranking?"]},
 
   {id:9, care:false, budget:6, title:"What the Grant Paid For",
+   env:["The donor database is a vendor CRM on Windows Server 2012 R2 with SQL Server 2012. The vendor ended support in March 2022. It holds about 5,800 donor records with addresses and giving history.",
+        "The server sits in the office closet. A router port-forward exposes its web-based donor portal to the internet.",
+        "Backups are a SQL Server maintenance plan writing .bak files to the same server's D: drive. Nothing is copied elsewhere.",
+        "The migration quote is $4,000 to move to a hosted nonprofit CRM. The next board meeting is ten weeks away.",
+        "There is no IT staff. The office manager is the administrator by default."],
+   inject:{title:"The Portal Gets Found",
+     text:"An internet-wide scanner indexes the donor portal and its version banner. Within days, a public exploit for that CRM version is used against it, and donor records appear on a paste site.",
+     draw:{method:"Technological Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Curiosity"},
+     strong:[18,10], partial:[15,11],
+     why:{18:"an unsupported system that cannot be reached from the internet cannot be scanned", 10:"knowing the version was unsupported is what should have closed the port-forward", 15:"you cannot tell donors what was taken without a record", 11:"a version banner and an exposed portal are configuration choices"}},
    org:"Ridgeway Arts Collective — campaign play",
    target:"Built for multi-engagement play. The right move is often to defer, and the card that lets you defer makes the cost visible.",
    text:"Ridgeway Arts received a technology grant in 2019 that paid for a donor database, a website, and a year of support. The grant ended. The database runs a version the vendor stopped patching in 2022. Migrating costs about four thousand dollars the collective does not have. The board meets quarterly. Nothing has gone wrong yet.",
@@ -241,6 +391,17 @@ const SCENARIOS = [
             "Revisit this later and drift the threat. Was deferring still the right call?"]},
 
   {id:10, care:false, budget:10, title:"Donor Records in a Shared Mailbox",
+   env:["The mailbox is a licensed Microsoft 365 user rather than a true shared mailbox, so it has one password and six people know it. Security defaults are off.",
+        "Sign-in logs show successful logins from two other countries over the past ten days. An inbox rule moves any reply containing 'donation' to the RSS Feeds folder.",
+        "The appeals were sent from a lookalike domain using the stolen contact list. A handful also went out from the real mailbox.",
+        "The mailbox holds four years of correspondence, including 212 scanned cheques with routing and account numbers.",
+        "Twenty-three volunteers have known the password since 2021. It has never been changed.",
+        "The rescue has general liability cover only. Under state law, names together with bank account numbers trigger breach notification."],
+   inject:{title:"The Cloned Donation Page",
+     text:"Using the donor list, someone builds a copy of the rescue's donation page on a lookalike domain and emails supporters about an emergency surgery fund. Donors start calling to ask why their receipts look different.",
+     draw:{method:"Manipulation or Coercion",impact:"Financial Wellbeing",resource:"Money",motive:"Personal Gain"},
+     strong:[12,13], partial:[2],
+     why:{12:"lookalike-domain monitoring and a published DMARC policy make the clone harder to pass off", 13:"donors need one clear message, fast, about which page is real", 2:"supporters are the targets, and telling them how the rescue asks for money is their only defence"}},
    org:"Second Chance Animal Rescue",
    target:"Obligations survive the incident. Notification is not a technical control and cannot be bought afterwards.",
    text:"Second Chance runs on donations and a shared mailbox that six volunteers access with the same password. On Friday the mailbox began sending donation appeals to the entire contact list from an address that is not theirs. The mailbox holds four years of correspondence, including scanned cheques with routing numbers and a spreadsheet of major donors.",
@@ -251,8 +412,149 @@ const SCENARIOS = [
    debrief:["Six people share one password because it is genuinely convenient. What do you replace it with that they will actually use?",
             "Which of your purchases helps you tell four thousand donors what happened?",
             "Insurance may cover the cost. Does it cover the donor who stops giving?"]},
+
+  /* ---- Practitioner scenarios. Mid-sized organizations with an IT function,
+     written for rooms where most players defend networks for a living. The
+     story is still short enough to read aloud; the argument lives in `env`,
+     which is why these are best run with the detail level set to Technical. */
+  {id:11, pro:true, care:false, budget:10, title:"The Help Desk Call",
+   org:"Cascade Freight Logistics — 450 staff, three warehouses, four-person IT team",
+   target:"MFA worked until a person on a phone was allowed to reset it. The decisive controls are what the help desk may do and what one identity can reach, not another detection product.",
+   text:"At 6:40 on a Friday evening the outsourced help desk takes a call from someone who gives the name, employee ID and manager of a regional operations lead. He says he dropped his phone at the loading dock and needs to re-enrol MFA. The agent resets the factor. Within forty minutes the account has signed in to the VPN, enumerated Active Directory, and added itself to a group with rights over the virtualisation cluster. At 9:15 p.m. on-call IT gets an alert from the backup system: a retention policy has been changed.",
+   env:["Identity is on-premises Active Directory synced to Microsoft Entra ID. MFA is Authenticator push with number matching. No phishing-resistant method such as FIDO2 is deployed.",
+        "The help desk is outsourced to an MSP and runs around the clock. Its identity check asks for employee ID, manager name and the last four digits of an SSN; all three were in a 2023 breach at the company's HR vendor.",
+        "The SSL VPN on the edge firewall authenticates against Entra ID and checks nothing about the connecting device.",
+        "Three ESXi 7.0 hosts are joined to the domain. Membership of the AD group 'ESX Admins' grants full host administration.",
+        "Backups go to a domain-joined Windows repository with immutability off. An offsite copy to object storage exists, under the same admin credentials.",
+        "Firewall and sign-in logs fed a SIEM trial that expired in March. EDR covers Windows endpoints only, nothing on the hypervisors.",
+        "The MSP contract sets no identity-verification standard and excludes liability for social-engineering losses."],
+   draw:{method:"Manipulation or Coercion",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+   strong:[5,2,4], partial:[6,20,17,15], weak:[1,14,19],
+   standing:[{id:1, text:"The hypervisor management interfaces sit on the same VLAN as staff laptops.", pos:{l:1,s:2}, cards:[18,11]},
+             {id:2, text:"Service accounts have non-expiring passwords set in 2017.", pos:{l:1,s:1}, cards:[7,5]}],
+   why:{5:"a factor reset needs stronger proof than facts that are already in a breach dump, and phishing-resistant MFA raises the bar again", 2:"the agent followed the script; training the help desk on reset pretexts is what changes the call", 4:"one operations account should not be able to add itself to a group that owns the hypervisors", 6:"immutable, separately credentialed backups are what survive an attacker who can change retention", 20:"someone watching at 7 p.m. on a Friday would have seen the VPN sign-in and the group change", 17:"the MSP contract is where the identity-verification standard belongs", 15:"the group change was logged; nothing was reading it"},
+   debrief:["MFA worked as designed until someone reset it. Does identity proofing for a factor reset belong in a card, a contract, or a procedure?",
+            "The attacker went for the hypervisors, not the endpoints. What did an EDR purchase actually see here?",
+            "The backup system raised the first alarm. Is an alert on a retention change a detection control, and did anyone buy one on purpose?"],
+   inject:{title:"The Extortion Email",
+     text:"On Monday the company's executives receive an email with samples of exfiltrated driver HR files, including CDL numbers and drug-test results, and a deadline before the rest is published.",
+     draw:{method:"Multi-phase Attack",impact:"Relationships",resource:"Money",motive:"Personal Gain"},
+     strong:[13,21], partial:[15,14],
+     why:{13:"whether to engage, who notifies drivers, and when counsel is called are plan decisions", 21:"breach counsel and negotiation support are what a cyber policy usually provides", 15:"scoping what left depends on file-access and egress records", 14:"HR files encrypted at rest under separate keys would have been less useful to take"}}},
+
+  {id:12, pro:true, care:false, budget:10, title:"Keys in the Pipeline",
+   org:"Lumen Health Analytics — 80 staff, AWS-hosted SaaS for 140 clinics",
+   target:"The fixes practitioners reach for first, secret scanning and workload identity federation, have no card of their own. Make teams say which card they stretched and whether the stretch is honest.",
+   text:"A Lumen developer force-pushes a branch to the public GitHub mirror of the company's open-source SDK. In a commit that was later deleted sits a .env file containing a long-lived AWS access key for the CI deploy user. Thirty-one hours later AWS opens an abuse case: the account is running 140 GPU instances in four regions, and CloudTrail shows ListBuckets and GetObject calls against the bucket of nightly de-identified clinic exports, and against one bucket that is not de-identified.",
+   env:["There is one AWS account with no Organizations and no SCPs. Twenty-three IAM users have access keys; the oldest is four years old. The CI user has had AdministratorAccess 'temporarily' since 2022.",
+        "GitHub Actions deploys using repository secrets. The SDK mirror is synced by a script that copies a monorepo subtree, dotfiles included.",
+        "Secret scanning and push protection are not enabled on the GitHub organization.",
+        "CloudTrail management events are on. Data events are on for the exports bucket only. Logs land in S3 with no alerting, and GuardDuty was turned off to save money.",
+        "A 'raw-reprocess' bucket left from a 2024 migration holds 210,000 records with names and dates of birth. Nobody remembered it existed.",
+        "Business associate agreements with the clinics require notice of a breach; several require it within ten days of discovery."],
+   draw:{method:"Technological Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+   strong:[4,11,15], partial:[7,13,9], weak:[14,2,8],
+   standing:[{id:1, text:"The AWS root account has no MFA, and its email belongs to a co-founder who left.", pos:{l:1,s:2}, cards:[5,7]},
+             {id:2, text:"Production and staging share one AWS account.", pos:{l:2,s:1}, cards:[18,11]}],
+   why:{4:"a deploy user with AdministratorAccess turned a leaked key into the whole account; least privilege and short-lived federated credentials are the fix", 11:"dotfiles in a sync script and push protection left off are configuration decisions", 15:"CloudTrail recorded everything and nothing alerted for thirty-one hours", 7:"a four-year-old access key should have been rotated or removed", 13:"ten-day notice windows in the agreements mean the plan has to exist before the abuse case arrives", 9:"you cannot protect a bucket nobody knows is there; extended here to data stores"},
+   debrief:["The control you most wanted has no card. Which card did you stretch to cover it, and would you say so to the client?",
+            "Encryption at rest was on for every bucket. Why did it make no difference?",
+            "Who decides whether the raw-reprocess bucket counts as a breach of the business associate agreements, and how long do they have?"],
+   inject:{title:"The Persistence You Missed",
+     text:"After the key is revoked, the GPU instances come back two days later. Before the revocation, the attacker created a new IAM user and a scheduled Lambda function that re-creates access keys.",
+     draw:{method:"Multi-phase Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+     strong:[15,4,20], partial:[13,7],
+     why:{15:"CreateUser and CreateFunction calls are in CloudTrail for anyone who alerts on them", 4:"a role that cannot create identities cannot plant new ones", 20:"someone hunting after the first incident would have looked for exactly this", 13:"eradication means checking for persistence before declaring the incident closed", 7:"an inventory of IAM users would show the one nobody created"}}},
+
+  {id:13, pro:true, care:false, budget:10, title:"The Edge Appliance",
+   org:"Ashford County — 600 employees, 12-person IT, 911 dispatch on the county domain",
+   target:"The vulnerability was public for three days before it was exploited. The decisive control is how fast a process can move, not which product was bought.",
+   text:"On a Wednesday, CISA adds a pre-authentication vulnerability in Ashford County's SSL VPN appliance to its Known Exploited Vulnerabilities catalogue. The vendor's fix is a firmware upgrade that needs a reboot, and the county's change board meets on Tuesdays. On Saturday the appliance's integrity checker reports unexpected files, and a domain controller logs a new account, svc_backup2, in Domain Admins. The 911 computer-aided dispatch system authenticates against the same domain.",
+   env:["About 420 remote users connect through the VPN appliance. Its management interface is reachable from the internet, and it keeps logs locally on a seven-day rotation.",
+        "Patching runs in a monthly window. Emergency changes need the CIO, the county administrator and the department head to sign; none of them could be reached on Thursday.",
+        "A single Active Directory forest covers every department, the Sheriff's office and 911 included. There is no tiered admin model, and there are thirty-one Domain Admins.",
+        "Dispatch runs on-premises on Windows Server 2019 and authenticates dispatchers through AD. It shares a /16 with general county workstations, and the only ACLs are at the internet edge.",
+        "EDR covers workstations and servers. Its alerts go by email to a shared mailbox that is read during business hours.",
+        "There is no external incident response retainer. The CISO knows the state fusion center and the CISA regional contacts."],
+   draw:{method:"Technological Attack",impact:"Physical Wellbeing",resource:"Technical Expertise",motive:"Politics"},
+   strong:[1,18,13], partial:[15,16,4], weak:[2,3,12],
+   standing:[{id:1, text:"The emergency change process needs three signatures and has never been used.", pos:{l:2,s:1}, cards:[13,1]},
+             {id:2, text:"Retired servers are left powered on 'just in case'.", pos:{l:1,s:1}, cards:[9,10]}],
+   why:{1:"a KEV entry on an internet-facing appliance is the case an emergency patch path exists for", 18:"dispatch on its own segment and its own identity boundary would not care what happened to the library's domain", 13:"someone has to be able to approve a reboot on a Thursday", 15:"seven days of appliance logs may not cover the first access", 16:"EDR saw the new admin; it needs to reach a person", 4:"thirty-one Domain Admins and no tiering made one foothold the whole forest"},
+   debrief:["The patch existed. What would your change process have to look like to apply it on Thursday?",
+            "Dispatch shares a domain with the library. Did anyone buy segmentation, and what did it cost them elsewhere?",
+            "Detection fired on Saturday into a mailbox read on weekdays. Is EDR without a reader a control?"],
+   inject:{title:"Dispatch Goes to Paper",
+     text:"The next Tuesday the attacker pushes ransomware by Group Policy to three hundred machines. Dispatch is down and dispatchers fall back to paper cards and radio for nineteen hours.",
+     draw:{method:"Multi-phase Attack",impact:"Physical Wellbeing",resource:"Technical Expertise",motive:"Politics"},
+     strong:[6,13], partial:[18,16],
+     why:{6:"restoring dispatch is the only thing that ends the paper fallback", 13:"paper-card dispatch has to be a rehearsed procedure, not an improvisation", 18:"dispatch on its own segment would not receive the GPO", 16:"EDR might stop encryption on some hosts; it will not stop a GPO already pushed by a Domain Admin"}}},
+
+  {id:14, pro:true, care:false, budget:10, title:"The Consent Prompt",
+   org:"Meridian Community Credit Union — 140 staff, 38,000 members",
+   target:"MFA was on and did nothing, because the attacker never needed a password. The strongest answer is a tenant setting that costs one point.",
+   text:"A Meridian loan officer receives a document-sharing link from a real title company whose mailbox has been compromised. It leads to a Microsoft consent page for an app called 'DocuView Secure' asking for Mail.ReadWrite and offline_access. She clicks Accept. For three weeks the app reads her mailbox, and two members receive wire-closing instructions with altered account numbers. One wire, for $186,000, has already cleared.",
+   env:["The tenant is Microsoft 365 E3. Entra ID user consent is set to allow users to consent to apps from any publisher, the default for older tenants, and there is no admin consent workflow.",
+        "MFA is enforced through Conditional Access. Granting consent did not prompt for anything new, and the app holds a refresh token of its own.",
+        "On day nineteen the help desk reset her password after she reported odd read flags. The app kept reading, because the grant was never revoked.",
+        "Defender for Office 365 Plan 1 with Safe Links is on. The link came from a known partner domain and was not blocked.",
+        "Audit logs are kept 180 days. Nobody has built a query or an alert for new app consents.",
+        "Loan officers email closing instructions as PDFs. The warning that the credit union never changes wire details by email appears only in the closing packet's fine print.",
+        "NCUA requires reportable cyber incidents to be reported within seventy-two hours. The fidelity bond excludes social-engineering fraud."],
+   draw:{method:"Indirect Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+   strong:[11,4,2], partial:[15,12,17,13], weak:[5,14,6],
+   standing:[{id:1, text:"Members' wire instructions are confirmed by replying on the same email thread.", pos:{l:2,s:2}, cards:[2,13]},
+             {id:2, text:"Four support engineers share the core banking vendor's VPN account.", pos:{l:1,s:2}, cards:[17,5]}],
+   why:{11:"restricting user consent to verified publishers or admin approval is a tenant configuration change", 4:"which applications may hold mailbox access is an access-control decision nobody made", 2:"a consent screen is a new pretext and staff were never shown one", 15:"a new consent with Mail.ReadWrite is an alertable event; nothing was alerting", 12:"link protection did its job and still could not judge a trusted partner's link", 17:"the title company's compromise was the entry point; contracts can require them to notify you", 13:"seventy-two hours to report to NCUA starts at discovery, and member notification follows"},
+   debrief:["MFA was enforced. Explain to a board member why it did not matter here.",
+            "Resetting the password changed nothing. What actually ends an OAuth grant, and who in your organization knows how?",
+            "The fix that matters most is a callback on a known number before any wire. Which card is that, and is it a card at all?"],
+   inject:{title:"The Second Grant",
+     text:"A month later, a review turns up another app, 'Teams Recorder Pro', consented to by nine staff, with Files.Read.All across SharePoint, where member loan files are kept.",
+     draw:{method:"Indirect Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+     strong:[11,4], partial:[15,10],
+     why:{11:"if user consent is still open, the first incident changed nothing", 4:"tenant-wide file read for a recording app is an access decision someone should have had to make", 15:"nine consents to the same unknown app is an obvious alert", 10:"OAuth apps are software in your environment; inventory them like any other"}}},
 ];
 const scenarioById = (id) => SCENARIOS.find(x=>x.id===id);
+
+/* Delayed threats for later engagements, once a scenario's own has landed.
+   Generic enough to fit any client in the library. */
+const GENERIC_INJECTS = [
+  {id:"g1", title:"The Edge Device Advisory",
+   text:"CISA adds a vulnerability in the organization's router or firewall model to its Known Exploited Vulnerabilities catalogue. Nobody is sure which firmware it runs.",
+   draw:{method:"Technological Attack",impact:"Financial Wellbeing",resource:"Technical Expertise",motive:"Personal Gain"},
+   strong:[1,9], partial:[11,18],
+   why:{1:"a known-exploited vulnerability with a vendor fix is a patching problem first", 9:"you cannot patch a device you cannot name the model of", 11:"turning off remote management shrinks the exposure while the patch waits", 18:"a compromised edge device that reaches nothing internal does less harm"}},
+  {id:"g2", title:"Credential Stuffing",
+   text:"Passwords from an unrelated retail breach are being tried against the organization's email at about a thousand attempts an hour. Three staff reused theirs.",
+   draw:{method:"Technological Attack",impact:"Relationships",resource:"Technical Expertise",motive:"Personal Gain"},
+   strong:[5], partial:[15,7],
+   why:{5:"a second factor makes a reused password worth little", 15:"a thousand failed sign-ins an hour is visible to anyone looking", 7:"dormant accounts are the ones nobody notices being used"}},
+  {id:"g3", title:"A Supplier Gets Hit",
+   text:"The organization's bookkeeping firm discloses a breach. It held a remote-access login to the organization's accounting system and copies of payroll files.",
+   draw:{method:"Indirect Attack",impact:"Financial Wellbeing",resource:"Money",motive:"Personal Gain"},
+   strong:[17,13], partial:[6,4],
+   why:{17:"what the firm must tell you, and how fast, was decided when the contract was signed", 13:"someone must decide today whether staff are told their payroll data is out", 6:"if the accounting data is altered, a clean copy is the reference", 4:"a supplier login with standing access is an access decision"}},
+  {id:"g4", title:"The Wrong Recipient",
+   text:"A staff member autocompletes the wrong address and sends a spreadsheet of client records to a stranger. The stranger replies to say so, and asks what the organization intends to do about it.",
+   draw:{method:"Processes",impact:"Emotional Wellbeing",resource:"Entitlement",motive:"Curiosity"},
+   strong:[12,14], partial:[2,13],
+   why:{12:"outbound data-loss rules and external-recipient warnings exist for this", 14:"an encrypted attachment sent to the wrong person stays closed", 2:"slowing down before hitting send is a habit training can build", 13:"whether this is a notifiable breach is a decision someone has to own"}},
+];
+/* Scenario injects are keyed s<scenario id>; the generic pool keeps its own ids. */
+const injectById = (id) => {
+  if (typeof id==="string" && id.startsWith("s")){
+    const x = scenarioById(Number(id.slice(1)));
+    return x?.inject ? {...x.inject, id} : null;
+  }
+  return GENERIC_INJECTS.find(g=>g.id===id) || null;
+};
+/* The next delayed threat for a team: the scenario's own first, then the pool
+   in order, so every team in the room gets the same one. */
+const nextInjectFor = (scen, have=[]) => {
+  const ids = [...(scen?.inject ? [`s${scen.id}`] : []), ...GENERIC_INJECTS.map(g=>g.id)];
+  return ids.find(id=>!have.includes(id)) || null;
+};
 
 /* Realization. Likelihood drifts; severity does not, because severity is a
    property of who is harmed and that does not change because an organization
@@ -280,12 +582,13 @@ const REALIZATION = [
    the referee. Students never see it during play; they see its verdict at the
    next engagement, which is the feedback Cycle 1 asked for without handing out
    an answer sheet mid-round. */
-function coverage(purchases=[], scen){
+function coverage(purchases=[], scen, grid){
   if(!scen) return {score:0, move:0, verdict:"unscored"};
   const strong = purchases.filter(id=>scen.strong.includes(id));
   const partial = purchases.filter(id=>scen.partial.includes(id));
   const score = strong.length*2 + partial.length;
-  const move = score>=2 ? -1 : score===1 ? 0 : +1;
+  // On 5×5 a portfolio that hits the threat twice over earns a second row.
+  const move = grid?.n===5 && score>=4 ? -2 : score>=2 ? -1 : score===1 ? 0 : +1;
   return {score, move, strong, partial,
     verdict: move<0 ? "held" : move===0 ? "partial" : "unaddressed"};
 }
@@ -307,8 +610,24 @@ const DIM_META = {
   method:{label:"Method",color:C.method}, impact:{label:"Human Impact",color:C.impact},
   resource:{label:"Resources",color:C.resource}, motive:{label:"Motivation",color:C.motive},
 };
-const LIKELIHOOD = ["Not Likely","Likely","Very Likely"];
-const SEVERITY = ["Not Severe","Severe","Very Severe"];
+/* The matrix comes in two sizes. 3×3 is the original and what every study
+   session before Fall 2026 used; 5×5 was added after practitioners at BSides
+   PNW asked for room to argue that a control moved a threat one notch rather
+   than a third of the board. Positions are stored as row/column indices, so a
+   session's size is fixed once any team has placed anything. Both sizes keep
+   "Very Likely" and "Very Severe" as the extremes so the manual still reads. */
+const GRIDS = {
+  3:{ n:3, lik:["Not Likely","Likely","Very Likely"], sev:["Not Severe","Severe","Very Severe"],
+      likShort:["Not","Likely","Very"], sevShort:["Not","Severe","Very"] },
+  5:{ n:5, lik:["Rare","Unlikely","Possible","Likely","Very Likely"],
+      sev:["Minimal","Minor","Moderate","Severe","Very Severe"],
+      likShort:["Rare","Unl","Pos","Lik","VL"], sevShort:["Min","Mnr","Mod","Sev","VS"] },
+};
+/* Sessions saved before the size existed are 3×3; new ones are claimed at 5. */
+const gridOf = (cfg) => GRIDS[cfg?.gridSize===5 ? 5 : 3];
+/* Scenario standing risks are authored on the 3×3 grid. */
+const onGrid = (pos, g) => !pos ? pos : g.n===3 ? pos : {l:pos.l*2, s:pos.s*2};
+const middleRow = (g) => Math.floor(g.n/2);
 const PHASES = [
   {id:"setup", label:"Setup"},
   {id:"p1", label:"Phase 1 — Threat model & placement"},
@@ -325,6 +644,13 @@ const teamsOf = (cfg) => ALL_TEAMS.slice(0, Math.min(MAX_TEAMS, cfg?.teamCount ?
 const pollMs  = (n) => n<=8 ? 4000 : n<=12 ? 6000 : 8000;
 /* Guidance, not a hard limit: 4 is where someone stops talking. */
 const SEATS_PER_TEAM = 4;
+/* Practitioners asked for a wider hand to argue over. The deck is 21 controls,
+   so 14 already shows two thirds of it; past that the hand stops being a
+   constraint and only the budget is. */
+const DEAL_SIZES = [8,10,12,14];
+const TIER_MIX = {8:{F:6,E:1,A:1}, 10:{F:7,E:2,A:1}, 12:{F:8,E:2,A:2}, 14:{F:9,E:3,A:2}};
+/* Delayed threats stack, but a budget cannot stretch over more than this. */
+const MAX_INJECTS = 3;
 const CFG_KEY = "game:config";
 const teamKey = (n) => `game:team:${n}`;
 const card = (id) => SOLUTIONS.find(c=>c.id===id) || MODIFIERS.find(c=>c.id===id);
@@ -347,6 +673,7 @@ const blankTeam = (n) => ({
   recommendation:"", ownerUid:null,
   engagement:1, everBought:[], drift:0, realized:null, lastVerdict:null,
   standingPos:{}, standingIgnored:0, budgetOverride:null,
+  injects:[], preWhy:"", postWhy:"",
   updatedAt:0,
 });
 
@@ -384,26 +711,32 @@ function Tokens({total,spent}){
   );
 }
 
-function Matrix({pre,post,onPick,interactive,compact,standing=[],addressed=[]}){
-  const cell = compact?34:58;
+/* `extras` are the delayed threats: [{id, label, title, pre, post}]. They are
+   drawn as numbered squares so they never read as the main threat's circles. */
+function Matrix({pre,post,onPick,interactive,compact,standing=[],addressed=[],grid=GRIDS[3],extras=[]}){
+  const five = grid.n===5;
+  const cell = compact ? (five?28:34) : (five?56:58);
+  const mark = compact ? 9 : 13;
   return (
     <div style={{display:"inline-block"}}>
-      <div style={{display:"grid",gridTemplateColumns:`auto repeat(3,${cell}px)`,gap:3}}>
+      <div style={{display:"grid",gridTemplateColumns:`auto repeat(${grid.n},${cell}px)`,gap:3}}>
         <div/>
-        {SEVERITY.map(s=>(
-          <div key={s} style={{fontFamily:MONO,fontSize:12.5,color:C.muted,textAlign:"center",paddingBottom:3}}>
-            {compact? s.split(" ")[0] : s}
+        {grid.sev.map((s,si)=>(
+          <div key={s} title={s} style={{fontFamily:MONO,fontSize:compact||five?11.5:12.5,color:C.muted,
+            textAlign:"center",paddingBottom:3,lineHeight:1.2,alignSelf:"end"}}>
+            {compact ? grid.sevShort[si] : s}
           </div>
         ))}
-        {LIKELIHOOD.map((l,li)=>(
+        {grid.lik.map((l,li)=>(
           <React.Fragment key={l}>
-            <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,alignSelf:"center",paddingRight:6,textAlign:"right"}}>
-              {compact? l.split(" ")[0] : l}
+            <div title={l} style={{fontFamily:MONO,fontSize:compact||five?11.5:12.5,color:C.muted,
+              alignSelf:"center",paddingRight:6,textAlign:"right"}}>
+              {compact ? grid.likShort[li] : l}
             </div>
-            {SEVERITY.map((s,si)=>{
+            {grid.sev.map((s,si)=>{
               const isPre = pre && pre.l===li && pre.s===si;
               const isPost = post && post.l===li && post.s===si;
-              const heat = (li+si)/4;
+              const heat = (li+si)/(2*(grid.n-1));
               return (
                 <button key={s} disabled={!interactive} onClick={()=>onPick && onPick(li,si)}
                   aria-label={`${l}, ${s}`}
@@ -411,7 +744,8 @@ function Matrix({pre,post,onPick,interactive,compact,standing=[],addressed=[]}){
                     width:cell,height:cell,borderRadius:3,cursor:interactive?"pointer":"default",
                     border:`1px solid ${C.edge}`,
                     background:C.name==="dark" ? `rgba(209,118,111,${0.10+heat*0.22})` : `rgba(182,66,56,${0.07+heat*0.18})`,
-                    display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:0,
+                    display:"flex",alignItems:"center",justifyContent:"center",alignContent:"center",
+                    flexWrap:"wrap",gap:compact?1:3,padding:0,
                   }}>
                   {standing.filter(r=>r.at.l===li && r.at.s===si).map(r=>(
                     <span key={`s${r.id}`} title={r.text}
@@ -428,6 +762,18 @@ function Matrix({pre,post,onPick,interactive,compact,standing=[],addressed=[]}){
                     border:`2px solid ${C.muted}`,background:"transparent"}}/>}
                   {isPost && <span title="After controls" style={{width:11,height:11,borderRadius:"50%",
                     background:C.brass,boxShadow:"0 0 0 2px rgba(0,0,0,.3)"}}/>}
+                  {extras.flatMap(x=>[
+                    x.pre && x.pre.l===li && x.pre.s===si &&
+                      <span key={`xb${x.id}`} title={`${x.title} — before`} style={{width:mark,height:mark,
+                        borderRadius:2,fontFamily:MONO,fontSize:compact?7:9,display:"flex",
+                        alignItems:"center",justifyContent:"center",
+                        border:`1.5px dashed ${C.solution}`,color:C.solution}}>{x.label}</span>,
+                    x.post && x.post.l===li && x.post.s===si &&
+                      <span key={`xa${x.id}`} title={`${x.title} — after`} style={{width:mark,height:mark,
+                        borderRadius:2,fontFamily:MONO,fontSize:compact?7:9,fontWeight:700,display:"flex",
+                        alignItems:"center",justifyContent:"center",
+                        background:C.solution,color:C.onAccent}}>{x.label}</span>,
+                  ].filter(Boolean))}
                 </button>
               );
             })}
@@ -435,25 +781,32 @@ function Matrix({pre,post,onPick,interactive,compact,standing=[],addressed=[]}){
         ))}
       </div>
       {!compact && (
-        <div style={{display:"flex",gap:14,marginTop:8,fontFamily:MONO,fontSize:12.5,color:C.muted}}>
+        <div style={{display:"flex",gap:14,marginTop:8,fontFamily:MONO,fontSize:12.5,color:C.muted,flexWrap:"wrap"}}>
           <span><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",border:`2px solid ${C.muted}`,marginRight:5}}/>before</span>
           <span><span style={{display:"inline-block",width:9,height:9,borderRadius:"50%",background:C.brass,marginRight:5}}/>after</span>
+          {extras.length>0 && <span><span style={{display:"inline-block",width:9,height:9,borderRadius:2,
+            background:C.solution,marginRight:5}}/>delayed threats, numbered</span>}
         </div>
       )}
     </div>
   );
 }
 
-function CardTile({c,state,onClick,disabled,note}){
+/* The links sit outside the buy button: a link inside a button is invalid
+   HTML, and a click on it would also buy the card. */
+function CardTile({c,state,onClick,disabled,note,links=[]}){
   const bought = state==="bought";
   return (
+    <div style={{borderRadius:4,border:`1px solid ${bought?C.brass:C.edge}`,
+      borderLeft:`3px solid ${C.solution}`,
+      background: bought ? "rgba(217,180,91,.10)" : C.panel,
+      display:"flex",flexDirection:"column"}}>
     <button onClick={onClick} disabled={disabled}
       style={{
-        textAlign:"left",width:"100%",padding:"9px 11px",borderRadius:4,
-        border:`1px solid ${bought?C.brass:C.edge}`,
-        background: bought ? "rgba(217,180,91,.10)" : C.panel,
+        textAlign:"left",width:"100%",padding:"9px 11px",border:"none",background:"transparent",
+        color:"inherit",flex:1,
         cursor: disabled?"not-allowed":"pointer", opacity: disabled&&!bought?.45:1,
-        borderLeft:`3px solid ${C.solution}`, display:"block",
+        display:"block",
       }}>
       <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"baseline"}}>
         <span style={{fontFamily:SANS,fontSize:14.5,color:C.paper,fontWeight:500,lineHeight:1.25}}>{c.name}</span>
@@ -470,6 +823,19 @@ function CardTile({c,state,onClick,disabled,note}){
       </div>
       {note && <div style={{fontFamily:MONO,fontSize:12.5,color:C.brass,marginTop:4}}>{note}</div>}
     </button>
+    {links.length>0 && (
+      <div style={{display:"flex",gap:10,flexWrap:"wrap",padding:"0 11px 8px",
+        fontFamily:MONO,fontSize:12.5}}>
+        <span style={{color:C.muted}}>Learn more:</span>
+        {links.map(l=>(
+          <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" title={l.title}
+            style={{color:C.solution,textDecoration:"underline",textUnderlineOffset:2}}>
+            {l.label} ↗
+          </a>
+        ))}
+      </div>
+    )}
+    </div>
   );
 }
 
@@ -533,6 +899,9 @@ const PHASE_GUIDE = {
 };
 
 const PHASE_MINUTES = {p1:7, p2:10, p3:5, debrief:8, setup:5};
+/* A technical brief needs more reading time before anyone can place a threat. */
+const phaseMinutes = (phase, cfg) =>
+  phase==="p1" && cfg?.detail==="technical" ? 10 : (PHASE_MINUTES[phase] || 8);
 
 function HeaderClock({end}){
   const [now,setNow] = useState(Date.now());
@@ -624,9 +993,10 @@ function HelpPanel({onClose}){
           <p style={{fontSize:14,lineHeight:1.65,color:C.paper,margin:"7px 0 0"}}>
             The number on a card is where that practice lives in the list. It matters for two
             reasons. It means the card is not our opinion — someone else already argued about
-            what belongs on the list. And it gives you something to look up: search
-            &ldquo;CIS Control 7&rdquo; after today and you will find the full detail, which
-            &ldquo;keep things patched&rdquo; would not have given you.
+            what belongs on the list. And it gives you something to look up: when your
+            facilitator has links switched on, each card has a <b>Learn more</b> link to its
+            control on the CIS website, which opens in a new tab. Read it before you buy if the
+            card name alone does not tell you enough — your board stays exactly where you left it.
           </p>
           <p style={{fontSize:14,lineHeight:1.65,color:C.paper,margin:"7px 0 0"}}>
             The controls are also split into three <b>Implementation Groups</b> by how much an
@@ -910,11 +1280,13 @@ function SolutionsTableInner(){
       }
       const s1 = scenarioById(1);
       const fresh = !c?.org && !c?.scenario;   // nothing set up yet
+      // A session already running on 3×3 keeps it; anything new starts on 5×5.
+      const gridSize = c?.gridSize ?? (fresh ? 5 : 3);
       const claimHash = await hashCode(code);
       const wrote = await sSet(CFG_KEY, {...(c||{}), facilitatorId:clientId, claimHash, claimCode:null,
         condition: c?.condition || URL_CONDITION || "solutions",
         phase:c?.phase||"setup", dims:c?.dims||DEFAULT_DIMS,
-        teamCount:c?.teamCount??DEFAULT_TEAMS,
+        teamCount:c?.teamCount??DEFAULT_TEAMS, gridSize,
         scenarioId:c?.scenarioId ?? (fresh ? s1.id : undefined),
         budget:c?.budget ?? (fresh ? s1.budget : 6),
         org:c?.org || (fresh ? s1.org : ""),
@@ -1012,6 +1384,10 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   const [scenario,setScenario] = useState(cfg?.scenario||"");
   const [pick,setPick] = useState(1);
   const [roleMsg,setStatusLocal] = useState("");
+  // Outcome of the last board-wide action, shown under the phase controls.
+  const [note,setStatus] = useState("");
+  const grid = gridOf(cfg);
+  const dealSize = DEAL_SIZES.includes(cfg?.dealSize) ? cfg.dealSize : 8;
   // once any team has acted, the arm is fixed for the rest of the session
   const started = ids.some(n=>{
     const t = teams[n];
@@ -1053,39 +1429,66 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
      uncontrolled variable. So every hand is guaranteed at least one strong and one
      partial card for the loaded scenario, and by default every team is dealt the
      same eight — which is what "standardized deal composition" has to mean if the
-     two arms are to be compared. */
-  const buildHand = (owned, scen)=>{
-    const free = (tier)=>SOLUTIONS.filter(c=>c.tier===tier && !owned.includes(c.id)).map(c=>c.id);
+     two arms are to be compared.
+
+     Deals larger than eight raise the guarantee to two of each, so a wider hand
+     does not dilute the relevant cards. Delayed threats in play each get one
+     strong card too. Keys can name modifier cards (scenario 9 does), which are
+     never dealt as controls, and cards a team already owns are skipped, so a
+     guarantee can come up short; `short` reports that rather than hiding it.
+     The hand is shuffled — the guaranteed cards used to be dealt first, which
+     told an observant team where the answers were. */
+  const buildHand = (owned, scen, size=8, injects=[])=>{
     const must = [];
+    const take = (ids,k)=>{
+      const got = sample((ids||[]).filter(id=>isControl(id) && !owned.includes(id) && !must.includes(id)), k);
+      must.push(...got);
+      return got.length;
+    };
+    const need = size>8 ? 2 : 1;
+    const short = [];
     if (scen){
-      const s1 = (scen.strong||[]).filter(id=>!owned.includes(id));
-      const p1 = (scen.partial||[]).filter(id=>!owned.includes(id));
-      if (s1.length) must.push(sample(s1,1)[0]);
-      if (p1.length) must.push(sample(p1,1)[0]);
+      const s = take(scen.strong,need), p = take(scen.partial,need);
+      if (s<need) short.push(`${s} of ${need} strong`);
+      if (p<need) short.push(`${p} of ${need} partial`);
     }
-    const pool = (tier)=>free(tier).filter(id=>!must.includes(id));
-    const rest = [...sample(pool("F"), Math.max(0,6-must.length)),
-                  ...sample(pool("E"),1), ...sample(pool("A"),1)];
-    return [...must, ...rest].slice(0,8);
+    injects.forEach(x=>take(x?.strong,1));
+    const quota = {...(TIER_MIX[size] || {F:size-2,E:1,A:1})};
+    must.forEach(id=>{ const tr = card(id).tier; quota[tr] = Math.max(0, quota[tr]-1); });
+    const pool = (tier)=>SOLUTIONS.filter(c=>c.tier===tier && !owned.includes(c.id) && !must.includes(c.id)).map(c=>c.id);
+    let rest = [...sample(pool("F"),quota.F), ...sample(pool("E"),quota.E), ...sample(pool("A"),quota.A)];
+    // a tier that ran dry is topped up from whatever is left in the deck
+    const gap = size - must.length - rest.length;
+    if (gap>0){
+      const left = SOLUTIONS.map(c=>c.id).filter(id=>!owned.includes(id) && !must.includes(id) && !rest.includes(id));
+      rest = [...rest, ...sample(left, gap)];
+    }
+    const all = [...must, ...rest].slice(0,size);
+    return {hand: sample(all, all.length), short};
   };
 
   const dealAll = async ()=>{
     const scen = scenarioById(cfg?.scenarioId);
     const shared = cfg?.sameDeal !== false;
-    const commonHand = shared ? buildHand([], scen) : null;
+    const injectsOf = (t)=>(t?.injects||[]).map(x=>injectById(x.id)).filter(Boolean);
+    // Teams advance together, so they share delayed threats; use the union.
+    const roomInjects = Array.from(new Set(ids.flatMap(n=>teams[n]?.joined ? (teams[n].injects||[]).map(x=>x.id) : [])))
+      .map(injectById).filter(Boolean);
+    const common = shared ? buildHand([], scen, dealSize, roomInjects) : null;
     const commonMods = shared ? sample(MODIFIERS.map(m=>m.id),3) : null;
+    const shortBy = [];
     for (const n of ids){
       const t = teams[n]; if(!t?.joined) continue;
       const owned = t.everBought||[];
       // an identical deal still has to skip cards a team already installed
-      const hand = shared
-        ? (owned.length ? buildHand(owned, scen) : commonHand)
-        : buildHand(owned, scen);
-      await saveTeam(n,{hand, modHand: shared ? commonMods : sample(MODIFIERS.map(m=>m.id),3),
+      const dealt = shared && !owned.length ? common : buildHand(owned, scen, dealSize, injectsOf(t));
+      if (dealt.short.length) shortBy.push(`${t.name} (${dealt.short.join(", ")})`);
+      await saveTeam(n,{hand:dealt.hand, modHand: shared ? commonMods : sample(MODIFIERS.map(m=>m.id),3),
         purchases:[], modifiers:[]});
     }
-    setStatus(shared ? "Dealt — every team has the same eight cards."
-                     : "Dealt — hands vary by team.");
+    setStatus((shared ? `Dealt — every team has the same ${dealSize} cards.`
+                      : `Dealt — ${dealSize} cards each, varying by team.`)
+      + (shortBy.length ? ` Guarantee not met for ${shortBy.join("; ")}: the scenario's key names too few control cards of that kind, or the team already owns them.` : ""));
   };
   const pending = [];
   ids.forEach(n=>{ (teams[n]?.modifiers||[]).forEach((m,i)=>{ if(m.status==="pending") pending.push({n,i,...m}); }); });
@@ -1111,18 +1514,34 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   const willRealize = (()=>{
     const scen = scenarioById(cfg?.scenarioId);
     if(!scen) return [];
+    const top = grid.n-1;
     return ids.filter(n=>{
       const t = teams[n]; if(!t?.joined) return false;
-      const pos = t.post || t.pre; if(!pos) return false;
       const deferred = (t.modifiers||[]).some(m=>m.id===28 && m.status==="accepted");
-      const cov = coverage(t.purchases||[], scen);
-      return pos.l + cov.move + (deferred?1:0) > LIKELIHOOD.length-1;
+      const extra = deferred ? 1 : 0;
+      const pos = t.post || t.pre;
+      if (pos && pos.l + coverage(t.purchases||[], scen, grid).move + extra > top) return true;
+      const installed = [...(t.everBought||[]), ...(t.purchases||[])];
+      return (t.injects||[]).some(x=>{
+        const p = x.post || x.pre;
+        return p && p.l + coverage(installed, injectById(x.id), grid).move + extra > top;
+      });
     });
+  })();
+  const injectsOn = cfg?.injectsOn !== false;
+  const upcomingInject = (()=>{
+    const scen = scenarioById(cfg?.scenarioId);
+    const seated = ids.map(n=>teams[n]).filter(t=>t?.joined);
+    if (!injectsOn || !scen || !seated.length) return null;
+    const t = seated[0];
+    if ((t.injects||[]).length >= MAX_INJECTS) return null;
+    return injectById(nextInjectFor(scen, (t.injects||[]).map(x=>x.id)));
   })();
 
   const nextEngagement = async ()=>{
     const scen = scenarioById(cfg?.scenarioId);
     const base = cfg?.budget ?? 6;
+    const top = grid.n-1;
     for (const n of ids){
       const t = teams[n];
       if(!t?.joined) continue;
@@ -1130,27 +1549,45 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
       const deferred = (t.modifiers||[]).some(m=>m.id===28 && m.status==="accepted");
       // Controls stay installed. An organization does not forget its backups.
       const installed = Array.from(new Set([...(t.everBought||[]), ...(t.purchases||[])]));
-      const cov = coverage(t.purchases||[], scen);
+      const cov = coverage(t.purchases||[], scen, grid);
       // Without a loaded scenario there is no key to score against, so treat an
       // empty portfolio as unaddressed rather than freezing the board.
       if (!scen && !(t.purchases||[]).length) { cov.move = 1; cov.verdict = "unaddressed"; }
 
-      let pos = t.post || t.pre || null;
-      let realized = null, drift = t.drift||0;
-      if (pos){
-        const move = cov.move + (deferred ? 1 : 0);   // deferring costs one cell of progress
-        const target = pos.l + move;
-        if (target > LIKELIHOOD.length-1){
-          realized = {at:Date.now(), outcome:resolveRealization(installed)};
-          // The incident forces attention, so the threat resets to the middle
-          // rather than pinning at Very Likely forever. A team can climb out.
-          pos = {l:1, s:pos.s};
-        } else {
-          const clamped = Math.max(0, target);
-          if (clamped > pos.l) drift = drift+1;
-          pos = {l:clamped, s:pos.s};                 // likelihood only; severity never moves
-        }
+      /* One threat's likelihood moves on coverage; past the top row it is
+         realized. The incident forces attention, so the threat resets to the
+         middle rather than pinning at Very Likely forever. A team can climb out. */
+      const step = (pos, move)=>{
+        if (!pos) return {pos:null, realized:false, drifted:false};
+        const target = pos.l + move + (deferred ? 1 : 0);   // deferring costs one cell of progress
+        if (target > top) return {pos:{l:middleRow(grid), s:pos.s}, realized:true, drifted:false};
+        const clamped = Math.max(0, target);
+        // likelihood only; severity never moves
+        return {pos:{l:clamped, s:pos.s}, realized:false, drifted:clamped > pos.l};
+      };
+
+      const main = step(t.post || t.pre || null, cov.move);
+      let pos = main.pos;
+      let drift = (t.drift||0) + (main.drifted ? 1 : 0);
+      const hit = main.realized ? [scen?.title || "The main threat"] : [];
+
+      /* Delayed threats already on the board move on their own keys. They are
+         scored against everything installed, not just this round's purchases:
+         a new threat meets every control the organization already has. */
+      const injects = (t.injects||[]).map(x=>{
+        const def = injectById(x.id);
+        const r = step(x.post || x.pre || null, coverage(installed, def, grid).move);
+        if (r.realized) hit.push(def?.title || "A new threat");
+        return {...x, pre:r.pos, post:null};
+      });
+      // And, if the facilitator has them on, a new one lands on top.
+      let arrived = null;
+      if (injectsOn && scen && injects.length < MAX_INJECTS){
+        const id = nextInjectFor(scen, injects.map(x=>x.id));
+        if (id){ injects.push({id, since:(t.engagement||1)+1, pre:null, post:null}); arrived = id; }
       }
+      const realized = hit.length
+        ? {at:Date.now(), outcome:resolveRealization(installed), threats:hit} : null;
 
       // Fresh allocation each engagement. Banking adds to it; an unhandled
       // incident costs a point of it, which is the Response line made real.
@@ -1159,9 +1596,9 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
       const standingPos = {};
       let standingIgnored = 0;
       scenStanding.forEach(r=>{
-        const cur = (t.standingPos||{})[r.id] || r.pos;
+        const cur = (t.standingPos||{})[r.id] || onGrid(r.pos, grid);
         const covered = r.cards.some(c=>installed.includes(c));
-        const l = covered ? Math.max(0, cur.l-1) : Math.min(LIKELIHOOD.length-1, cur.l+1);
+        const l = covered ? Math.max(0, cur.l-1) : Math.min(top, cur.l+1);
         if(!covered) standingIgnored++;
         standingPos[r.id] = {l, s:cur.s};
       });
@@ -1173,13 +1610,15 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
         ...blankTeam(n), name:t.name, members:t.members, ownerUid:t.ownerUid, joined:true,
         threat:t.threat, pre:pos, post:null,
         engagement:(t.engagement||1)+1, everBought:installed, drift, realized,
-        standingPos, standingIgnored,
-        lastVerdict: realized ? "realized" : cov.verdict,
+        standingPos, standingIgnored, injects,
+        lastVerdict: main.realized ? "realized" : cov.verdict,
         budgetOverride: nextBudget,
       });
+      if (arrived) setStatus(`Next engagement. Delayed threat on every board: ${injectById(arrived)?.title}. Teams place it in Phase 1.`);
     }
     await saveCfg({phase:"p1", timerEnd:null});
-    setStatus("Next engagement. Controls stay installed; budgets refreshed; threats moved on coverage.");
+    if (!injectsOn || !upcomingInject)
+      setStatus("Next engagement. Controls stay installed; budgets refreshed; threats moved on coverage.");
   };
 
   const endSession = async ()=>{
@@ -1188,22 +1627,28 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
     await sSet(`archive:${label}`, snapshot);          // keep a copy first
     for (const n of ids) await sSet(teamKey(n), blankTeam(n));
     await saveCfg({phase:"setup", org:"", scenario:"", timerEnd:null});
-    setTeams({});
+    // setTeams lives in the root component; the next poll picks up the blank boards.
     setStatus(`Board cleared. A copy was kept as archive:${label}.`);
   };
 
+  /* Columns added after Fall 2026 are appended at the end so analysis scripts
+     that index by position keep working. The header used to list threat_method
+     and threat_impact before verdict and standing_ignored while the rows wrote
+     them after; it now matches the rows. */
   const exportData = ()=>{
-    const rows = [["team","org","scenario","condition","measures_count","measures","engagement","drift","realized","threat_method","threat_impact",
-      "verdict","standing_ignored","threat_resource","threat_motive","pre_likelihood","pre_severity","post_likelihood",
-      "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","debrief_1","debrief_2","debrief_3","carry_forward","recommendation"]];
+    const at = (p)=> p ? `${grid.lik[p.l]} / ${grid.sev[p.s]}` : "";
+    const rows = [["team","org","scenario","condition","measures_count","measures","engagement","drift","realized",
+      "verdict","standing_ignored","threat_method","threat_impact","threat_resource","threat_motive","pre_likelihood","pre_severity","post_likelihood",
+      "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","debrief_1","debrief_2","debrief_3","carry_forward","recommendation",
+      "grid_size","deal_size","detail","hand","pre_why","post_why","new_threats","new_threat_positions","realized_threats"]];
     ids.forEach(n=>{
       const t=teams[n]; if(!t?.joined) return;
       const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
       rows.push([t.name,cfg?.org||"",scenarioById(cfg?.scenarioId)?.title||"",
         cfg?.condition||"solutions",(t.measures||[]).length,(t.measures||[]).join("; "),t.engagement||1,t.drift||0,t.realized?"yes":"no",
         t.lastVerdict||"",t.standingIgnored??"",t.threat.method,t.threat.impact,t.threat.resource,t.threat.motive,
-        t.pre?LIKELIHOOD[t.pre.l]:"",t.pre?SEVERITY[t.pre.s]:"",
-        t.post?LIKELIHOOD[t.post.l]:"",t.post?SEVERITY[t.post.s]:"",
+        t.pre?grid.lik[t.pre.l]:"",t.pre?grid.sev[t.pre.s]:"",
+        t.post?grid.lik[t.post.l]:"",t.post?grid.sev[t.post.s]:"",
         t.budgetOverride ?? cfg?.budget ?? 6, spent,
         (t.purchases||[]).map(id=>card(id)?.name).join("; "),
         (t.everBought||[]).map(id=>card(id)?.name).join("; "),
@@ -1213,7 +1658,13 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
         ((t.debriefAnswers||{})[1]||"").replace(/\n/g," "),
         ((t.debriefAnswers||{})[2]||"").replace(/\n/g," "),
         (t.carryAnswer||"").replace(/\n/g," "),
-        (t.recommendation||"").replace(/\n/g," ")]);
+        (t.recommendation||"").replace(/\n/g," "),
+        grid.n, dealSize, cfg?.detail||"standard",
+        (t.hand||[]).map(id=>card(id)?.name).join("; "),
+        (t.preWhy||"").replace(/\n/g," "), (t.postWhy||"").replace(/\n/g," "),
+        (t.injects||[]).map(x=>injectById(x.id)?.title||x.id).join("; "),
+        (t.injects||[]).map(x=>`${injectById(x.id)?.title||x.id}: ${at(x.pre)||"unplaced"} -> ${at(x.post)||"unplaced"}`).join("; "),
+        (t.realized?.threats||[]).join("; ")]);
     });
     const csv = rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
@@ -1291,7 +1742,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
             <select value={pick} onChange={e=>setPick(Number(e.target.value))} style={{flex:"1 1 180px"}}>
               {SCENARIOS.map(x=>(
                 <option key={x.id} value={x.id} style={{background:C.panel}}>
-                  {x.id}. {x.title}{x.care?" (care)":""}
+                  {x.id}. {x.title}{x.care?" (care)":""}{x.pro?" (practitioner)":""}
                 </option>
               ))}
             </select>
@@ -1313,6 +1764,28 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                 <span style={{color:C.brass}}>Partial:</span> {loaded.partial.map(i=>card(i)?.name).join(", ")}<br/>
                 <span style={{color:C.muted}}>Weak here:</span> {loaded.weak.map(i=>card(i)?.name).join(", ")}
               </div>
+              {loaded.env && (
+                <details style={{marginTop:9}}>
+                  <summary style={{fontFamily:MONO,fontSize:12.5,color:C.muted,cursor:"pointer"}}>
+                    Technical brief — teams see it when detail is Technical
+                  </summary>
+                  <ul style={{margin:"6px 0 0",paddingLeft:18,fontSize:13,lineHeight:1.55}}>
+                    {loaded.env.map((x,i)=><li key={i} style={{marginBottom:3}}>{x}</li>)}
+                  </ul>
+                </details>
+              )}
+              {loaded.inject && (
+                <details style={{marginTop:7}}>
+                  <summary style={{fontFamily:MONO,fontSize:12.5,color:C.muted,cursor:"pointer"}}>
+                    Delayed threat — {loaded.inject.title}
+                  </summary>
+                  <div style={{fontSize:13,lineHeight:1.55,marginTop:6}}>{loaded.inject.text}</div>
+                  <div style={{fontSize:13,lineHeight:1.6,marginTop:5}}>
+                    <span style={{color:C.ok}}>Strong:</span> {loaded.inject.strong.map(i=>card(i)?.name).join(", ")}<br/>
+                    <span style={{color:C.brass}}>Partial:</span> {loaded.inject.partial.map(i=>card(i)?.name).join(", ")}
+                  </div>
+                </details>
+              )}
               <button style={{...btn(),marginTop:10,width:"100%",fontSize:13}} disabled={busy}
                 onClick={()=>applyDraw(loaded)}>
                 Re-deal the suggested threat model to every team
@@ -1337,6 +1810,80 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
           <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Scenario read aloud</label>
           <textarea value={scenario} onChange={e=>setScenario(e.target.value)} onBlur={()=>saveCfg({scenario})}
             placeholder="One or two sentences the teams all start from."/>
+
+          <div style={{marginTop:12}}>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Audience — sets the two options below it</label>
+            <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+              {[["Students",{dealSize:8,detail:"standard"}],
+                ["Practitioners",{dealSize:12,detail:"technical"}]].map(([lbl,p])=>(
+                <button key={lbl} onClick={()=>saveCfg(p)}
+                  style={{...btn(dealSize===p.dealSize && (cfg?.detail||"standard")===p.detail?"primary":"ghost"),fontSize:13}}>
+                  {lbl}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{marginTop:10}}>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Scenario detail</label>
+            <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+              {[["standard","Standard — story only"],["technical","Technical — story plus environment brief"]].map(([v,lbl])=>(
+                <button key={v} onClick={()=>saveCfg({detail:v})}
+                  style={{...btn((cfg?.detail||"standard")===v?"primary":"ghost"),fontSize:13}}>{lbl}</button>
+              ))}
+            </div>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
+              Technical adds five to seven lines of systems, configuration and contracts to every
+              team's screen. Reading takes longer, so the Phase 1 timer default rises to 10 minutes.
+            </p>
+          </div>
+
+          <div style={{marginTop:10}}>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Cards dealt to each team</label>
+            <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+              {DEAL_SIZES.map(k=>(
+                <button key={k} onClick={()=>saveCfg({dealSize:k})}
+                  style={{...btn(dealSize===k?"primary":"ghost"),fontSize:13}}>
+                  {k}{k===8?" · default":""}
+                </button>
+              ))}
+            </div>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
+              Above 8, every hand holds at least two strong and two partial cards for the
+              scenario instead of one of each. The deck has 21 controls, so 14 shows two thirds
+              of it and the budget becomes the only real constraint.
+            </p>
+          </div>
+
+          <div style={{marginTop:10}}>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Risk matrix</label>
+            <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+              {[3,5].map(k=>(
+                <button key={k} disabled={busy || started} onClick={()=>saveCfg({gridSize:k})}
+                  style={{...btn(grid.n===k?"primary":"ghost"),fontSize:13}}>
+                  {k}×{k}{k===3?" · original study":""}
+                </button>
+              ))}
+            </div>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
+              {started
+                ? "Locked — teams have placed threats. New round clears the board and unlocks it."
+                : "5×5 gives room to argue that a control moved a threat one notch. Use 3×3 when the data must compare with earlier sessions."}
+            </p>
+          </div>
+
+          <div style={{marginTop:10}}>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Learn-more links on cards</label>
+            <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+              {[[true,"On"],[false,"Off"]].map(([v,lbl])=>(
+                <button key={lbl} onClick={()=>saveCfg({cisLinks:v})}
+                  style={{...btn((cfg?.cisLinks!==false)===v?"primary":"ghost"),fontSize:13}}>{lbl}</button>
+              ))}
+            </div>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
+              Each card links to its CIS Control page in a new tab. Turn off for study sessions
+              that must match earlier ones, where players had only the card face.
+            </p>
+          </div>
           <div style={{marginTop:12}}>
             <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Standing risks</label>
             <div style={{display:"flex",gap:6,marginTop:6}}>
@@ -1389,8 +1936,9 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
             ))}
           </div>
           <button style={{...btn(),marginTop:10,width:"100%"}} disabled={busy} onClick={dealAll}>
-            Deal 8 controls + 3 modifiers to every team
+            Deal {dealSize} controls + 3 modifiers to every team
           </button>
+          {note && <div style={{fontFamily:MONO,fontSize:13,color:C.brass,lineHeight:1.6,marginTop:7}}>{note}</div>}
           <div style={{display:"flex",gap:6,marginTop:7,flexWrap:"wrap"}}>
             {[[true,"Same deal for all"],[false,"Vary by team"]].map(([v,lbl])=>(
               <button key={String(v)} onClick={()=>saveCfg({sameDeal:v})}
@@ -1399,11 +1947,28 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
             ))}
           </div>
           <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
-            Every hand is guaranteed at least one card that addresses the drawn threat, so no
-            team is punished for its deal. Keep <b>same deal</b> when collecting data.
+            Every hand is guaranteed at least {dealSize>8?"two":"one"} strong and {dealSize>8?"two":"one"} partial
+            card for the scenario, plus one strong card per delayed threat in play, so no team is
+            punished for its deal. Keep <b>same deal</b> when collecting data.
           </p>
           <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${C.edge}`}}>
             <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Campaign — same client, later in the term</label>
+            <div style={{display:"flex",gap:6,marginTop:6,alignItems:"center",flexWrap:"wrap"}}>
+              <span style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Delayed threats</span>
+              {[[true,"On"],[false,"Off"]].map(([v,lbl])=>(
+                <button key={lbl} onClick={()=>saveCfg({injectsOn:v})}
+                  style={{...btn(injectsOn===v?"primary":"ghost"),fontSize:12.5,padding:"3px 10px"}}>{lbl}</button>
+              ))}
+            </div>
+            <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
+              {injectsOn
+                ? (upcomingInject
+                    ? <>Advancing adds a new threat on top of the existing ones: <span style={{color:C.paper}}>{upcomingInject.title}</span>. Same budget, so teams must split it. Up to {MAX_INJECTS} stack.</>
+                    : scenarioById(cfg?.scenarioId)
+                      ? `Every board already carries ${MAX_INJECTS} delayed threats, or no team is seated; none will be added.`
+                      : "Load a scenario first; delayed threats come from it.")
+                : "Off. Advancing moves existing threats only."}
+            </p>
             {willRealize.length>0 && (
               <div style={{marginTop:7,padding:"9px 11px",borderRadius:4,
                 border:`1px solid ${C.warn}`,background:"rgba(209,118,111,.10)"}}>
@@ -1422,8 +1987,9 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
               onClick={()=>{ if(window.confirm(
                 "Advance to the next engagement?\n\nThreats and matrix positions carry forward. "+
                 "Teams that played Deferred Investment drift one cell toward Very Likely, or realize "+
-                "if they were already there, and receive 10 points.\n\nHands, purchases and modifiers "+
-                "are cleared. Export the CSV first.")) nextEngagement(); }}>
+                "if they were already there, and receive 10 points.\n\n"+
+                (injectsOn && upcomingInject ? `A delayed threat lands on every board: ${upcomingInject.title}.\n\n` : "")+
+                "Hands, purchases and modifiers are cleared. Export the CSV first.")) nextEngagement(); }}>
               Next engagement — carry the board forward
             </button>
             <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
@@ -1462,8 +2028,8 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
             </label>
             <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
               <button style={{...btn("primary"),fontSize:13}}
-                onClick={()=>saveCfg({timerEnd:Date.now()+(PHASE_MINUTES[phase]||8)*60000})}>
-                Start {PHASE_MINUTES[phase]||8} min for this phase
+                onClick={()=>saveCfg({timerEnd:Date.now()+phaseMinutes(phase,cfg)*60000})}>
+                Start {phaseMinutes(phase,cfg)} min for this phase
               </button>
               {[5,10,15].map(m=>(
                 <button key={m} style={{...btn(),fontSize:13}}
@@ -1564,6 +2130,9 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                       {t.budgetOverride && <span style={{color:C.brass}}> · {t.budgetOverride} pts</span>}
                       {(t.standingIgnored||0)>0 &&
                         <span style={{color:C.warn}}> · {t.standingIgnored} standing ignored</span>}
+                      {(t.injects||[]).length>0 &&
+                        <span style={{color:C.solution}}> · +{t.injects.length} delayed threat{t.injects.length===1?"":"s"}
+                          {t.injects.some(x=>!x.pre) && " (not yet placed)"}</span>}
                     </div>
                     <div style={{display:"flex",gap:5,flexWrap:"wrap",margin:"7px 0"}}>
                       {Object.entries(DIM_META).map(([k,m])=> t.threat[k] ? (
@@ -1571,7 +2140,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                           border:`1px solid ${m.color}`,color:m.color}}>{t.threat[k]}</span>
                       ):null)}
                     </div>
-                    <Tokens total={budget} spent={spent}/>
+                    <Tokens total={t.budgetOverride ?? budget} spent={spent}/>
                     <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:6,lineHeight:1.5}}>
                       {(t.purchases||[]).length
                         ? (t.purchases||[]).map(id=>card(id)?.name).join(" · ")
@@ -1579,7 +2148,8 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                     </div>
                   </div>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
-                    <Matrix pre={t.pre} post={t.post} compact/>
+                    <Matrix pre={t.pre} post={t.post} compact grid={grid}
+                      extras={(t.injects||[]).map((x,i)=>({...x, label:String(i+1), title:injectById(x.id)?.title||"New threat"}))}/>
                     {t.ownerUid && (
                       <button style={{...btn(),fontSize:12.5,padding:"4px 8px"}} disabled={busy}
                         onClick={()=>{ if(window.confirm(
@@ -1603,22 +2173,25 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
 
 /* ---------------- projector ---------------- */
 
-function OverlayMatrix({teams,ids,size=118}){
+function OverlayMatrix({teams,ids,grid=GRIDS[3]}){
+  // Same overall footprint on the wall whichever grid is in use.
+  const size = grid.n===5 ? 84 : 118;
   const at = (l,s,which)=> ids.filter(n=>{
     const p = teams[n]?.[which]; return p && p.l===l && p.s===s;
   });
   return (
-    <div style={{display:"grid",gridTemplateColumns:`auto repeat(3,${size}px)`,gap:6}}>
+    <div style={{display:"grid",gridTemplateColumns:`auto repeat(${grid.n},${size}px)`,gap:6}}>
       <div/>
-      {SEVERITY.map(s=>(
-        <div key={s} style={{fontFamily:MONO,fontSize:14.5,color:C.muted,textAlign:"center",paddingBottom:5}}>{s}</div>
+      {grid.sev.map(s=>(
+        <div key={s} style={{fontFamily:MONO,fontSize:grid.n===5?13:14.5,color:C.muted,textAlign:"center",
+          paddingBottom:5,alignSelf:"end"}}>{s}</div>
       ))}
-      {LIKELIHOOD.map((l,li)=>(
+      {grid.lik.map((l,li)=>(
         <React.Fragment key={l}>
-          <div style={{fontFamily:MONO,fontSize:14.5,color:C.muted,alignSelf:"center",
+          <div style={{fontFamily:MONO,fontSize:grid.n===5?13:14.5,color:C.muted,alignSelf:"center",
             paddingRight:10,textAlign:"right"}}>{l}</div>
-          {SEVERITY.map((sv,si)=>{
-            const heat=(li+si)/4;
+          {grid.sev.map((sv,si)=>{
+            const heat=(li+si)/(2*(grid.n-1));
             const pre=at(li,si,"pre"), post=at(li,si,"post");
             return (
               <div key={sv} style={{width:size,height:size,borderRadius:5,
@@ -1664,6 +2237,8 @@ function Projector({cfg,teams,ids,onExit}){
   const phase = PHASES.find(p=>p.id===(cfg?.phase||"setup"));
   const active = ids.filter(n=>teams[n]?.joined);
   const pending = active.reduce((a,n)=>a+(teams[n]?.modifiers||[]).filter(m=>m.status==="pending").length,0);
+  const scen = scenarioById(cfg?.scenarioId);
+  const grid = gridOf(cfg);
 
   return (
     <div style={{minHeight:"100%",background:C.slate,color:C.paper,fontFamily:SANS,padding:"26px 32px 34px"}}>
@@ -1682,6 +2257,11 @@ function Projector({cfg,teams,ids,onExit}){
             <p style={{fontSize:20,lineHeight:1.5,color:C.paper,maxWidth:820,margin:"10px 0 0"}}>
               {cfg.scenario}
             </p>
+          )}
+          {cfg?.detail==="technical" && scen?.env && (
+            <ul style={{fontSize:15.5,lineHeight:1.5,color:C.muted,maxWidth:900,margin:"10px 0 0",paddingLeft:20}}>
+              {scen.env.map((x,i)=><li key={i}>{x}</li>)}
+            </ul>
           )}
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
@@ -1702,7 +2282,7 @@ function Projector({cfg,teams,ids,onExit}){
         <div>
           <div style={{fontFamily:MONO,fontSize:13.5,letterSpacing:".1em",textTransform:"uppercase",
             color:C.muted,marginBottom:12}}>The room, on one grid</div>
-          <OverlayMatrix teams={teams} ids={ids}/>
+          <OverlayMatrix teams={teams} ids={ids} grid={grid}/>
           <div style={{display:"flex",gap:22,marginTop:14,fontFamily:MONO,fontSize:14.5,color:C.muted}}>
             <span><span style={{display:"inline-block",width:14,height:14,borderRadius:"50%",
               border:`2px solid ${C.muted}`,marginRight:7,verticalAlign:"-2px"}}/>before controls</span>
@@ -1721,6 +2301,7 @@ function Projector({cfg,teams,ids,onExit}){
               {active.map(n=>{
                 const t=teams[n];
                 const spent=(t.purchases||[]).reduce((a,id)=>a+(card(id)?.cost||0),0);
+                const total = t.budgetOverride ?? budget;
                 return (
                   <div key={n} style={{border:`1px solid ${C.edge}`,borderRadius:5,padding:"13px 16px",
                     background:C.panel,display:"grid",gridTemplateColumns:"34px 1fr auto",gap:14,alignItems:"start"}}>
@@ -1734,6 +2315,10 @@ function Projector({cfg,teams,ids,onExit}){
                           <span key={k} style={{fontFamily:MONO,fontSize:13.5,padding:"2px 8px",borderRadius:3,
                             border:`1px solid ${m.color}`,color:m.color}}>{t.threat[k]}</span>
                         ):null)}
+                        {(t.injects||[]).map(x=>(
+                          <span key={x.id} style={{fontFamily:MONO,fontSize:13.5,padding:"2px 8px",borderRadius:3,
+                            background:C.solution,color:C.onAccent}}>+ {injectById(x.id)?.title}</span>
+                        ))}
                       </div>
                       <div style={{fontSize:16,color:C.paper,lineHeight:1.5}}>
                         {(t.purchases||[]).length
@@ -1749,8 +2334,8 @@ function Projector({cfg,teams,ids,onExit}){
                     </div>
                     <div style={{textAlign:"right"}}>
                       <div style={{fontFamily:MONO,fontSize:27,fontWeight:600,
-                        color: spent>=budget ? C.brass : C.paper, fontVariantNumeric:"tabular-nums"}}>
-                        {budget-spent}
+                        color: spent>=total ? C.brass : C.paper, fontVariantNumeric:"tabular-nums"}}>
+                        {total-spent}
                       </div>
                       <div style={{fontFamily:MONO,fontSize:13,color:C.muted}}>left</div>
                     </div>
@@ -1783,10 +2368,21 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
      facilitator loaded it sees four empty, un-editable boxes. */
   const locked = !!(cfg?.threatLocked && scen?.draw);
   const threat = locked ? scen.draw : (t?.threat || {});
+  const grid = gridOf(cfg);
   // Positions carry forward once play has started, otherwise use the scenario's
   const standing = useStanding
-    ? (scen.standing||[]).map(r=>({...r, at:(t?.standingPos||{})[r.id] || r.pos || {l:1,s:1}}))
+    ? (scen.standing||[]).map(r=>({...r, at:(t?.standingPos||{})[r.id] || onGrid(r.pos, grid)
+        || {l:middleRow(grid),s:middleRow(grid)}}))
     : [];
+  /* Delayed threats ride on the same matrix as numbered squares. Which one a
+     click places is local to this screen; it is not worth a shared write. */
+  const injects = (t?.injects||[]).map((x,i)=>{
+    const def = injectById(x.id);
+    return {...x, def, label:String(i+1), title:def?.title||"New threat"};
+  }).filter(x=>x.def);
+  const [placing,setPlacing] = useState("main");
+  const placingId = injects.some(x=>x.id===placing) ? placing : "main";
+  const showLinks = cfg?.cisLinks !== false;
   const bought = [...(t?.purchases||[]), ...(t?.everBought||[])];
   const addressedIdsTrue = standing.filter(r=>r.cards.some(c=>bought.includes(c))).map(r=>r.id);
   /* Withheld until Phase 3. If teams can watch a square turn green while they
@@ -1837,6 +2433,27 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
   const deferred = (t.modifiers||[]).some(m=>m.id===28 && m.status==="accepted");
   const cap = deferred ? Math.min(budget,4) : budget;
 
+  const pickFor = (which)=>(l,s)=>{
+    if (placingId==="main") return saveTeam(teamN,{[which]:{l,s}});
+    saveTeam(teamN,{injects:(t.injects||[]).map(x=>x.id===placingId ? {...x,[which]:{l,s}} : x)});
+  };
+  const placeSwitch = (which)=> injects.length>0 && (
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:9}}>
+      <span style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Placing:</span>
+      <button onClick={()=>setPlacing("main")} aria-pressed={placingId==="main"}
+        style={{...btn(placingId==="main"?"primary":"ghost"),fontSize:12.5,padding:"4px 10px"}}>
+        ● {scen?.title || "Main threat"}{!t[which] ? " — not placed" : ""}
+      </button>
+      {injects.map(x=>(
+        <button key={x.id} onClick={()=>setPlacing(x.id)} aria-pressed={placingId===x.id}
+          style={{...btn(placingId===x.id?"primary":"ghost"),fontSize:12.5,padding:"4px 10px",
+            borderColor:C.solution}}>
+          ■{x.label} {x.title}{!x[which] ? " — not placed" : ""}
+        </button>
+      ))}
+    </div>
+  );
+
   const toggleBuy = (id)=>{
     const c = card(id);
     const has = (t.purchases||[]).includes(id);
@@ -1885,8 +2502,12 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
             <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
               textTransform:"uppercase",color:C.warn}}>It happened</div>
             <p style={{fontSize:14.5,lineHeight:1.6,margin:"6px 0 9px"}}>
-              You left this at <b>Very Likely</b> and deferred again. The attack succeeded.
-              What follows is decided by what you have bought across every engagement, not by chance.
+              {(t.realized?.threats||[]).length
+                ? <><b>{t.realized.threats.join(" and ")}</b> {t.realized.threats.length===1?"was":"were"} already
+                    at <b>{grid.lik[grid.n-1]}</b>, and nothing you bought pulled {t.realized.threats.length===1?"it":"them"} back.</>
+                : <>You left this at <b>{grid.lik[grid.n-1]}</b> and nothing you bought pulled it back.</>}
+              {" "}The attack succeeded. What follows is decided by what you have bought across every
+              engagement, not by chance.
             </p>
             <div style={{display:"grid",gap:4}}>
               {(t.realized?.outcome||[]).map((o,i)=>(
@@ -1961,7 +2582,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                       <div style={{fontSize:14,lineHeight:1.5,
                         color:done?"#D6D2C8":C.paper}}>{r.text}</div>
                       <div style={{fontFamily:MONO,fontSize:12.5,color:done?C.ok:C.muted,marginTop:2}}>
-                        {LIKELIHOOD[r.at.l]} · {SEVERITY[r.at.s]}
+                        {grid.lik[r.at.l]} · {grid.sev[r.at.s]}
                         {done && " · addressed by what you have bought"}
                       </div>
                     </div>
@@ -1977,6 +2598,51 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
         {cfg?.scenario && (
           <div style={{marginTop:12,padding:12,borderLeft:`3px solid ${C.brass}`,background:C.panel,
             borderRadius:"0 4px 4px 0",fontSize:15,lineHeight:1.6}}>{cfg.scenario}</div>
+        )}
+        {cfg?.detail==="technical" && scen?.env && (
+          <details open style={{marginTop:10,padding:"10px 12px",border:`1px solid ${C.edge}`,
+            borderRadius:4,background:C.panel}}>
+            <summary style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
+              textTransform:"uppercase",color:C.muted,cursor:"pointer"}}>
+              Technical environment
+            </summary>
+            <ul style={{margin:"8px 0 0",paddingLeft:18,fontSize:14,lineHeight:1.6}}>
+              {scen.env.map((x,i)=><li key={i} style={{marginBottom:4}}>{x}</li>)}
+            </ul>
+            <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:6,lineHeight:1.6}}>
+              Every purchase should point at a line here. If it cannot, ask why you are buying it.
+            </div>
+          </details>
+        )}
+        {injects.length>0 && (
+          <div style={{marginTop:12,display:"grid",gap:9}}>
+            {injects.map(x=>(
+              <div key={x.id} style={{padding:"11px 13px",borderRadius:4,
+                border:`1px solid ${C.solution}`,background:"rgba(124,95,168,.10)"}}>
+                <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
+                  textTransform:"uppercase",color:C.solution}}>
+                  ■{x.label} · Delayed threat, arrived at engagement {x.since||2} — on top of the existing one
+                </div>
+                <div style={{fontSize:15,fontWeight:600,margin:"5px 0 3px"}}>{x.title}</div>
+                <div style={{fontSize:14,lineHeight:1.6}}>{x.def.text}</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:7}}>
+                  {Object.entries(DIM_META).map(([k,m])=> x.def.draw?.[k] ? (
+                    <span key={k} style={{fontFamily:MONO,fontSize:12.5,padding:"2px 6px",borderRadius:2,
+                      border:`1px solid ${m.color}`,color:m.color}}>{x.def.draw[k]}</span>
+                  ):null)}
+                </div>
+                {!x.pre && (phase==="setup"||phase==="p1") && (
+                  <div style={{fontFamily:MONO,fontSize:12.5,color:C.brass,marginTop:7}}>
+                    Not placed yet — choose ■{x.label} above the matrix in Phase 1, then click a cell.
+                  </div>
+                )}
+              </div>
+            ))}
+            <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6}}>
+              Your budget did not grow with the threats. One portfolio has to cover all of them,
+              or you have to say which one you are leaving.
+            </div>
+          </div>
         )}
       </Section>
 
@@ -2016,8 +2682,18 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginBottom:7}}>
                 Place the threat. Justify severity by naming who the Human Impact card harms.
               </div>
+              {placeSwitch("pre")}
               <Matrix pre={t.pre} post={t.post} standing={standing} addressed={addressedIds}
-                interactive={isOwner} onPick={(l,s)=>saveTeam(teamN,{pre:{l,s}})}/>
+                grid={grid} extras={injects}
+                interactive={isOwner} onPick={pickFor("pre")}/>
+            </div>
+            <div style={{flex:"1 1 240px",minWidth:220}}>
+              <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>
+                Why this cell? Name who gets hurt, and what makes it this likely.
+              </label>
+              <textarea value={t.preWhy||""} disabled={!isOwner}
+                onChange={e=>saveTeam(teamN,{preWhy:e.target.value})}
+                placeholder="Severity: who is harmed, and how badly. Likelihood: what about this organization makes it this likely."/>
             </div>
           </div>
         </Section>
@@ -2091,6 +2767,7 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                   const c=card(id); const bought=(t.purchases||[]).includes(id);
                   const unaffordable = !bought && spent + c.cost > cap;
                   return <CardTile key={id} c={c} state={bought?"bought":""}
+                    links={showLinks ? cardLinks(c) : []}
                     disabled={unaffordable || !isOwner}
                     onClick={()=>toggleBuy(id)} note={bought?"bought":unaffordable?"not enough left":null}/>;
                 })}
@@ -2334,6 +3011,44 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                 );
               })()}
 
+              {!control && injects.length>0 && (
+                <div style={{marginTop:13,paddingTop:11,borderTop:`1px solid ${C.edge}`}}>
+                  <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
+                    textTransform:"uppercase",color:C.solution}}>
+                    Delayed threats — what your purchases do against each
+                  </div>
+                  <div style={{display:"grid",gap:9,marginTop:8}}>
+                    {injects.map(x=>{
+                      const bp = [...(t.purchases||[]), ...(t.everBought||[])];
+                      const hits = bp.filter(id=>x.def.strong.includes(id));
+                      const near = bp.filter(id=>x.def.partial.includes(id));
+                      const col = hits.length ? C.ok : near.length ? C.brass : C.warn;
+                      return (
+                        <div key={x.id} style={{display:"flex",gap:9,alignItems:"flex-start"}}>
+                          <span style={{width:17,height:17,borderRadius:2,flexShrink:0,marginTop:1,
+                            fontFamily:MONO,fontSize:12,display:"flex",alignItems:"center",
+                            justifyContent:"center",background:C.solution,color:C.onAccent}}>{x.label}</span>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontSize:14.5,fontWeight:600}}>{x.title}</div>
+                            <div style={{fontSize:13.5,lineHeight:1.55,color:col,marginTop:2}}>
+                              {hits.length
+                                ? `Addressed by ${hits.map(id=>card(id)?.name).join(" and ")}: ${x.def.why?.[hits[0]] || "it works directly against this"}.`
+                                : near.length
+                                ? `Only partly: ${near.map(id=>card(id)?.name).join(" and ")} — ${x.def.why?.[near[0]] || "adjacent, not square on"}.`
+                                : "Nothing you have in place works against this one. It will be more likely next engagement."}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginTop:7,lineHeight:1.6}}>
+                    Counts what you bought this round and what was already installed — a new threat
+                    meets every control the organization has, not just this year's.
+                  </div>
+                </div>
+              )}
+
               {useStanding && standing.length>0 && (
                 <div style={{marginTop:13,paddingTop:11,borderTop:`1px solid ${C.edge}`}}>
                   <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
@@ -2374,10 +3089,18 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
               <div style={{fontFamily:MONO,fontSize:12.5,color:C.muted,marginBottom:7}}>
                 Same threat, re-placed with your controls in place.
               </div>
+              {placeSwitch("post")}
               <Matrix pre={t.pre} post={t.post} standing={standing} addressed={addressedIds}
-                interactive={isOwner} onPick={(l,s)=>saveTeam(teamN,{post:{l,s}})}/>
+                grid={grid} extras={injects}
+                interactive={isOwner} onPick={pickFor("post")}/>
             </div>
             <div style={{flex:"1 1 260px",minWidth:240}}>
+              <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>
+                Which purchase moved the marker, and by how many {grid.n===5?"notches":"rows"}?
+              </label>
+              <textarea value={t.postWhy||""} disabled={!isOwner} style={{marginBottom:10}}
+                onChange={e=>saveTeam(teamN,{postWhy:e.target.value})}
+                placeholder="Name the card and the line of the scenario it answers. If nothing moved it, say so."/>
               <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>
                 Something still gets through. What is it?
               </label>
