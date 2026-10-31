@@ -352,7 +352,7 @@ When on, it adds:
 
 | | |
 |---|---|
-| **7 controls** | Application & Pipeline Security (CIS 16) · Data Inventory & Loss Prevention (CIS 3) · Privileged Access Management (CIS 5, 6) · Vulnerability Scanning (CIS 7.5–7.7) · Incident Response Exercises (CIS 17.7–17.8) · Application Allowlisting (CIS 2.5–2.7) · Zero Trust Remote Access (CIS 12.7, 13.5) |
+| **8 controls** | Application & Pipeline Security (CIS 16) · Data Inventory & Loss Prevention (CIS 3) · Privileged Access Management (CIS 5, 6) · Vulnerability Scanning (CIS 7.5–7.7) · Incident Response Exercises (CIS 17.7–17.8) · Application Allowlisting (CIS 2.5–2.7) · Zero Trust Remote Access (CIS 12.7, 13.5) · Mobile & Endpoint Device Management (CIS 3.6, 4.3, 4.10–4.12) |
 | **2 modifiers** | Separation of Duties · Shared Responsibility |
 | **3 scenarios** | 15 *The Poisoned Dependency* (a compromised build dependency steals a signing key) · 16 *The Research Export* (an authorized researcher publishes re-identifiable data; marked *care*) · 17 *Remote Access to the Line* (a vendor remote-access tool on an ammonia-refrigeration plant's controls) |
 | **2 delayed threats** | *The Browser Extension* and *The Leaked Repository*, after the base four |
@@ -362,9 +362,23 @@ the source) that scores the new cards. It only adds: no base strong card is
 demoted, so the right answers you already know still hold. Expansion scenarios
 appear in the dropdown only while the toggle is on, and loading one keeps the
 expansion active for the session even if the toggle is later switched off, because
-their keys depend on it. The deck becomes 14 Foundational, 10 Extended and
+their keys depend on it. An expansion key can also add a new card to a scenario's
+standing risks (device management now also covers *Staff use personal phones* in
+scenario 3, for example). The deck becomes 14 Foundational, 11 Extended and
 4 Advanced cards, and the tier mix of each deal shifts to match. The export gains an
 `expansion` column.
+
+**Coverage.** With the expansion on, every one of the 18 CIS Controls has at least
+one card. Gaps remain at the safeguard level. These were considered and deferred
+until a practitioner playtest shows whether teams actually miss them: network
+device hardening (12.1, 12.3, 12.6, 12.8), third-party risk monitoring
+(15.2, 15.3, 15.5–15.7), data retention and disposal (3.4, 3.5), and network
+intrusion detection and access control (13.3, 13.6, 13.9).
+
+**Safeguard numbers on base cards** were corrected in the same release, without
+changing any key: Social Engineering Awareness now lists 14.1–14.6, Backup &
+Recovery 11.1–11.5 (testing a restore), and Email & Browser Protections
+9.1, 9.2, 9.4–9.6 (extensions and DMARC). These change only the label on the card.
 
 The PDFs in `docs/` still describe the 3×3 matrix and ten scenarios and have not
 been rebuilt.

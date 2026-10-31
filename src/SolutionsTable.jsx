@@ -57,24 +57,24 @@ const URL_CONDITION = (()=>{
     ? "control" : null; }catch{ return null; }
 })();
 
-const BUILD = "2026-10-30.expansion";
+const BUILD = "2026-10-30.expansion2";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
 
 const SOLUTIONS = [
   [1,"Software Updates",1,"F","CIS 7 (7.1, 7.3, 7.4)"],
-  [2,"Social Engineering Awareness",1,"F","CIS 14 (14.1–14.3)"],
+  [2,"Social Engineering Awareness",1,"F","CIS 14 (14.1–14.6)"],
   [3,"Deepfake & AI Fraud Awareness",1,"F","CIS 14 (14.2, 14.9)"],
   [4,"Identity & Access Management",1,"F","CIS 6 (6.1, 6.2, 6.7)"],
   [5,"Password & Authentication",1,"F","CIS 5, 6 (5.2, 6.3–6.5)"],
-  [6,"Backup & Recovery",1,"F","CIS 11 (11.1–11.4)"],
+  [6,"Backup & Recovery",1,"F","CIS 11 (11.1–11.5)"],
   [7,"Account Lifecycle Management",1,"F","CIS 5 (5.1, 5.3, 5.5)"],
   [8,"Physical Security",1,"F","No dedicated control"],
   [9,"Asset Inventory",1,"F","CIS 1 (1.1, 1.2)"],
   [10,"Software Inventory",1,"F","CIS 2 (2.1–2.3)"],
   [11,"Secure Configuration",1,"F","CIS 4 (4.1, 4.2, 4.6, 4.7)"],
-  [12,"Email & Browser Protections",1,"F","CIS 9 (9.1, 9.2, 9.6)"],
+  [12,"Email & Browser Protections",1,"F","CIS 9 (9.1, 9.2, 9.4–9.6)"],
   [13,"Incident Response Planning",1,"F","CIS 17 (17.1–17.4)"],
   [14,"Encryption",2,"E","CIS 3 (3.6, 3.10, 3.11)"],
   [15,"Audit Logging & SIEM",2,"E","CIS 8, 13 (8.2, 8.9, 13.1)"],
@@ -89,8 +89,10 @@ const SOLUTIONS = [
 /* Expansion deck. Off unless the facilitator switches it on, so the 21-card
    base deck — the study instrument — never changes underneath a session.
    Each card fills a gap the practitioner scenarios exposed: CIS 16 had no card
-   at all, data protection was only Encryption, and privileged access was folded
-   into Identity & Access Management. Ids continue after the modifiers. */
+   at all, data protection was only Encryption, privileged access was folded
+   into Identity & Access Management, and nothing covered screen lock, remote
+   wipe or work data on phones (CIS 4.3, 4.10–4.12). Ids continue after the
+   modifiers; 36 and 37 are expansion modifiers, so the last control is 38. */
 const EXP_SOLUTIONS = [
   [29,"Application & Pipeline Security",2,"E","CIS 16 (16.1, 16.4, 16.12)"],
   [30,"Data Inventory & Loss Prevention",2,"E","CIS 3 (3.1–3.3, 3.13)"],
@@ -99,6 +101,7 @@ const EXP_SOLUTIONS = [
   [33,"Incident Response Exercises",1,"F","CIS 17 (17.7, 17.8)"],
   [34,"Application Allowlisting",2,"E","CIS 2 (2.5–2.7)"],
   [35,"Zero Trust Remote Access",3,"A","CIS 12, 13 (12.7, 13.5)"],
+  [38,"Mobile & Endpoint Device Management",2,"E","CIS 3, 4 (3.6, 4.3, 4.10–4.12)"],
 ].map(([id,name,cost,tier,ctrl])=>({id,name,cost,tier,ctrl,exp:true}));
 const isControl = (id) => SOLUTIONS.some(c=>c.id===id) || EXP_SOLUTIONS.some(c=>c.id===id);
 
@@ -585,7 +588,7 @@ const SCENARIOS = [
    draw:{method:"Processes",impact:"Emotional Wellbeing",resource:"Entitlement",motive:"Curiosity"},
    strong:[30,4,2], partial:[13,17,12], weak:[16,32,35],
    standing:[{id:1, text:"Graduated students' accounts keep access to the research drive.", pos:{l:2,s:1}, cards:[7,4]},
-             {id:2, text:"A study laptop with raw interview recordings has been 'on loan' for a year.", pos:{l:1,s:2}, cards:[9,14]}],
+             {id:2, text:"A study laptop with raw interview recordings has been 'on loan' for a year.", pos:{l:1,s:2}, cards:[9,14,38]}],
    why:{30:"knowing where identifiable data lives, and blocking it from leaving to public sites, is this card exactly", 4:"every lab member reading every study is more access than any one project needs", 2:"the researcher believed the file was de-identified; training on re-identification risk changes that judgement", 13:"five business days under the data use agreement starts now", 17:"the data use agreement is what defines the institute's obligation to the partner", 12:"upload controls can flag known file-sharing destinations, imperfectly"},
    debrief:["The researcher was authorized to see this data. Was this an incident, a mistake, or both, and does the label change your response?",
             "Who in the institute could have said, on any given day, where every copy of this dataset was?",
@@ -627,24 +630,25 @@ const scenarioById = (id) => SCENARIOS.find(x=>x.id===id);
    by withExpansion. Written so that no base strong card is demoted: the
    expansion adds options, it does not change the right answer. */
 const EXPANSION_KEYS = {
-  1:{partial:[33], weak:[35,32], why:{33:"a callback rule only becomes habit once the bookkeeper has rehearsed refusing a familiar voice"}},
-  2:{partial:[34,33], weak:[32,29], why:{34:"an allowlist would have refused the shortcut inside the ISO, though that is prevention after the fact", 33:"a restore nobody has rehearsed is a hope, not a recovery"}},
-  3:{strong:[30], weak:[29,35], why:{30:"the convenience copy existed because nothing tracked or limited where intake data could be exported"}},
+  1:{partial:[33,38], weak:[35,32], why:{33:"a callback rule only becomes habit once the bookkeeper has rehearsed refusing a familiar voice", 38:"a managed laptop would not keep the payroll password in a personal browser profile"}},
+  2:{partial:[34,33], weak:[32,29,38], why:{34:"an allowlist would have refused the shortcut inside the ISO, though that is prevention after the fact", 33:"a restore nobody has rehearsed is a hope, not a recovery"}},
+  3:{strong:[30,38], weak:[29,35], standing:{1:[38]},
+     why:{30:"the convenience copy existed because nothing tracked or limited where intake data could be exported", 38:"auto-lock, enforced device encryption and remote wipe are exactly what this laptop lacked"}},
   4:{partial:[31], weak:[29], why:{31:"the owner role is a privileged account and nobody managed it as one"}},
   5:{partial:[30,33], weak:[32,34], why:{30:"knowing which services hold student data is a data inventory, not an asset list", 33:"the superintendent improvising with a reporter is what an exercise would have replaced"}},
   6:{strong:[29], partial:[32], weak:[34], why:{29:"debug left on and a parameter that skips login are application security failures, precisely CIS 16", 32:"an external scan would have flagged the end-of-life framework and the exposed debug page"}},
-  7:{partial:[30], weak:[31,32], why:{30:"loss-prevention rules can flag a paralegal opening matters she does not work on"}},
+  7:{partial:[30], weak:[31,32,38], standing:{1:[38]}, why:{30:"loss-prevention rules can flag a paralegal opening matters she does not work on"}},
   8:{partial:[32], weak:[29,31], why:{32:"a network scan finds devices nobody listed and the telnet ports they leave open"}},
   9:{partial:[32], weak:[29], why:{32:"scanning would have shown the donor portal facing the internet long before anyone else found it"}},
   10:{partial:[30], weak:[29,34], why:{30:"212 scanned cheques sat in a mailbox because nothing said what data belonged there or for how long"}},
-  11:{strong:[31], partial:[35,33], weak:[29,32], why:{31:"the AD group that owns the hypervisors is privileged access, and nothing gated who could join it", 35:"a VPN that checked the connecting device would have refused the attacker's laptop", 33:"a help-desk reset pretext is exactly what a tabletop exercise rehearses"}},
+  11:{strong:[31], partial:[35,33,38], weak:[29,32], why:{31:"the AD group that owns the hypervisors is privileged access, and nothing gated who could join it", 35:"a VPN that checked the connecting device would have refused the attacker's laptop", 33:"a help-desk reset pretext is exactly what a tabletop exercise rehearses", 38:"a device-compliance check needs managed devices to check; an unknown laptop would have failed it"}},
   12:{strong:[29], partial:[30,31], weak:[34,35], why:{29:"secret scanning and push protection on the repository are CIS 16; this is the card the base deck lacked", 30:"the raw-reprocess bucket is a data inventory failure", 31:"a CI user with AdministratorAccess is an unmanaged privileged identity"}},
   13:{partial:[32,35,33,31], why:{32:"external scanning tells you that you are exposed; it does not patch anything", 35:"replacing the appliance with brokered access is the long fix, not this week's", 33:"an emergency change path that has never been exercised is not a path", 31:"thirty-one Domain Admins is a privileged-access finding before it is anything else"}},
   14:{partial:[30], weak:[35,34,29], why:{30:"member loan files reachable by any consented app is a data-protection gap"}},
   s2:{partial:[30], why:{30:"you cannot say which referrals were in the sample without knowing what lived where"}},
   s4:{partial:[32], why:{32:"a scan would have found the abandoned plugin before the defacer did"}},
   s6:{partial:[31], why:{31:"a hosting panel held by one outsider is privileged access nobody managed"}},
-  s7:{strong:[30], why:{30:"blocking client files from leaving to personal mail is what data loss prevention is for"}},
+  s7:{strong:[30], partial:[38], why:{30:"blocking client files from leaving to personal mail is what data loss prevention is for", 38:"a separate work profile on her devices keeps client files out of personal apps"}},
   s8:{partial:[34], why:{34:"an allowlisted circulation PC refuses an encryptor it has never seen"}},
   s9:{strong:[32], why:{32:"an external scan finds the portal and its version banner before the internet does"}},
   s11:{partial:[30], why:{30:"knowing where driver HR files lived would scope what was taken"}},
@@ -653,6 +657,7 @@ const EXPANSION_KEYS = {
   g1:{strong:[32], why:{32:"scanning tells you which firmware is exposed the day the advisory lands"}},
   g3:{partial:[31,35], why:{31:"a supplier's standing login is privileged access you can broker and revoke", 35:"per-session supplier access ends when the session does"}},
   g4:{strong:[30], why:{30:"outbound data-loss rules catch a spreadsheet of client records going to an unknown address"}},
+  x1:{partial:[38], why:{38:"device management can push browser policy that removes an extension everywhere at once"}},
 };
 
 /* Delayed threats for later engagements, once a scenario's own has landed.
@@ -710,7 +715,10 @@ const withExpansion = (key, extra) => !key || !extra ? key : {...key,
   strong:[...key.strong, ...(extra.strong||[])],
   partial:[...key.partial, ...(extra.partial||[])],
   weak:[...(key.weak||[]), ...(extra.weak||[])],
-  why:{...(key.why||{}), ...(extra.why||{})}};
+  why:{...(key.why||{}), ...(extra.why||{})},
+  // `standing` adds expansion cards that also address a standing risk, by risk id
+  ...(extra.standing && key.standing ? {standing:key.standing.map(r=>
+    extra.standing[r.id] ? {...r, cards:[...r.cards, ...extra.standing[r.id]]} : r)} : {})};
 /* Every place that scores or deals reads keys through these two. */
 const scenFor = (cfg) => {
   const s = scenarioById(cfg?.scenarioId);
@@ -821,7 +829,7 @@ const SEATS_PER_TEAM = 4;
    constraint and only the budget is. */
 const DEAL_SIZES = [8,10,12,14];
 const TIER_MIX = {8:{F:6,E:1,A:1}, 10:{F:7,E:2,A:1}, 12:{F:8,E:2,A:2}, 14:{F:9,E:3,A:2}};
-/* The expansion deck is 14 Foundational, 10 Extended, 4 Advanced. */
+/* The expansion deck is 14 Foundational, 11 Extended, 4 Advanced. */
 const TIER_MIX_EXP = {8:{F:5,E:2,A:1}, 10:{F:6,E:3,A:1}, 12:{F:7,E:3,A:2}, 14:{F:8,E:4,A:2}};
 /* Delayed threats stack, but a budget cannot stretch over more than this. */
 const MAX_INJECTS = 3;
