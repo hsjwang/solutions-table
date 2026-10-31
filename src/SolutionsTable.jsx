@@ -57,7 +57,7 @@ const URL_CONDITION = (()=>{
     ? "control" : null; }catch{ return null; }
 })();
 
-const BUILD = "2026-10-30.expansion2";
+const BUILD = "2026-10-30.safeguards";
 
 const MONO = "ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace";
 const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -103,6 +103,31 @@ const EXP_SOLUTIONS = [
   [35,"Zero Trust Remote Access",3,"A","CIS 12, 13 (12.7, 13.5)"],
   [38,"Mobile & Endpoint Device Management",2,"E","CIS 3, 4 (3.6, 4.3, 4.10–4.12)"],
 ].map(([id,name,cost,tier,ctrl])=>({id,name,cost,tier,ctrl,exp:true}));
+
+/* Safeguard pool, on top of the expansion. Single CIS safeguards that no
+   control card lists, chosen because a scenario turns on them — so a team can
+   never buy the same defense twice under two names. Each costs 1 and refines a
+   parent control: it can only be bought while the team owns, or is buying this
+   round, one of `parents`. An organization does not review logs it does not
+   collect. Keys score these as partial unless the threat turns on that exact
+   safeguard, so a row of cheap safeguards cannot outscore a real control. */
+const SAFEGUARDS = [
+  [39,"Audit Log Retention","8.10",[15],"Keep audit logs for at least 90 days."],
+  [40,"Audit Log Review","8.11",[15,20],"Someone reviews the logs, weekly or better, for anomalies."],
+  [41,"Network Flow Logging","13.6",[15,18],"Record which devices talked to which, and how much."],
+  [42,"Port-Level Access Control","13.9",[18],"Devices must authenticate before a network port lets them on (802.1X)."],
+  [43,"Network Infrastructure Updates","12.1",[1],"Routers, firewalls and VPN appliances run supported, current firmware."],
+  [44,"Secure Network Device Management","12.3",[11],"Management interfaces off the internet, defaults changed, UPnP off."],
+  [45,"Dedicated Admin Workstations","12.8",[31,4],"Administration happens only from machines used for nothing else."],
+  [46,"Remove Unnecessary Services","4.8",[11],"Debug modes, remote tools and open ports nobody needs are switched off."],
+  [47,"Data Retention","3.4",[30,14],"Data is deleted when it is no longer needed, on a written schedule."],
+  [48,"Service Provider Assessment","15.5",[17],"Providers are assessed (SOC 2, questionnaires) before and during the contract."],
+  [49,"Service Provider Offboarding","15.7",[17],"When a provider leaves, accounts, keys and data come back or are destroyed."],
+  [50,"Incident Communication Plan","17.6",[13],"Who tells whom, through which channel, during an incident."],
+  [51,"Incident Severity Thresholds","17.9",[13],"Written thresholds for what counts as an incident and who is woken up."],
+  [52,"Third-Party Component Updates","16.5",[29],"Dependencies are current, pinned and from trusted sources."],
+].map(([id,name,sg,parents,blurb])=>({id,name,cost:1,tier:"S",ctrl:`CIS ${sg}`,sg,parents,blurb,safeguard:true}));
+const SAFEGUARD_DEAL = 4;
 const isControl = (id) => SOLUTIONS.some(c=>c.id===id) || EXP_SOLUTIONS.some(c=>c.id===id);
 
 /* Where a beginner can read the control before buying it. One public page per
@@ -660,6 +685,40 @@ const EXPANSION_KEYS = {
   x1:{partial:[38], why:{38:"device management can push browser policy that removes an extension everywhere at once"}},
 };
 
+/* How the safeguard pool scores, merged on top of the expansion keys when the
+   pool is on. Strong only where the scenario turns on that exact safeguard. */
+const SAFEGUARD_KEYS = {
+  2:{partial:[50], why:{50:"someone has to tell nine hundred patients why Monday's appointments are gone"}},
+  3:{partial:[47], why:{47:"a retention rule would have said the offline intake copy should not exist"}},
+  4:{partial:[40], why:{40:"the sign-in from another state was in a log nobody opened"}},
+  5:{strong:[48], partial:[50], why:{48:"nobody asked the vendor for a SOC 2 report; assessing providers is this safeguard exactly", 50:"the superintendent is the only spokesperson and learned from a reporter"}},
+  6:{strong:[46], partial:[49], why:{46:"debug mode and a login-skipping parameter are services nobody needed left switched on", 49:"the contractor left with the only key and the hosting account in his name"}},
+  7:{strong:[39], partial:[40], why:{39:"view history kept thirty days cannot answer a question about a filing drafted six weeks ago", 40:"a paralegal opening matters outside her caseload is what a review notices"}},
+  8:{strong:[41], partial:[42,44,46], why:{41:"traffic at three in the morning was found once by luck; flow logs make it routine", 42:"a camera that must authenticate to get a port is not quietly on the network", 44:"UPnP opened the port forwards by itself", 46:"telnet left listening is a service nobody needed"}},
+  10:{partial:[47,50], why:{47:"four years of scanned cheques is a retention decision nobody made", 50:"four thousand donors need one clear message"}},
+  11:{partial:[40,45,48], why:{40:"the group change was logged; nothing was reading", 45:"hypervisor administration from a dedicated machine is harder to reach from a stolen VPN session", 48:"the MSP's identity check was never assessed"}},
+  12:{partial:[40,47], why:{40:"CloudTrail held thirty-one hours of evidence nobody reviewed", 47:"the raw-reprocess bucket outlived the migration it was made for"}},
+  13:{strong:[43], partial:[44,51,39,45], why:{43:"keeping the VPN appliance on current firmware is this safeguard exactly", 44:"a management interface on the internet widened the target", 51:"a written threshold says a new Domain Admin on Saturday wakes someone up", 39:"seven days of appliance logs may not reach back to first access", 45:"thirty-one Domain Admins administering from everyday machines"}},
+  14:{partial:[40], why:{40:"a weekly review of new app consents would have found this in days, not three weeks"}},
+  15:{strong:[52], partial:[41], why:{52:"pinned, reviewed dependency updates are this safeguard exactly", 41:"a build runner posting to a paste site is a flow nobody expected"}},
+  16:{partial:[47,50], why:{47:"a retention schedule limits how much data any one export can expose", 50:"participants, the partner and the IRB each need to hear it from you first"}},
+  17:{partial:[42,46], why:{42:"an engineering workstation port that authenticates devices limits who can sit next to the PLCs", 46:"three remote tools nobody approved are services to remove"}},
+  s1:{partial:[40], why:{40:"the payout change was in the platform's log"}},
+  s2:{partial:[47,50], why:{47:"referrals kept past their use are referrals that can leak", 50:"patients should not learn about this from a leak site"}},
+  s5:{strong:[50], why:{50:"warning parents faster than the texts spread is a communication plan, nothing else"}},
+  s6:{strong:[49], why:{49:"offboarding the contractor properly would have moved the hosting account and revoked his access"}},
+  s9:{partial:[46], why:{46:"a port-forward to a portal nobody needs exposed is an unnecessary service"}},
+  s10:{partial:[50], why:{50:"donors need to know which page is real, quickly"}},
+  s11:{partial:[50], why:{50:"drivers deserve to hear from the company before the extortionist publishes"}},
+  s12:{partial:[40], why:{40:"CreateUser and CreateFunction calls stand out in a review"}},
+  s15:{partial:[50], why:{50:"three thousand merchants need instructions before the next update"}},
+  s16:{partial:[47], why:{47:"less retained data means less in any cached copy"}},
+  s17:{partial:[48,49], why:{48:"an assessment would have asked how the contractor stores your credentials", 49:"credentials returned or rotated when technicians change are not in the vault"}},
+  g1:{strong:[43], partial:[44], why:{43:"current firmware on the edge device is the direct answer to a known-exploited advisory", 44:"remote management turned off shrinks the exposure while you patch"}},
+  g2:{partial:[40], why:{40:"a thousand failed sign-ins an hour is obvious to anyone reviewing"}},
+  g3:{partial:[48,49], why:{48:"assessing the bookkeeping firm would have asked how it protects your login", 49:"a supplier login that ends with the engagement cannot be used after it"}},
+};
+
 /* Delayed threats for later engagements, once a scenario's own has landed.
    Generic enough to fit any client in the library. */
 const GENERIC_INJECTS = [
@@ -719,15 +778,20 @@ const withExpansion = (key, extra) => !key || !extra ? key : {...key,
   // `standing` adds expansion cards that also address a standing risk, by risk id
   ...(extra.standing && key.standing ? {standing:key.standing.map(r=>
     extra.standing[r.id] ? {...r, cards:[...r.cards, ...extra.standing[r.id]]} : r)} : {})};
+/* The safeguard pool only exists on top of the expansion: most safeguards
+   refine an expansion card or sit beside one. */
+const safeguardsOn = (cfg) => expansionOn(cfg) && !!cfg?.safeguards;
 /* Every place that scores or deals reads keys through these two. */
+const extendKey = (key, k, cfg) => {
+  if (!expansionOn(cfg)) return key;
+  const x = withExpansion(key, EXPANSION_KEYS[k]);
+  return safeguardsOn(cfg) ? withExpansion(x, SAFEGUARD_KEYS[k]) : x;
+};
 const scenFor = (cfg) => {
   const s = scenarioById(cfg?.scenarioId);
-  return expansionOn(cfg) ? withExpansion(s, EXPANSION_KEYS[s?.id]) : s;
+  return extendKey(s, s?.id, cfg);
 };
-const injectFor = (id, cfg) => {
-  const x = injectById(id);
-  return expansionOn(cfg) ? withExpansion(x, EXPANSION_KEYS[id]) : x;
-};
+const injectFor = (id, cfg) => extendKey(injectById(id), id, cfg);
 /* The next delayed threat for a team: the scenario's own first, then the pool
    in order, so every team in the room gets the same one. */
 const nextInjectFor = (scen, have=[], cfg) => {
@@ -838,7 +902,10 @@ const teamKey = (n) => `game:team:${n}`;
 /* Expansion cards always resolve, so a saved hand still renders after the
    facilitator switches the expansion off. */
 const card = (id) => SOLUTIONS.find(c=>c.id===id) || EXP_SOLUTIONS.find(c=>c.id===id)
+  || SAFEGUARDS.find(c=>c.id===id)
   || MODIFIERS.find(c=>c.id===id) || EXP_MODIFIERS.find(c=>c.id===id);
+/* A safeguard is buyable while one of its parent controls is held. */
+const parentHeld = (c, held=[]) => !c?.safeguard || c.parents.some(p=>held.includes(p));
 
 /* The claim code is stored as a SHA-256 hash so reading the shared database
    does not reveal it. The database rules are what actually enforce the role;
@@ -858,7 +925,7 @@ const blankTeam = (n) => ({
   recommendation:"", ownerUid:null,
   engagement:1, everBought:[], drift:0, realized:null, lastVerdict:null,
   standingPos:{}, standingIgnored:0, budgetOverride:null,
-  injects:[], preWhy:"", postWhy:"",
+  injects:[], preWhy:"", postWhy:"", sgHand:[],
   updatedAt:0,
 });
 
@@ -1199,6 +1266,7 @@ function HelpPanel({onClose}){
               {[["Foundational","1 point","Basic hygiene. Most of the deck."],
                 ["Extended","2 points","Needs someone to run it."],
                 ["Advanced","3 points","Half your budget. Rarely the right first move."],
+                ["Safeguards","1 point","Practitioner pool only. One narrow CIS safeguard; needs its parent control."],
                 ["Modifiers","free","A principle, not a control. Must be justified."]].map(r=>(
                 <tr key={r[0]}>
                   <td style={{padding:"3px 10px 3px 0",fontWeight:600,whiteSpace:"nowrap"}}>{r[0]}</td>
@@ -1571,6 +1639,15 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
   const [roleMsg,setStatusLocal] = useState("");
   // Outcome of the last board-wide action, shown under the phase controls.
   const [note,setStatus] = useState("");
+  const deckMode = cfg?.expansion ? (cfg?.safeguards ? "sg" : "exp") : "base";
+  /* Switching the safeguard pool on or off moves the budget by two, so the
+     extra ways to spend come with something to spend. */
+  const setDeck = (mode)=>{
+    const next = {expansion:mode!=="base", safeguards:mode==="sg"};
+    const was = safeguardsOn(cfg), will = safeguardsOn({...cfg, ...next});
+    const b = cfg?.budget ?? 6;
+    saveCfg({...next, budget: was===will ? b : will ? b+2 : Math.max(3, b-2)});
+  };
   const grid = gridOf(cfg);
   const dealSize = DEAL_SIZES.includes(cfg?.dealSize) ? cfg.dealSize : 8;
   // once any team has acted, the arm is fixed for the rest of the session
@@ -1591,7 +1668,9 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
     setOrg(x.org); setScenario(x.text);
     // Pre-built scenarios supply the threat model, so lock it. Teams that join
     // later read it from the scenario rather than needing it written to them.
-    await saveCfg({scenarioId:x.id, org:x.org, scenario:x.text, budget:x.budget,
+    // The safeguard pool adds ways to spend without adding points, so it adds two.
+    await saveCfg({scenarioId:x.id, org:x.org, scenario:x.text,
+      budget:x.budget + (safeguardsOn({...cfg, scenarioId:x.id}) ? 2 : 0),
       phase:"p1", timerEnd:null, threatLocked:true});
     for (const n of ids){
       const t = teams[n]; if(!t?.joined) continue;
@@ -1654,27 +1733,46 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
     return {hand: sample(all, all.length), short};
   };
 
+  /* The safeguard row: four cards, at least one relevant to the scenario or a
+     delayed threat in play. A relevant safeguard whose parent is in the hand or
+     already owned is preferred, so the guarantee is one a team can act on. */
+  const buildSafeguards = (owned, scen, hand, injects=[])=>{
+    const pool = SAFEGUARDS.map(s=>s.id).filter(id=>!owned.includes(id));
+    const keys = [scen, ...injects].filter(Boolean);
+    const relevant = pool.filter(id=>keys.some(k=>k.strong.includes(id) || k.partial.includes(id)));
+    const reachable = relevant.filter(id=>parentHeld(card(id), [...hand, ...owned]));
+    const must = sample(reachable.length ? reachable : relevant, 1);
+    const all = [...must, ...sample(pool.filter(id=>!must.includes(id)), SAFEGUARD_DEAL-must.length)];
+    return sample(all, all.length);
+  };
+
   const dealAll = async ()=>{
     const scen = scenFor(cfg);
     const shared = cfg?.sameDeal !== false;
+    const withSg = safeguardsOn(cfg);
     const injectsOf = (t)=>(t?.injects||[]).map(x=>injectFor(x.id, cfg)).filter(Boolean);
     // Teams advance together, so they share delayed threats; use the union.
     const roomInjects = Array.from(new Set(ids.flatMap(n=>teams[n]?.joined ? (teams[n].injects||[]).map(x=>x.id) : [])))
-      .map(injectById).filter(Boolean);
+      .map(id=>injectFor(id, cfg)).filter(Boolean);
     const common = shared ? buildHand([], scen, dealSize, roomInjects) : null;
+    const commonSg = shared && withSg ? buildSafeguards([], scen, common.hand, roomInjects) : [];
     const commonMods = shared ? sample(modsOf(cfg).map(m=>m.id),3) : null;
     const shortBy = [];
     for (const n of ids){
       const t = teams[n]; if(!t?.joined) continue;
       const owned = t.everBought||[];
       // an identical deal still has to skip cards a team already installed
-      const dealt = shared && !owned.length ? common : buildHand(owned, scen, dealSize, injectsOf(t));
+      const same = shared && !owned.length;
+      const dealt = same ? common : buildHand(owned, scen, dealSize, injectsOf(t));
+      const sgHand = !withSg ? [] : same ? commonSg : buildSafeguards(owned, scen, dealt.hand, injectsOf(t));
       if (dealt.short.length) shortBy.push(`${t.name} (${dealt.short.join(", ")})`);
-      await saveTeam(n,{hand:dealt.hand, modHand: shared ? commonMods : sample(modsOf(cfg).map(m=>m.id),3),
+      await saveTeam(n,{hand:dealt.hand, sgHand,
+        modHand: shared ? commonMods : sample(modsOf(cfg).map(m=>m.id),3),
         purchases:[], modifiers:[]});
     }
     setStatus((shared ? `Dealt — every team has the same ${dealSize} cards.`
                       : `Dealt — ${dealSize} cards each, varying by team.`)
+      + (withSg ? ` Plus ${SAFEGUARD_DEAL} safeguards each.` : "")
       + (shortBy.length ? ` Guarantee not met for ${shortBy.join("; ")}: the scenario's key names too few control cards of that kind, or the team already owns them.` : ""));
   };
   const pending = [];
@@ -1828,7 +1926,7 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
       "verdict","standing_ignored","threat_method","threat_impact","threat_resource","threat_motive","pre_likelihood","pre_severity","post_likelihood",
       "post_severity","budget","spent","purchases","ever_purchased","modifiers_accepted","residual","debrief_1","debrief_2","debrief_3","carry_forward","recommendation",
       "grid_size","deal_size","detail","hand","pre_why","post_why","new_threats","new_threat_positions","realized_threats",
-      "expansion"]];
+      "expansion","safeguards","safeguard_hand","safeguards_purchased"]];
     ids.forEach(n=>{
       const t=teams[n]; if(!t?.joined) return;
       const spent=(t.purchases||[]).reduce((s,id)=>s+(card(id)?.cost||0),0);
@@ -1853,7 +1951,9 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
         (t.injects||[]).map(x=>injectById(x.id)?.title||x.id).join("; "),
         (t.injects||[]).map(x=>`${injectById(x.id)?.title||x.id}: ${at(x.pre)||"unplaced"} -> ${at(x.post)||"unplaced"}`).join("; "),
         (t.realized?.threats||[]).join("; "),
-        expansionOn(cfg) ? "on" : "off"]);
+        expansionOn(cfg) ? "on" : "off", safeguardsOn(cfg) ? "on" : "off",
+        (t.sgHand||[]).map(id=>card(id)?.name).join("; "),
+        (t.purchases||[]).filter(id=>card(id)?.safeguard).map(id=>card(id)?.name).join("; ")]);
     });
     const csv = rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
@@ -1928,11 +2028,13 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
 
         <Section title="Scenario">
           <div style={{marginBottom:11}}>
-            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Expansion deck</label>
+            <label style={{fontFamily:MONO,fontSize:12.5,color:C.muted}}>Deck</label>
             <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
-              {[[false,"Off — base 21 cards"],[true,`On — +${EXP_SOLUTIONS.length} controls, +${EXP_MODIFIERS.length} modifiers`]].map(([v,lbl])=>(
-                <button key={String(v)} disabled={busy} onClick={()=>saveCfg({expansion:v})}
-                  style={{...btn(!!cfg?.expansion===v?"primary":"ghost"),fontSize:13}}>{lbl}</button>
+              {[["base","Base — 21 cards"],
+                ["exp",`Expansion — +${EXP_SOLUTIONS.length} controls, +${EXP_MODIFIERS.length} modifiers`],
+                ["sg",`Expansion + ${SAFEGUARDS.length} safeguards`]].map(([v,lbl])=>(
+                <button key={v} disabled={busy} onClick={()=>setDeck(v)}
+                  style={{...btn(deckMode===v?"primary":"ghost"),fontSize:13}}>{lbl}</button>
               ))}
             </div>
             <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:6}}>
@@ -1941,8 +2043,15 @@ function Facilitator({cfg,teams,ids,saveCfg,saveTeam,busy,clientId,onExit,onRecl
                     three scenarios (15–17); and two more delayed threats. Every base scenario's key scores
                     the new cards. Applies from the next deal.
                     {!cfg?.expansion && <span style={{color:C.brass}}> On because the loaded scenario needs it.</span>}</>
-                : "Off keeps the deck identical to earlier sessions. Turn it on for practitioner rooms."}
+                : "Base keeps the deck identical to earlier sessions. Use an expansion for practitioner rooms."}
             </p>
+            {safeguardsOn(cfg) && (
+              <p style={{fontFamily:MONO,fontSize:12.5,color:C.muted,lineHeight:1.6,marginTop:4}}>
+                Each team also gets a row of {SAFEGUARD_DEAL} safeguards — single CIS safeguards no card
+                covers, 1 point each, bought from the same budget. A safeguard needs its parent
+                control owned or bought this round. Budget is +2 while the pool is on.
+              </p>
+            )}
           </div>
           <div style={{display:"flex",gap:7,marginBottom:8,flexWrap:"wrap"}}>
             <select value={pick} onChange={e=>setPick(Number(e.target.value))} style={{flex:"1 1 180px"}}>
@@ -2660,10 +2769,18 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
     </div>
   );
 
+  const held = [...(t.purchases||[]), ...(t.everBought||[])];
   const toggleBuy = (id)=>{
     const c = card(id);
     const has = (t.purchases||[]).includes(id);
-    if(has) return saveTeam(teamN,{purchases:t.purchases.filter(x=>x!==id)});
+    if(has){
+      // A safeguard cannot outlive the control it refines; returning the
+      // parent returns its safeguards too.
+      const left = t.purchases.filter(x=>x!==id);
+      const still = [...left, ...(t.everBought||[])];
+      return saveTeam(teamN,{purchases:left.filter(x=>parentHeld(card(x), still))});
+    }
+    if(!parentHeld(c, held)) return;
     if(spent + c.cost > cap) return;
     saveTeam(teamN,{purchases:[...(t.purchases||[]),id]});
   };
@@ -2978,6 +3095,33 @@ function Player({cfg,teams,ids,teamN,setTeamN,saveTeam,busy,clientId,onExit}){
                     onClick={()=>toggleBuy(id)} note={bought?"bought":unaffordable?"not enough left":null}/>;
                 })}
               </div>
+
+              {(t.sgHand||[]).length>0 && (
+                <div style={{marginBottom:20}}>
+                  <div style={{fontFamily:MONO,fontSize:12.5,letterSpacing:".08em",
+                    textTransform:"uppercase",color:C.solution}}>Safeguards — deepen a control you hold</div>
+                  <p style={{fontSize:14,lineHeight:1.6,color:C.muted,margin:"5px 0 9px"}}>
+                    One narrow CIS safeguard each, 1 point from the same budget. A safeguard only
+                    works inside its parent control, so you need that control already installed or
+                    bought this round. Returning the parent returns its safeguards.
+                  </p>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(215px,1fr))",gap:8}}>
+                    {(t.sgHand||[]).map(id=>{
+                      const c=card(id); const bought=(t.purchases||[]).includes(id);
+                      const ok = parentHeld(c, held);
+                      const unaffordable = !bought && spent + c.cost > cap;
+                      const parents = c.parents.map(p=>card(p)?.name).join(" or ");
+                      return <CardTile key={id} c={c} state={bought?"bought":""}
+                        links={showLinks ? cardLinks(c) : []}
+                        disabled={(!bought && !ok) || unaffordable || !isOwner}
+                        onClick={()=>toggleBuy(id)}
+                        note={bought ? `bought · refines ${parents}`
+                          : !ok ? `needs ${parents} first`
+                          : unaffordable ? "not enough left" : `${c.blurb}`}/>;
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div style={{border:`1px solid ${C.solution}`,borderRadius:4,
                 background:"rgba(124,95,168,.08)",padding:"10px 12px",marginBottom:10}}>

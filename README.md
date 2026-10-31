@@ -344,9 +344,10 @@ the rows. **CSVs exported before this change have those four columns mislabeled.
 
 ### Expansion deck (optional)
 
-A separate toggle in the facilitator's *Scenario* section. **Off by default**, and
-off leaves the deck, keys, modifiers and delayed threats identical to earlier
-sessions — use it off whenever the data must compare with the study.
+A three-way **Deck** setting in the facilitator's *Scenario* section: **Base**,
+**Expansion**, or **Expansion + safeguards**. **Base is the default**, and it leaves
+the deck, keys, modifiers and delayed threats identical to earlier sessions — use
+it whenever the data must compare with the study.
 
 When on, it adds:
 
@@ -369,11 +370,48 @@ scenario 3, for example). The deck becomes 14 Foundational, 11 Extended and
 `expansion` column.
 
 **Coverage.** With the expansion on, every one of the 18 CIS Controls has at least
-one card. Gaps remain at the safeguard level. These were considered and deferred
-until a practitioner playtest shows whether teams actually miss them: network
-device hardening (12.1, 12.3, 12.6, 12.8), third-party risk monitoring
-(15.2, 15.3, 15.5–15.7), data retention and disposal (3.4, 3.5), and network
-intrusion detection and access control (13.3, 13.6, 13.9).
+one card. The remaining gaps are at the safeguard level, which is what the
+safeguard pool is for.
+
+### Safeguard pool (Expansion + safeguards)
+
+Single CIS safeguards that **no control card lists**, so a team can never buy the
+same defense twice under two names. Each team gets a separate row of
+**4 safeguard cards** beside its control hand, at least one relevant to the
+scenario or a delayed threat in play (preferring one whose parent the team can
+actually get). Safeguards cost **1 point** from the same budget, and turning the
+pool on adds **+2 to the budget** (turning it off takes them back).
+
+**Each safeguard refines a parent control** and can only be bought while the team
+owns that control or is buying it this round. Returning the parent returns its
+safeguards. An organization does not review logs it does not collect.
+
+| Safeguard | CIS | Parent |
+|---|---|---|
+| Audit Log Retention | 8.10 | Audit Logging & SIEM |
+| Audit Log Review | 8.11 | Audit Logging & SIEM or Managed Detection & Response |
+| Network Flow Logging | 13.6 | Audit Logging & SIEM or Network Segmentation |
+| Port-Level Access Control | 13.9 | Network Segmentation |
+| Network Infrastructure Updates | 12.1 | Software Updates |
+| Secure Network Device Management | 12.3 | Secure Configuration |
+| Dedicated Admin Workstations | 12.8 | Privileged Access Management or Identity & Access Management |
+| Remove Unnecessary Services | 4.8 | Secure Configuration |
+| Data Retention | 3.4 | Data Inventory & Loss Prevention or Encryption |
+| Service Provider Assessment | 15.5 | Third-Party & Contractual |
+| Service Provider Offboarding | 15.7 | Third-Party & Contractual |
+| Incident Communication Plan | 17.6 | Incident Response Planning |
+| Incident Severity Thresholds | 17.9 | Incident Response Planning |
+| Third-Party Component Updates | 16.5 | Application & Pipeline Security |
+
+**Scoring is capped.** Safeguard keys (`SAFEGUARD_KEYS` in the source) score a
+safeguard as partial, and as strong only where the scenario turns on that exact
+safeguard — for example 8.10 in *The Trusted Paralegal*, where thirty days of
+history cannot answer a question about a filing drafted six weeks ago. Nine such
+cases exist. A row of cheap safeguards therefore cannot outscore a real control.
+
+Still not covered by any card or safeguard, deferred until a playtest says they
+are missed: 12.6, 13.3, 15.2, 15.3, 15.6 and 3.5. The export gains `safeguards`,
+`safeguard_hand` and `safeguards_purchased` columns.
 
 **Safeguard numbers on base cards** were corrected in the same release, without
 changing any key: Social Engineering Awareness now lists 14.1–14.6, Backup &
